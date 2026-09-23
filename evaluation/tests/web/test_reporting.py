@@ -239,6 +239,8 @@ def test_accepts_evidence_for_the_scopes_each_arm_registered(tmp_path: Path) -> 
         ("on", {"scope_id": "eval:run-123:off"}),
         ("on", {"scope_id": "scp_on", "scope_key": "eval:run-123:off"}),
         ("on", {"scope_id": "scp_on", "scope_key": "eval:other:on"}),
+        # An empty key is malformed, not evidence recorded before arms registered their own Scope.
+        ("on", {"scope_key": ""}),
     ],
 )
 def test_rejects_incoherent_treatment_evidence(tmp_path: Path, arm: str, update: dict[str, object]) -> None:

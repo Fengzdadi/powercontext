@@ -402,7 +402,7 @@ class TreatmentEvidence(FrozenModel):
     plugin_installed: bool
     plugin_version: str
     scope_id: str
-    scope_key: str | None = None
+    scope_key: Annotated[str, Field(min_length=1)] | None = None
     server_ready: bool
 
 

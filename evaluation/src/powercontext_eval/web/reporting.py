@@ -250,7 +250,7 @@ def _validate_evidence(
             and item.plugin_installed
             and item.server_ready
             # Evidence recorded before arms registered their own Scope carries the key as its Scope ID.
-            and (item.scope_key or item.scope_id) == scope_key(run_id, arm)
+            and (item.scope_key if item.scope_key is not None else item.scope_id) == scope_key(run_id, arm)
         )
         activity = (
             item.prompt_sources == 0 and item.mcp_requests == 0
