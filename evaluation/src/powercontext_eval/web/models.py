@@ -402,6 +402,7 @@ class TreatmentEvidence(FrozenModel):
     plugin_installed: bool
     plugin_version: str
     scope_id: str
+    scope_key: str | None = None
     server_ready: bool
 
 
