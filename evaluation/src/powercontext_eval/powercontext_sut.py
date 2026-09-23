@@ -67,7 +67,7 @@ from powercontext_eval.codex import (
     is_safe_codex_model,
 )
 from powercontext_eval.errors import CommandError, CommandFailed, CommandTimedOut, PowerContextEvalError
-from powercontext_eval.models import Arm, scope_key
+from powercontext_eval.models import Arm, arm_scope_key
 from powercontext_eval.process import CommandResult, ProcessRunner
 from powercontext_eval.tokensflow import (
     DrainDeadline,
@@ -233,6 +233,7 @@ class ReadinessFailureReason(StrEnum):
     SERVER_NOT_READY = "server_not_ready"
     MALFORMED_RESPONSE = "malformed_response"
     PROBE_FAILED = "probe_failed"
+    SCOPE_NOT_CREATED = "scope_not_created"
 
 
 _READINESS_FAILURE_SUMMARIES = MappingProxyType(
@@ -241,6 +242,7 @@ _READINESS_FAILURE_SUMMARIES = MappingProxyType(
         ReadinessFailureReason.SERVER_NOT_READY: "PowerContext Server remained not ready before the deadline.",
         ReadinessFailureReason.MALFORMED_RESPONSE: "PowerContext Server returned malformed readiness evidence.",
         ReadinessFailureReason.PROBE_FAILED: "PowerContext readiness probe failed.",
+        ReadinessFailureReason.SCOPE_NOT_CREATED: "PowerContext Server did not create the arm Scope.",
     }
 )
 
@@ -478,7 +480,7 @@ def validate_treatment(
         and evidence.plugin_checkout_sha == expected_checkout_sha
         and evidence.server_ready
         and evidence.scope_id == expected_scope_id
-        and evidence.scope_key == scope_key(run_id, arm)
+        and evidence.scope_key == arm_scope_key(run_id, arm)
     )
     activity = (
         evidence.prompt_sources >= 1 if arm is Arm.ON else evidence.prompt_sources == 0 and evidence.mcp_requests == 0
@@ -2601,7 +2603,7 @@ class DockerSut:
                     "/runtime/pc-env/bin/python",
                     "-c",
                     _SCOPE_CREATION_SCRIPT,
-                    scope_key(config.run_id, arm),
+                    arm_scope_key(config.run_id, arm),
                     "create-scope",
                 ),
                 cwd=paths.runtime,
@@ -2611,7 +2613,8 @@ class DockerSut:
             if not isinstance(scope_id, str) or not scope_id.strip():
                 raise TypeError
         except (CommandError, json.JSONDecodeError, KeyError, TypeError) as error:
-            raise InvalidTreatment("PowerContext Scope could not be created for the arm") from error
+            # Like readiness, a Scope that the Server did not create is a retryable setup failure.
+            raise ReadinessFailure(ReadinessFailureReason.SCOPE_NOT_CREATED) from error
         return scope_id
 
     def _verify_codex_version(self, container: str, paths: ArmPaths, store: ArtifactStore) -> None:
@@ -2720,7 +2723,7 @@ class DockerSut:
             prompt_sources=prompt_sources,
             mcp_requests=mcp_requests,
             scope_id=scope,
-            scope_key=scope_key(config.run_id, arm),
+            scope_key=arm_scope_key(config.run_id, arm),
         )
 
 

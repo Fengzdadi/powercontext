@@ -2668,7 +2668,7 @@ def test_codex_runs_in_the_scope_the_server_created_for_the_arm(tmp_path: Path) 
     assert treatment["scope_key"] == "eval:run-1:on"
 
 
-def test_arm_fails_closed_before_codex_when_the_scope_cannot_be_created(tmp_path: Path) -> None:
+def test_arm_fails_retryably_before_codex_when_the_scope_cannot_be_created(tmp_path: Path) -> None:
     class ScopeCreationFailureDocker(TranscriptDocker):
         def run(self, argv: tuple[str, ...], **kwargs: object) -> CommandResult:
             if "create-scope" in argv:
@@ -2682,11 +2682,12 @@ def test_arm_fails_closed_before_codex_when_the_scope_cannot_be_created(tmp_path
     config.uv_binary.write_text("binary")
     docker = ScopeCreationFailureDocker()
 
-    with pytest.raises(InvalidTreatment, match="Scope could not be created"):
+    with pytest.raises(ReadinessFailure) as captured:
         DockerSut(docker, relay_factory=FakeRelay).run_arm(
             config, Arm.ON, paths, b"prompt", ArtifactStore(paths.result_root)
         )
 
+    assert captured.value.reason is ReadinessFailureReason.SCOPE_NOT_CREATED
     assert codex_scope_ids(docker.commands) == []
 
 

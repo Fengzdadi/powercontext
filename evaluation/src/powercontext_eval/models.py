@@ -28,7 +28,7 @@ class Arm(StrEnum):
     ON = "on"
 
 
-def scope_key(run_id: str, arm: Arm) -> str:
+def arm_scope_key(run_id: str, arm: Arm) -> str:
     """Return the key that identifies the Scope registered for one run arm."""
 
     return f"eval:{run_id}:{arm.value}"
