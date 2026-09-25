@@ -1,0 +1,250 @@
+# Copyright (c) 2026 OceanBase.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""OFF/ON continuation workloads: grading, treatment checks, outcome rules, and the paired summary."""
+
+from __future__ import annotations
+
+import asyncio
+import runpy
+from datetime import UTC, datetime
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from powercontext_e2e.catalog import load_tasks
+from powercontext_e2e.models import HarborTrialObservation, PairedArmObservation, RunEnvironment, SessionSnapshot
+from powercontext_e2e.paired import classify_outcome, recall_session_index, summarize, treatment_failures
+from powercontext_e2e.runner import run_tasks
+from powercontext_e2e.sessions import SessionRecorder, settle_session
+from powercontext_e2e.settings import HarnessSettings
+
+_REPOSITORY = Path(__file__).resolve().parents[3]
+_PAIRED_TASKS = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks")
+_HARBOR_TASKS = _REPOSITORY / "e2e" / "bub" / "harbor-tasks"
+_SETTINGS = HarnessSettings(repository=_REPOSITORY)
+
+
+def _grade(answer_path: Path, reward_path: Path) -> None:
+    # run_path does not write bytecode, which would change the Harbor task checksum.
+    grader = runpy.run_path(
+        str(_HARBOR_TASKS / "project-decision-continuation" / "steps" / "recall" / "tests" / "grade.py")
+    )
+    grader["main"](answer_path, reward_path)
+
+
+@pytest.mark.parametrize(
+    ("answer", "reward"),
+    [
+        ("We chose OceanBase with a shard count of 12.", 1),
+        ("oceanbase, twelve shards", 1),
+        ("OceanBase with 120 shards.", 0),
+        ("PostgreSQL with 12 shards.", 0),
+        ("unknown", 0),
+    ],
+)
+def test_recall_grader_requires_every_fact(tmp_path: Path, answer: str, reward: int) -> None:
+    answer_path = tmp_path / "answer.txt"
+    answer_path.write_text(answer, encoding="utf-8")
+    reward_path = tmp_path / "reward.txt"
+
+    _grade(answer_path, reward_path)
+
+    assert reward_path.read_text(encoding="utf-8") == f"{reward}\n"
+
+
+def test_recall_grader_scores_a_missing_answer_as_zero(tmp_path: Path) -> None:
+    reward_path = tmp_path / "reward.txt"
+
+    _grade(tmp_path / "answer.txt", reward_path)
+
+    assert reward_path.read_text(encoding="utf-8") == "0\n"
+
+
+@pytest.mark.parametrize("task", _PAIRED_TASKS, ids=lambda task: task.id)
+def test_continuation_tasks_hide_the_answer_until_the_recall_session(task) -> None:
+    # Harbor uploads shared tests before every step and leaves them in the container, so an answer key there would
+    # be readable in the earlier session.
+    assert recall_session_index(task, _SETTINGS) >= 1
+    assert not (_HARBOR_TASKS / task.dataset.task_id / "tests").exists()
+
+
+def test_recall_step_must_be_the_final_session() -> None:
+    task = _PAIRED_TASKS[0]
+    task = task.model_copy(update={"evaluation": task.evaluation.model_copy(update={"recall_step": "capture"})})
+
+    with pytest.raises(ValueError, match="must end with its recall step"):
+        recall_session_index(task, _SETTINGS)
+
+
+def test_acceptance_rejects_continuation_workloads(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="paired command"):
+        asyncio.run(run_tasks(_PAIRED_TASKS, output_dir=tmp_path / "out", settings=_SETTINGS))
+
+
+def _snapshot(session: int, *, sources: int = 1, memory: int = 1, ready: int = 0) -> SessionSnapshot:
+    return SessionSnapshot(
+        session=session,
+        flush_rounds=1,
+        sources=sources,
+        memory_pending=0,
+        memory_entries=memory,
+        preparations=ready,
+        ready_preparations=ready,
+    )
+
+
+def test_treatment_passes_when_recall_received_context_from_captured_memory() -> None:
+    assert treatment_failures((_snapshot(0, ready=1), _snapshot(1, ready=2)), recall_session=1) == ()
+
+
+@pytest.mark.parametrize(
+    ("sessions", "failure"),
+    [
+        ((_snapshot(0, sources=0, memory=0), _snapshot(1, ready=1)), "No Sources were captured"),
+        ((_snapshot(0, memory=0), _snapshot(1, ready=1)), "created no Memory"),
+        # Context supplied late in the capture session does not show that the recall session received any.
+        ((_snapshot(0, ready=2), _snapshot(1, ready=2)), "no context during the recall session"),
+        ((_snapshot(0),), "not observed after every session"),
+    ],
+)
+def test_treatment_fails_when_any_link_from_capture_to_recall_is_missing(sessions, failure: str) -> None:
+    assert any(failure in reason for reason in treatment_failures(sessions, recall_session=1))
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "outcome"),
+    [
+        ({"reward": 1.0}, "passed"),
+        ({"reward": 0.0}, "failed"),
+        ({"reward": None}, "failed"),
+        ({"exception_types": ("AgentTimeoutError",)}, "timeout"),
+        ({"exception_types": ("EnvironmentStartTimeoutError",)}, "error"),
+        ({"harness_failed": True, "reward": 1.0}, "error"),
+        ({"treatment_failures": ("no context",), "reward": 1.0}, "integration_failed"),
+        # A timed-out ON run has no final snapshot; it still counts as a failed attempt, as it would with OFF.
+        ({"exception_types": ("AgentTimeoutError",), "treatment_failures": ("not observed",)}, "timeout"),
+    ],
+)
+def test_outcome_classification(kwargs, outcome: str) -> None:
+    arguments = {"harness_failed": False, "exception_types": (), "treatment_failures": (), "reward": None} | kwargs
+
+    assert classify_outcome(**arguments) == outcome
+
+
+def _observation(trial: int, arm: str, outcome: str, task_id: str = "task") -> PairedArmObservation:
+    now = datetime.now(UTC)
+    return PairedArmObservation(
+        run_id=f"{task_id}-{trial}-{arm}",
+        task_id=task_id,
+        trial=trial,
+        arm=arm,
+        position=1,
+        environment=RunEnvironment(
+            commit="c",
+            database="sqlite",
+            adapter_version="a",
+            adapter_protocol_version="p",
+            started_at=now,
+            finished_at=now,
+        ),
+        harbor=HarborTrialObservation(),
+        outcome=outcome,
+    )
+
+
+def test_summary_pairs_only_trials_where_both_arms_were_scored() -> None:
+    report = summarize(
+        (
+            _observation(1, "off", "failed"),
+            _observation(1, "on", "passed"),
+            _observation(2, "off", "timeout"),
+            _observation(2, "on", "integration_failed"),
+            _observation(3, "off", "passed"),
+            _observation(3, "on", "passed"),
+        ),
+        trials=3,
+    )
+
+    (task,) = report.tasks
+    assert (task.off.passed, task.off.scored, task.off.timeouts) == (1, 3, 1)
+    assert (task.on.passed, task.on.scored, task.on.integration_failures) == (2, 2, 1)
+    assert task.pairs == 2
+    assert task.mean_delta == 0.5
+    assert (report.total.pairs, report.total.mean_delta) == (2, 0.5)
+
+
+def test_summary_reports_no_difference_without_a_scored_pair() -> None:
+    report = summarize((_observation(1, "off", "error"), _observation(1, "on", "passed")), trials=1)
+
+    assert report.total.pairs == 0
+    assert report.total.mean_delta is None
+    assert report.total.off.errors == 1
+
+
+class _FlushingClient:
+    def __init__(self, cursors: list[tuple[int, int, int]]) -> None:
+        self._cursors = iter(cursors)
+        self.flushes = 0
+
+    async def flush_memory(self, request):
+        self.flushes += 1
+        previous, current, high = next(self._cursors)
+        return SimpleNamespace(previous_cursor=previous, current_cursor=current, high_watermark=high)
+
+    async def get_stats(self, request):
+        assert request.selection.root.scope_ids[0].root == "scope-1"
+        return SimpleNamespace(
+            inventory=SimpleNamespace(
+                sources=SimpleNamespace(total=3, memory_pending=0),
+                memory=SimpleNamespace(entries=SimpleNamespace(total=2)),
+            ),
+            recall=SimpleNamespace(totals=SimpleNamespace(preparations=4, ready_preparations=1)),
+        )
+
+
+def test_settling_flushes_until_the_scope_is_caught_up() -> None:
+    client = _FlushingClient([(0, 1, 3), (1, 2, 3), (2, 3, 3)])
+
+    snapshot = asyncio.run(settle_session(client, "scope-1", session=0))
+
+    assert client.flushes == 3
+    assert snapshot == SessionSnapshot(
+        session=0,
+        flush_rounds=3,
+        sources=3,
+        memory_pending=0,
+        memory_entries=2,
+        preparations=4,
+        ready_preparations=1,
+    )
+
+
+def test_settling_stops_when_a_flush_makes_no_progress() -> None:
+    client = _FlushingClient([(0, 1, 3), (1, 1, 3), (1, 2, 3)])
+
+    snapshot = asyncio.run(settle_session(client, "scope-1", session=1))
+
+    assert client.flushes == 2
+    assert snapshot.flush_rounds == 2
+
+
+def test_session_recorder_numbers_sessions_in_the_order_harbor_ends_them() -> None:
+    recorder = SessionRecorder(_FlushingClient([(0, 1, 1), (1, 2, 2)]), "scope-1")
+
+    asyncio.run(recorder(None))
+    asyncio.run(recorder(None))
+
+    assert [snapshot.session for snapshot in recorder.snapshots] == [0, 1]

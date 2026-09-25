@@ -31,6 +31,7 @@ summary.
 ```text
 e2e/bub/
   tasks/                  # PowerContext manifests and evaluation expectations
+  paired-tasks/           # OFF/ON continuation manifests for the paired command
   harbor-tasks/           # Local Harbor tasks used by built-in samples
   src/powercontext_e2e/   # One Harbor runner and one Memory evaluator
 ```
@@ -138,6 +139,59 @@ Shared runs write the same v1 files per source task under `batch-<name>/tasks/<w
 evaluation and report at `batch-<name>/`. `collect-all` reports every failed task; `fail-fast` stops only that shared
 Harbor trial at its first failed step. Runtime batch steps are flat and task-prefixed. Each agent invocation starts an
 independent ACP session and Bub tape.
+
+## Compare PowerContext off and on
+
+A continuation workload is a Harbor multi-step task written in plain language, so any agent host can run it. An
+earlier session mentions a fact only in the conversation, next to an unrelated small job. The final recall session
+asks for that fact and has the agent write its answer to a file. The recall step's own tests grade the answer, and
+the answer key lives only there, because Harbor leaves every uploaded test directory in the container for later
+steps. The task reward is the final step's reward.
+
+The `paired` command runs each selected workload with PowerContext off and on, in separate containers, and repeats
+this for `--trials` trials. The arm that runs first alternates between trials.
+
+- OFF installs the host without its PowerContext integration and passes no `POWERCONTEXT_*` settings.
+- ON installs the integration bound to a new Scope. For Bub this means the plugin with `capture_events` enabled, so
+  that, like the other host integrations, it captures what the user says without relying on the model to call a
+  memory tool. This is not the plugin's default setting.
+- Everything else is the same in both arms: image, host version, model, and budget.
+
+After each ON session the harness flushes the Scope, standing in for the time that passes between real sessions. It
+repeats the flush until the Scope has processed every captured Source, a flush makes no progress, or 20 rounds pass.
+The flush runs from a Harbor agent-end hook after the agent's timed phase, so it does not use the agent's time
+budget. Host plugins flush on different schedules, so the harness flushes the same way for every host. The Server's
+generation model therefore takes part in the ON arm; the run fails early when the Server does not report
+`memory_extraction`.
+
+An ON run counts only when Server statistics for its Scope show that Sources were captured and turned into Memory
+before the recall session, and that PowerContext supplied context during it. Otherwise it is an integration failure.
+Integration failures and harness or infrastructure errors are reported but left out of success rates and paired
+differences. An agent timeout counts as a failed attempt in either arm.
+
+```bash
+export POWERCONTEXT_CLIENT_SERVER_URL=http://127.0.0.1:8000
+export POWERCONTEXT_BUB_BASE_URL=http://host-gateway:8000
+export POWERCONTEXT_BUB_TRUST_TRANSPORT_SECURITY=true
+export BUB_MODEL=openrouter:openai/gpt-5.4
+export BUB_API_KEY="$OPENROUTER_API_KEY"
+make harness-paired ARGS='--trials 2'
+```
+
+Each arm writes `observation.json`, which includes the per-session Server snapshots for ON, and its Harbor jobs:
+
+```text
+<output>/
+  paired-report.json
+  report.md
+  <workload-id>/trial-<n>/<off|on>/
+    observation.json
+    harbor-jobs/
+```
+
+The command exits non-zero when any arm could not be scored; a task that fails in either arm is a result, not a
+command failure. The report is marked preliminary. It does not yet estimate uncertainty, check the Default Scope for
+leaks, record latency or token usage, or run in the fixed Compose harness.
 
 ## Long-horizon task
 

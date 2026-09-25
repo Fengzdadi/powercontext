@@ -20,7 +20,7 @@ from typing import Any, Protocol
 
 from harbor.models.trial.config import AgentConfig, ServiceVolumeConfig
 
-from .catalog import E2ETask, MemoryEvaluationSpec
+from .catalog import ContinuationEvaluationSpec, E2ETask, MemoryEvaluationSpec
 from .harbor_agent import BUB_ACP_SERVER_VERSION, BUB_VERSION, REMOTE_CODEX_AUTH
 from .settings import bub_environment, codex_auth_path, powercontext_bub_environment
 
@@ -44,10 +44,15 @@ class HostAdapter(Protocol):
         self,
         task: E2ETask,
         *,
-        scope_id: str,
+        scope_id: str | None,
         invocation_scopes: tuple[str, ...] | None,
     ) -> AgentConfig:
-        """Bind the host to one job Scope, or to one Scope per agent invocation when given."""
+        """Configure the host agent for one Harbor job.
+
+        With ``scope_id``, the host runs with its PowerContext integration bound to that Scope, or to one Scope per
+        agent invocation when ``invocation_scopes`` is given. Without it, the host runs with no PowerContext
+        integration installed.
+        """
 
 
 class BubHost:
@@ -79,11 +84,10 @@ class BubHost:
         self,
         task: E2ETask,
         *,
-        scope_id: str,
+        scope_id: str | None,
         invocation_scopes: tuple[str, ...] | None,
     ) -> AgentConfig:
-        evaluation = task.evaluation
-        env = powercontext_bub_environment()
+        env = powercontext_bub_environment() if scope_id is not None else {}
         if task.execution.model:
             env.update(bub_environment())
         else:
@@ -93,27 +97,36 @@ class BubHost:
             "BUB_MAX_STEPS": str(task.execution.max_steps),
             "BUB_MAX_TOKENS": str(task.execution.max_tokens),
             "CODEX_HOME": "/installed-agent/codex",
-            "POWERCONTEXT_BUB_CAPTURE_CHECKPOINT_EVERY": str(
-                evaluation.checkpoint_every_events if isinstance(evaluation, MemoryEvaluationSpec) else 5
-            ),
-            "POWERCONTEXT_BUB_CAPTURE_EVENTS": str(
-                evaluation.capture_events if isinstance(evaluation, MemoryEvaluationSpec) else False
-            ).lower(),
-            "POWERCONTEXT_BUB_CAPTURE_LOG": "/logs/agent/powercontext-capture.jsonl",
-            "POWERCONTEXT_BUB_CAPTURE_MAX_BYTES": str(
-                evaluation.max_event_bytes if isinstance(evaluation, MemoryEvaluationSpec) else 8192
-            ),
-            "POWERCONTEXT_BUB_SCOPE_ID": scope_id,
         })
         kwargs: dict[str, Any] = {}
-        if invocation_scopes is not None:
-            env.pop("POWERCONTEXT_BUB_SCOPE_ID")
-            kwargs["invocation_scopes"] = invocation_scopes
+        if scope_id is None:
+            kwargs["powercontext"] = False
+        else:
+            capture_events, checkpoint_every, max_bytes = _capture_settings(task)
+            env.update({
+                "POWERCONTEXT_BUB_CAPTURE_CHECKPOINT_EVERY": str(checkpoint_every),
+                "POWERCONTEXT_BUB_CAPTURE_EVENTS": str(capture_events).lower(),
+                "POWERCONTEXT_BUB_CAPTURE_LOG": "/logs/agent/powercontext-capture.jsonl",
+                "POWERCONTEXT_BUB_CAPTURE_MAX_BYTES": str(max_bytes),
+                "POWERCONTEXT_BUB_SCOPE_ID": scope_id,
+            })
+            if invocation_scopes is not None:
+                env.pop("POWERCONTEXT_BUB_SCOPE_ID")
+                kwargs["invocation_scopes"] = invocation_scopes
         return AgentConfig(
             import_path="powercontext_e2e.harbor_agent:PowerContextBubAcpAgent",
             env=env,
             kwargs=kwargs,
         )
+
+
+def _capture_settings(task: E2ETask) -> tuple[bool, int, int]:
+    evaluation = task.evaluation
+    if isinstance(evaluation, MemoryEvaluationSpec):
+        return evaluation.capture_events, evaluation.checkpoint_every_events, evaluation.max_event_bytes
+    # Bub captures nothing automatically by default. The ON arm records every turn so that, like the other hosts'
+    # integrations, it captures what the user says without relying on the model to call a memory tool.
+    return isinstance(evaluation, ContinuationEvaluationSpec), 5, 8192
 
 
 _HOSTS: dict[str, HostAdapter] = {"bub": BubHost()}
