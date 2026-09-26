@@ -157,11 +157,13 @@ this for `--trials` trials. The arm that runs first alternates between trials.
   memory tool. This is not the plugin's default setting.
 - Everything else is the same in both arms: image, host version, model, and budget.
 
-After each ON session the harness flushes the Scope, standing in for the time that passes between real sessions. It
-repeats the flush until the Scope has processed every captured Source, a flush makes no progress, or 20 rounds pass.
-The flush runs from a Harbor agent-end hook after the agent's timed phase, so it does not use the agent's time
-budget. Host plugins flush on different schedules, so the harness flushes the same way for every host. The Server's
-generation model therefore takes part in the ON arm; the run fails early when the Server does not report
+After each ON session the harness records the Scope's Server statistics. When another session follows, it first
+flushes the Scope, standing in for the time that passes between real sessions, and repeats the flush until the Scope
+has processed every captured Source, a flush makes no progress, or 20 rounds pass. This runs from a Harbor agent-end
+hook after the agent's timed phase, so it does not use the agent's time budget. A failed flush or statistics read is
+recorded as a treatment failure rather than replacing the agent's own outcome, so a timed-out session still counts as
+a timeout. Host plugins flush on different schedules, so the harness flushes the same way for every host. The
+Server's generation model therefore takes part in the ON arm; the run fails early when the Server does not report
 `memory_extraction`.
 
 An ON run counts only when Server statistics for its Scope show that Sources were captured and turned into Memory
@@ -169,9 +171,14 @@ before the recall session, and that PowerContext supplied context during it. Oth
 Integration failures and harness or infrastructure errors are reported but left out of success rates and paired
 differences. An agent timeout counts as a failed attempt in either arm.
 
+The harness Client waits for each flush, which runs the Server's generation model, so raise its 10-second default
+timeout; the Bub plugin also flushes during a session.
+
 ```bash
 export POWERCONTEXT_CLIENT_SERVER_URL=http://127.0.0.1:8000
+export POWERCONTEXT_CLIENT_TIMEOUT=150
 export POWERCONTEXT_BUB_BASE_URL=http://host-gateway:8000
+export POWERCONTEXT_BUB_TIMEOUT=150
 export POWERCONTEXT_BUB_TRUST_TRANSPORT_SECURITY=true
 export BUB_MODEL=openrouter:openai/gpt-5.4
 export BUB_API_KEY="$OPENROUTER_API_KEY"

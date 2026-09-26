@@ -29,14 +29,15 @@ if TYPE_CHECKING:
 MAX_FLUSH_ROUNDS = 20
 
 
-async def settle_session(client: PowerContextClient, scope_id: str, session: int) -> SessionSnapshot:
-    """Flush captured Sources into Memory, as elapsed time would between real sessions, then snapshot the Scope.
+async def settle_session(client: PowerContextClient, scope_id: str, session: int, *, flush: bool) -> SessionSnapshot:
+    """Snapshot the Scope after one session, first flushing captured Sources into Memory when a session follows.
 
-    Host plugins flush on different schedules, so the harness flushes the same way for every host.
+    The flush stands in for the time that passes between real sessions. Host plugins flush on different schedules, so
+    the harness flushes the same way for every host.
     """
 
     rounds = 0
-    while rounds < MAX_FLUSH_ROUNDS:
+    while flush and rounds < MAX_FLUSH_ROUNDS:
         response = await client.flush_memory(FlushMemoryRequest(scope_id=scope_id))
         rounds += 1
         if response.current_cursor >= response.high_watermark or response.current_cursor <= response.previous_cursor:
@@ -59,14 +60,23 @@ class SessionRecorder:
     """Harbor agent-end hook that settles one Scope after every agent session of a single-trial job.
 
     Harbor fires the hook after the agent's timed phase, so the flush neither uses the agent's time budget nor
-    appears in its execution time.
+    appears in its execution time. Harbor awaits the hook in a ``finally`` block, where an exception would replace the
+    agent's own, such as a timeout, so failures are recorded instead of raised.
     """
 
-    def __init__(self, client: PowerContextClient, scope_id: str) -> None:
+    def __init__(self, client: PowerContextClient, scope_id: str, *, final_session: int) -> None:
         self._client = client
         self._scope_id = scope_id
+        self._final_session = final_session
         self.snapshots: list[SessionSnapshot] = []
+        self.failures: list[str] = []
 
     async def __call__(self, event: TrialHookEvent) -> None:
         del event
-        self.snapshots.append(await settle_session(self._client, self._scope_id, len(self.snapshots)))
+        session = len(self.snapshots) + len(self.failures)
+        try:
+            snapshot = await settle_session(self._client, self._scope_id, session, flush=session < self._final_session)
+        except Exception as exc:
+            self.failures.append(f"Settling the Scope after session {session} failed: {type(exc).__name__}: {exc}")
+        else:
+            self.snapshots.append(snapshot)

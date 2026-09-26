@@ -160,14 +160,21 @@ async def _run_arm(
             ).scope_id
         job = await Job.create(_job_config(task, run_id, scope_id, output_dir, settings))
         if scope_id is not None:
-            recorder = SessionRecorder(client, scope_id)
+            recorder = SessionRecorder(client, scope_id, final_session=recall_session)
             job.on_agent_ended(recorder)
         harbor, step_results, _ = _harbor_observation(await job.run(), settings)
     except Exception as exc:
         errors.append(redact(f"{type(exc).__name__}: {exc}", settings))
 
     sessions = () if recorder is None else tuple(recorder.snapshots)
-    treatment = treatment_failures(sessions, recall_session) if arm == "on" else ()
+    treatment = (
+        (
+            *(redact(failure, settings) for failure in (recorder.failures if recorder is not None else ())),
+            *treatment_failures(sessions, recall_session),
+        )
+        if arm == "on"
+        else ()
+    )
     exception_types = tuple(
         name
         for name in (
@@ -256,7 +263,7 @@ def summarize(observations: Sequence[PairedArmObservation], *, trials: int) -> P
         tasks=tuple(
             PairedTaskSummary(
                 task_id=task_id,
-                **_summary([o for o in observations if o.task_id == task_id]).model_dump(),
+                **dict(_summary([o for o in observations if o.task_id == task_id])),
             )
             for task_id in task_ids
         ),

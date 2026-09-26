@@ -195,12 +195,15 @@ def test_summary_reports_no_difference_without_a_scored_pair() -> None:
 
 
 class _FlushingClient:
-    def __init__(self, cursors: list[tuple[int, int, int]]) -> None:
+    def __init__(self, cursors: list[tuple[int, int, int]], *, failing_flushes: frozenset[int] = frozenset()) -> None:
         self._cursors = iter(cursors)
+        self._failing_flushes = failing_flushes
         self.flushes = 0
 
     async def flush_memory(self, request):
         self.flushes += 1
+        if self.flushes in self._failing_flushes:
+            raise TimeoutError("flush timed out")  # noqa: TRY003
         previous, current, high = next(self._cursors)
         return SimpleNamespace(previous_cursor=previous, current_cursor=current, high_watermark=high)
 
@@ -218,7 +221,7 @@ class _FlushingClient:
 def test_settling_flushes_until_the_scope_is_caught_up() -> None:
     client = _FlushingClient([(0, 1, 3), (1, 2, 3), (2, 3, 3)])
 
-    snapshot = asyncio.run(settle_session(client, "scope-1", session=0))
+    snapshot = asyncio.run(settle_session(client, "scope-1", session=0, flush=True))
 
     assert client.flushes == 3
     assert snapshot == SessionSnapshot(
@@ -235,16 +238,30 @@ def test_settling_flushes_until_the_scope_is_caught_up() -> None:
 def test_settling_stops_when_a_flush_makes_no_progress() -> None:
     client = _FlushingClient([(0, 1, 3), (1, 1, 3), (1, 2, 3)])
 
-    snapshot = asyncio.run(settle_session(client, "scope-1", session=1))
+    snapshot = asyncio.run(settle_session(client, "scope-1", session=1, flush=True))
 
     assert client.flushes == 2
     assert snapshot.flush_rounds == 2
 
 
-def test_session_recorder_numbers_sessions_in_the_order_harbor_ends_them() -> None:
-    recorder = SessionRecorder(_FlushingClient([(0, 1, 1), (1, 2, 2)]), "scope-1")
+def test_recorder_flushes_before_later_sessions_but_only_snapshots_the_final_one() -> None:
+    client = _FlushingClient([(0, 1, 1)])
+    recorder = SessionRecorder(client, "scope-1", final_session=1)
 
     asyncio.run(recorder(None))
     asyncio.run(recorder(None))
 
-    assert [snapshot.session for snapshot in recorder.snapshots] == [0, 1]
+    assert client.flushes == 1
+    assert [(snapshot.session, snapshot.flush_rounds) for snapshot in recorder.snapshots] == [(0, 1), (1, 0)]
+
+
+def test_recorder_records_a_failed_settle_instead_of_raising() -> None:
+    # Harbor awaits the hook in a finally block, where raising would replace a timed-out agent's own exception.
+    recorder = SessionRecorder(_FlushingClient([], failing_flushes=frozenset({1})), "scope-1", final_session=1)
+
+    asyncio.run(recorder(None))
+    asyncio.run(recorder(None))
+
+    assert recorder.failures == ["Settling the Scope after session 0 failed: TimeoutError: flush timed out"]
+    assert [snapshot.session for snapshot in recorder.snapshots] == [1]
+    assert any("not observed" in reason for reason in treatment_failures(recorder.snapshots, recall_session=1))
