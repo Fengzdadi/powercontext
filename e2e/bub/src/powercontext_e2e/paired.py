@@ -213,7 +213,12 @@ async def _run_arm(
 
 
 def treatment_failures(sessions: Sequence[SessionSnapshot], recall_session: int) -> tuple[str, ...]:
-    """Explain why an ON run did not receive PowerContext's treatment, or return nothing when it did."""
+    """Explain why an ON run did not receive PowerContext's treatment, or return nothing when it did.
+
+    The treatment is the integration capturing earlier sessions and asking PowerContext for context during the recall
+    session. Whether a flush creates Memory and whether recall returns content are PowerContext's own behavior under
+    that treatment, so they are recorded in the snapshots but do not decide whether a run counts.
+    """
 
     by_session = {snapshot.session: snapshot for snapshot in sessions}
     before = by_session.get(recall_session - 1)
@@ -223,10 +228,8 @@ def treatment_failures(sessions: Sequence[SessionSnapshot], recall_session: int)
     failures: list[str] = []
     if before.sources == 0:
         failures.append("No Sources were captured before the recall session")
-    if before.memory_entries == 0:
-        failures.append("The flush before the recall session created no Memory")
-    if recall.ready_preparations <= before.ready_preparations:
-        failures.append("PowerContext supplied no context during the recall session")
+    if recall.preparations <= before.preparations:
+        failures.append("PowerContext was not asked for context during the recall session")
     return tuple(failures)
 
 

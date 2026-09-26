@@ -166,8 +166,10 @@ a timeout. Host plugins flush on different schedules, so the harness flushes the
 Server's generation model therefore takes part in the ON arm; the run fails early when the Server does not report
 `memory_extraction`.
 
-An ON run counts only when Server statistics for its Scope show that Sources were captured and turned into Memory
-before the recall session, and that PowerContext supplied context during it. Otherwise it is an integration failure.
+An ON run counts only when Server statistics for its Scope show that Sources were captured before the recall session
+and that the integration asked PowerContext for context during it. Otherwise it is an integration failure. Whether a
+flush creates Memory and whether recall returns content are PowerContext's own behavior, so the snapshots record them
+but a run that gets nothing useful still counts as an ON attempt.
 Integration failures and harness or infrastructure errors are reported but left out of success rates and paired
 differences. An agent timeout counts as a failed attempt in either arm.
 

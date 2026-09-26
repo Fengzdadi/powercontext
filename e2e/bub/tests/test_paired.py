@@ -94,33 +94,42 @@ def test_acceptance_rejects_continuation_workloads(tmp_path: Path) -> None:
         asyncio.run(run_tasks(_PAIRED_TASKS, output_dir=tmp_path / "out", settings=_SETTINGS))
 
 
-def _snapshot(session: int, *, sources: int = 1, memory: int = 1, ready: int = 0) -> SessionSnapshot:
+def _snapshot(session: int, *, sources: int = 1, memory: int = 1, asked: int = 0, ready: int = 0) -> SessionSnapshot:
     return SessionSnapshot(
         session=session,
         flush_rounds=1,
         sources=sources,
         memory_pending=0,
         memory_entries=memory,
-        preparations=ready,
+        preparations=asked,
         ready_preparations=ready,
     )
 
 
 def test_treatment_passes_when_recall_received_context_from_captured_memory() -> None:
-    assert treatment_failures((_snapshot(0, ready=1), _snapshot(1, ready=2)), recall_session=1) == ()
+    sessions = (_snapshot(0, asked=1, ready=1), _snapshot(1, asked=2, ready=2))
+
+    assert treatment_failures(sessions, recall_session=1) == ()
+
+
+def test_treatment_passes_when_powercontext_keeps_or_returns_nothing() -> None:
+    # The integration captured the earlier session and asked during recall; an empty answer is a scored ON failure,
+    # not an excluded run.
+    sessions = (_snapshot(0, memory=0, asked=4), _snapshot(1, memory=0, asked=8))
+
+    assert treatment_failures(sessions, recall_session=1) == ()
 
 
 @pytest.mark.parametrize(
     ("sessions", "failure"),
     [
-        ((_snapshot(0, sources=0, memory=0), _snapshot(1, ready=1)), "No Sources were captured"),
-        ((_snapshot(0, memory=0), _snapshot(1, ready=1)), "created no Memory"),
-        # Context supplied late in the capture session does not show that the recall session received any.
-        ((_snapshot(0, ready=2), _snapshot(1, ready=2)), "no context during the recall session"),
+        ((_snapshot(0, sources=0, memory=0), _snapshot(1, asked=1)), "No Sources were captured"),
+        # Requests made during the capture session do not show that the recall session asked.
+        ((_snapshot(0, asked=4, ready=2), _snapshot(1, asked=4, ready=2)), "not asked for context"),
         ((_snapshot(0),), "not observed after every session"),
     ],
 )
-def test_treatment_fails_when_any_link_from_capture_to_recall_is_missing(sessions, failure: str) -> None:
+def test_treatment_fails_when_the_integration_did_not_capture_or_ask(sessions, failure: str) -> None:
     assert any(failure in reason for reason in treatment_failures(sessions, recall_session=1))
 
 
