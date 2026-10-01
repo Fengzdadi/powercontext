@@ -25,6 +25,7 @@ import pytest
 from powercontext_bub import plugin as plugin_module
 from powercontext_bub import tools as tools_module
 from powercontext_bub.plugin import STATE_KEY, PowerContextPlugin, PowerContextSettings
+from pydantic import ValidationError
 
 
 def _plugin_with(settings: PowerContextSettings, monkeypatch, tmp_path: Path) -> PowerContextPlugin:
@@ -194,6 +195,17 @@ def test_api_token_reaches_both_plugin_and_tools(
 
     assert [construction["token"] for construction in constructions] == ["bub-server-token", "bub-server-token"]
     assert "bub-server-token" not in repr(settings)
+
+
+def test_invalid_settings_do_not_reveal_the_api_token() -> None:
+    # Bub logs a plugin's configuration error and keeps it in the plugin status.
+    with pytest.raises(ValidationError) as error:
+        PowerContextSettings(
+            base_url="http://127.0.0.1:8000?x=1",
+            api_token="bub-server-token",  # noqa: S106 - test credential.
+        )
+
+    assert "bub-server-token" not in str(error.value)
 
 
 def test_plaintext_opt_in_reaches_both_plugin_and_tools(monkeypatch, tmp_path: Path) -> None:

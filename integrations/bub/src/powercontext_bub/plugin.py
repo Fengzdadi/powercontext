@@ -66,6 +66,7 @@ class PowerContextSettings(ClientTransportSettings, Settings):
         env_ignore_empty=True,
         extra="ignore",
         frozen=True,
+        hide_input_in_errors=True,
     )
 
     transport_host: ClassVar[str] = "bub"
