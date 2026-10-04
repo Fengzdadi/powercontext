@@ -340,34 +340,81 @@ def test_opencode_installs_the_plugin_only_for_on(tmp_path: Path, powercontext: 
     assert bool(installed) is powercontext
 
 
+class _ShellEnvironment:
+    """Run an agent's commands in a local shell with its own home and temporary directories."""
+
+    default_user = None
+
+    def __init__(self, root: Path, *, sessions: str = "") -> None:
+        self.home = root / "home"
+        self.tmp = root / "tmp"
+        bin_dir = root / "bin"
+        for directory in (self.home, self.tmp, bin_dir):
+            directory.mkdir(parents=True)
+        # Stands in for the OpenCode CLI, which answers `session list` with these sessions.
+        opencode = bin_dir / "opencode"
+        opencode.write_text(f"#!/bin/sh\nprintf '%s' '{sessions}'\n")
+        opencode.chmod(0o755)
+        self._env = {"HOME": str(self.home), "TMPDIR": str(self.tmp), "PATH": f"{bin_dir}:/usr/bin:/bin"}
+
+    async def exec(self, command: str, **_: object) -> ExecResult:
+        # Harbor runs agent commands with bash, and prefixes them with `set -o pipefail`, which dash rejects.
+        process = await asyncio.create_subprocess_exec(
+            "bash", "-c", command, env=self._env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        return ExecResult(stdout=stdout.decode(), stderr=stderr.decode(), return_code=process.returncode)
+
+
+def _leave_an_earlier_session(environment: _ShellEnvironment) -> Path:
+    data = environment.home / ".local" / "share" / "opencode"
+    for relative in (
+        "opencode.db",
+        "opencode.db-wal",
+        "tool-output/tool_01",
+        "plans/plan.md",
+        "storage/session/ses_01.json",
+        "log/opencode.log",
+        "auth.json",
+    ):
+        path = data / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("The team chose OceanBase with 12 shards.")
+    (environment.tmp / "opencode").mkdir()
+    (environment.tmp / "opencode" / "notes.txt").write_text("The team chose OceanBase with 12 shards.")
+    return data
+
+
 @pytest.mark.parametrize("powercontext", [True, False])
-def test_opencode_sessions_start_without_earlier_opencode_sessions(
+def test_opencode_sessions_start_without_anything_an_earlier_session_left(
     monkeypatch, tmp_path: Path, powercontext: bool
 ) -> None:
-    # Harbor leaves OpenCode's data directory in place between the steps of a trial.
-    started: list[list[str]] = []
+    # Harbor leaves OpenCode's data directory in place between the steps of a trial. Besides the session database,
+    # OpenCode keeps oversized tool results there, which an OFF session could otherwise read.
+    started: list[set[str]] = []
+    environment = _ShellEnvironment(tmp_path)
+    data = _leave_an_earlier_session(environment)
 
     async def run_opencode(self, instruction, environment, context) -> None:
-        started.append(list(environment.commands))
+        started.append({path.relative_to(data).as_posix() for path in data.rglob("*") if path.is_file()})
 
     monkeypatch.setattr(OpenCode, "run", run_opencode)
-    environment = _RecordingEnvironment()
 
     asyncio.run(_opencode_agent(tmp_path, powercontext=powercontext).run("task", environment, AgentContext()))
 
-    (before_session,) = started
-    assert any("opencode.db" in command and "rm -rf" in command for command in before_session)
+    assert started == [{"auth.json"}]
+    assert not (environment.tmp / "opencode").exists()
 
 
 def test_opencode_session_does_not_start_when_earlier_sessions_remain(monkeypatch, tmp_path: Path) -> None:
-    # A session store the clear did not reach must stop the arm instead of leaving an earlier session readable.
+    # A session database the clear did not reach must stop the arm instead of leaving an earlier session readable.
     started: list[str] = []
 
     async def run_opencode(self, instruction, environment, context) -> None:
         started.append(instruction)
 
     monkeypatch.setattr(OpenCode, "run", run_opencode)
-    environment = _RecordingEnvironment(failing="opencode session list")
+    environment = _ShellEnvironment(tmp_path, sessions='[{"id": "ses_01"}]')
 
     with pytest.raises(RuntimeError):
         asyncio.run(_opencode_agent(tmp_path, powercontext=False).run("task", environment, AgentContext()))

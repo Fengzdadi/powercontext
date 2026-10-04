@@ -26,8 +26,13 @@ from .harbor_agent import REMOTE_SOURCE
 
 OPENCODE_VERSION = "1.18.33"
 REMOTE_PLUGIN = f"{REMOTE_SOURCE}/integrations/opencode/plugins/powercontext"
-# OpenCode keeps its sessions in its data directory, and nothing else clears them between the steps of a trial.
+# OpenCode keeps its sessions, and output derived from them, in its data and temporary directories, and nothing else
+# clears them between the steps of a trial.
 OPENCODE_DATA = '"${XDG_DATA_HOME:-$HOME/.local/share}/opencode"'
+# Node's os.tmpdir() reads TMPDIR, then TMP, then TEMP.
+OPENCODE_TMP = '"${TMPDIR:-${TMP:-${TEMP:-/tmp}}}/opencode"'
+# Stored credentials are the only part of the data directory kept across sessions.
+OPENCODE_DATA_KEPT = ("auth.json", "mcp-auth.json")
 
 
 class PowerContextOpenCodeAgent(OpenCode):
@@ -72,22 +77,26 @@ class PowerContextOpenCodeAgent(OpenCode):
 
 
 def clear_sessions_command() -> str:
-    """Remove OpenCode's session store, keeping the binaries and logs in the same data directory.
+    """Remove everything an earlier session left in OpenCode's data and temporary directories.
 
-    The command then asks OpenCode itself for its sessions and fails if any remain, so a store at another location
-    stops the run instead of leaving an earlier session readable.
+    Besides the session database, OpenCode keeps oversized tool results, plans, snapshots, worktrees, and logs in its
+    data directory, and the agent may write to its temporary directory, so only stored credentials are kept. OpenCode
+    creates the rest again on start. The command then asks OpenCode for its sessions and fails if any remain,
+    so a session database at another location stops the run instead of leaving an earlier session readable.
     """
 
-    # opencode.db holds the sessions; storage/ held them before OpenCode moved to SQLite.
-    stores = ("opencode.db", "opencode.db-wal", "opencode.db-shm", "storage")
+    kept = " ".join(f"! -name {name}" for name in OPENCODE_DATA_KEPT)
     return (
         "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; "
-        "rm -rf " + " ".join(f"{OPENCODE_DATA}/{store}" for store in stores) + "; "
+        f"mkdir -p {OPENCODE_DATA} || exit 1; "
+        # The trailing /. makes find descend into the directory when it is a symlink.
+        f"find {OPENCODE_DATA}/. -mindepth 1 -maxdepth 1 {kept} -exec rm -rf {{}} + || exit 1; "
+        f"rm -rf {OPENCODE_TMP} || exit 1; "
         "sessions=$(opencode session list --format json) || exit 1; "
         # OpenCode prints nothing, or an empty JSON list, when it has no sessions.
         'case "$(printf %s "$sessions" | tr -d \'[:space:][]\')" in '
         "'') ;; "
-        "*) echo 'OpenCode still lists an earlier session after clearing its session store' >&2; exit 1 ;; "
+        "*) echo 'OpenCode still lists an earlier session after clearing its data directory' >&2; exit 1 ;; "
         "esac"
     )
 

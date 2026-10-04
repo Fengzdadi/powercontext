@@ -62,7 +62,10 @@ def codex_auth_path() -> Path:
 
 
 _SECRET_SUFFIXES = ("_API_KEY", "_AUTHORIZATION", "_TOKEN", "_SECRET_ACCESS_KEY")
-_MIN_SECRET_LENGTH = 8
+# Local model servers accept any key, and the placeholders commonly passed to them are ordinary words and numbers.
+# They protect nothing, and redacting them by substring would rewrite the evidence. Any other value is redacted,
+# however short.
+_PLACEHOLDER_CREDENTIALS = frozenset({"1", "true", "none", "null", "empty", "dummy", "ollama", "lm-studio"})
 
 
 class ModelNotConfiguredError(RuntimeError):
@@ -112,12 +115,10 @@ class HarnessSettings(BaseSettings):
 
     def evidence_secrets(self) -> tuple[str, ...]:
         # Provider keys and tokens, and the full Authorization headers the host integrations send to the Server.
-        # Evidence is redacted by substring, so a short placeholder such as "1" or "ollama" would corrupt it; real
-        # credentials are longer.
         values = {
             value
             for name, value in environ.items()
-            if name.endswith(_SECRET_SUFFIXES) and len(value) >= _MIN_SECRET_LENGTH
+            if name.endswith(_SECRET_SUFFIXES) and value and value.lower() not in _PLACEHOLDER_CREDENTIALS
         }
         if self.agent_proxy_url is not None and (proxy_url := self.agent_proxy_url.get_secret_value()):
             values.add(proxy_url)

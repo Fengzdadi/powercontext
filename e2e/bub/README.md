@@ -262,14 +262,15 @@ Skill to where `powercontext setup opencode` puts them. Setup also registers a T
 load. The agent container sees only the plugin's `lib` and `skills` directories. The plugin reads
 `POWERCONTEXT_OPENCODE_SERVER_URL`, the Scope, and the plain-HTTP consent `POWERCONTEXT_OPENCODE_ALLOW_INSECURE_HTTP`
 from its environment; without the consent it stays inactive and the ON arm reports an integration failure. The plugin
-prefers `POWERCONTEXT_OPENCODE_BASE_URL` when that is also set, so leave it unset. OpenCode keeps its sessions in its
-data directory, which Harbor does not clear between steps, so the harness removes the session store before each session
-in both arms, as sessions start empty on the other hosts, and stops the arm if OpenCode still lists a session
-afterwards. The harness selects the model with `POWERCONTEXT_E2E_OPENCODE_MODEL` in OpenCode's `provider/model` form and
-passes `POWERCONTEXT_E2E_OPENCODE_REASONING_EFFORT`, default `medium`, as the model variant. OpenCode silently ignores a
-variant that the model does not define, so choose an effort the model offers; the report records the requested value.
-Harbor passes the key of the providers it knows, such as `OPENROUTER_API_KEY`; a model from another provider gets no
-key.
+prefers `POWERCONTEXT_OPENCODE_BASE_URL` when that is also set, so leave it unset. OpenCode keeps its sessions,
+oversized tool results, plans, snapshots, and logs in its data directory, which Harbor does not clear between steps.
+Before each session in both arms the harness therefore empties that directory except for stored credentials, and removes
+OpenCode's temporary directory, as sessions start empty on the other hosts. It stops the arm if OpenCode still lists a
+session afterwards. The harness selects the model with `POWERCONTEXT_E2E_OPENCODE_MODEL` in OpenCode's `provider/model`
+form and passes `POWERCONTEXT_E2E_OPENCODE_REASONING_EFFORT`, default `medium`, as the model variant. OpenCode silently
+ignores a variant that the model does not define, so choose an effort the model offers; the report records the requested
+value. Harbor passes the key of the providers it knows, such as `OPENROUTER_API_KEY`; a model from another provider gets
+no key.
 
 ```bash
 export POWERCONTEXT_CLIENT_SERVER_URL=http://127.0.0.1:8000
@@ -372,6 +373,9 @@ Offline rescoring therefore preserves the live outcome without exposing a config
 The harness does not mirror PowerContext Server, PowerContext Client, Bub, Harbor, or any-llm settings. Each component
 loads its native parameters, and the adapter only forwards the native values needed across the nested-container
 boundary. The Bub plugin uses Bub's Pydantic settings extension and accepts the same fields in the `powercontext`
-section of `bub.yml`. Native Bub API keys and the PowerContext Client token are redacted at every final evidence sink.
-CI scans evidence with TruffleHog before publishing it. Native ACP artifacts can contain arbitrary command output and
-should be reviewed before sharing.
+section of `bub.yml`. Every `*_API_KEY`, `*_TOKEN`, `*_AUTHORIZATION`, and `*_SECRET_ACCESS_KEY` value in the harness
+environment, including Bub's API keys and the PowerContext Client token, is redacted at every final evidence sink,
+whatever its length. Only common placeholders for local model servers, such as `1` or `ollama`, are left in place,
+because they protect nothing and redacting them by substring would rewrite the evidence. CI scans evidence with
+TruffleHog before publishing it. Native ACP artifacts can contain arbitrary command output and should be reviewed before
+sharing.

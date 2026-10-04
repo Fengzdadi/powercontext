@@ -57,26 +57,33 @@ def test_resolved_instruction_evidence_matches_harbor_acp_summaries(
 
 
 @pytest.mark.parametrize(
-    "secret_name",
+    ("secret_name", "sensitive_value"),
     [
-        "BUB_API_KEY",
-        "OPENAI_API_KEY",
-        "POWERCONTEXT_CODEX_AUTHORIZATION",
-        "CLAUDE_CODE_OAUTH_TOKEN",
-        "ANTHROPIC_API_KEY",
-        "POWERCONTEXT_CLAUDE_AUTHORIZATION",
-        "OPENROUTER_API_KEY",
-        "POWERCONTEXT_OPENCODE_AUTHORIZATION",
-        "HF_TOKEN",
-        "AWS_SECRET_ACCESS_KEY",
+        *(
+            (name, "provider-runtime-secret-sentinel")
+            for name in (
+                "BUB_API_KEY",
+                "OPENAI_API_KEY",
+                "POWERCONTEXT_CODEX_AUTHORIZATION",
+                "CLAUDE_CODE_OAUTH_TOKEN",
+                "ANTHROPIC_API_KEY",
+                "POWERCONTEXT_CLAUDE_AUTHORIZATION",
+                "OPENROUTER_API_KEY",
+                "POWERCONTEXT_OPENCODE_AUTHORIZATION",
+                "HF_TOKEN",
+                "AWS_SECRET_ACCESS_KEY",
+            )
+        ),
+        # The Client and the Server accept a token of any length.
+        ("POWERCONTEXT_CLIENT_API_TOKEN", "Y6q9w2R"),
     ],
 )
 def test_final_evidence_redacts_configured_secrets_and_preserves_the_public_schema(
     monkeypatch,
     tmp_path: Path,
     secret_name: str,
+    sensitive_value: str,
 ) -> None:
-    sensitive_value = "provider-runtime-secret-sentinel"
     monkeypatch.setenv(secret_name, sensitive_value)
     repository = Path(__file__).resolve().parents[3]
     task = next(
