@@ -55,6 +55,18 @@ def server_api_token() -> str | None:
     return None if token is None else token.get_secret_value()
 
 
+def agent_secret(name: str, value: str) -> str:
+    """Hold a secret the harness derives for an agent in the harness's own environment, and return a reference to it.
+
+    Harbor writes each agent's environment to its job files. It keeps the first four and last three characters of a
+    sensitive literal, which is most of a short token. It writes a ``${NAME}`` reference as it is, and resolves the
+    reference from this process's environment when it starts the agent. A value held here is also an evidence secret.
+    """
+
+    environ[name] = value
+    return f"${{{name}}}"
+
+
 def codex_auth_path() -> Path:
     """Resolve Codex's native authentication document location."""
 
@@ -62,10 +74,19 @@ def codex_auth_path() -> Path:
 
 
 _SECRET_SUFFIXES = ("_API_KEY", "_AUTHORIZATION", "_TOKEN", "_SECRET_ACCESS_KEY")
+# A token can also be named in the middle, as in AWS_BEARER_TOKEN_BEDROCK. A plural, as in MAX_THINKING_TOKENS, is a
+# count.
+_SECRET_INFIX = "_TOKEN_"  # noqa: S105 - part of a variable name
 # Local model servers accept any key, and the placeholders commonly passed to them are ordinary words and numbers.
 # They protect nothing, and redacting them by substring would rewrite the evidence. Any other value is redacted,
 # however short.
 _PLACEHOLDER_CREDENTIALS = frozenset({"1", "true", "none", "null", "empty", "dummy", "ollama", "lm-studio"})
+
+
+def _names_a_secret(name: str) -> bool:
+    # Settings read their variables in any case, so POWERCONTEXT_CLIENT_API_TOKEN may be set in lower case.
+    name = name.upper()
+    return name.endswith(_SECRET_SUFFIXES) or _SECRET_INFIX in name
 
 
 class ModelNotConfiguredError(RuntimeError):
@@ -118,7 +139,7 @@ class HarnessSettings(BaseSettings):
         values = {
             value
             for name, value in environ.items()
-            if name.endswith(_SECRET_SUFFIXES) and value and value.lower() not in _PLACEHOLDER_CREDENTIALS
+            if _names_a_secret(name) and value and value.lower() not in _PLACEHOLDER_CREDENTIALS
         }
         if self.agent_proxy_url is not None and (proxy_url := self.agent_proxy_url.get_secret_value()):
             values.add(proxy_url)
