@@ -165,6 +165,8 @@ def test_agent_proxy_is_forwarded_by_reference_only_when_configured(monkeypatch,
 
     proxy_url = "http://user:pass@proxy.invalid:3128"
     monkeypatch.setenv("POWERCONTEXT_E2E_AGENT_PROXY_URL", proxy_url)
+    # A developer's or CI's own proxy settings, which the harness's requests follow, stay as they are.
+    host_proxy = _host_proxy_settings()
     config = _config(task, tmp_path)
     env = _agent_env(config)
 
@@ -174,8 +176,11 @@ def test_agent_proxy_is_forwarded_by_reference_only_when_configured(monkeypatch,
     for name in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
         assert resolved[name] == proxy_url
     assert "powercontext" in env["NO_PROXY"].split(",")
-    # The harness's own requests do not go through the agents' proxy.
-    assert not [name for name in os.environ if name.lower() in ("http_proxy", "https_proxy")]
+    assert _host_proxy_settings() == host_proxy
+
+
+def _host_proxy_settings() -> dict[str, str]:
+    return {name: value for name, value in os.environ.items() if name.lower() in ("http_proxy", "https_proxy")}
 
 
 def test_batch_job_binds_scopes_per_invocation_instead_of_per_job(monkeypatch, tmp_path: Path) -> None:
