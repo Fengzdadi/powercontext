@@ -65,6 +65,12 @@ def agent_secret(name: str, value: str) -> str:
 
     ``name`` is the variable the agent reads, such as ``POWERCONTEXT_BUB_API_TOKEN``, or a short name for a value
     that reaches the agent under several variables, such as ``PROXY_URL``.
+
+    The value stays in this process's environment for the rest of the run, where every child process of the harness
+    inherits it. That exposes nothing new: Harbor resolves a reference from the host environment and nowhere else,
+    and every value held here derives from a setting that reaches the harness only through that same environment,
+    as ``POWERCONTEXT_CLIENT_API_TOKEN`` or ``POWERCONTEXT_E2E_AGENT_PROXY_URL``, which those children inherit
+    already.
     Harbor writes each agent's environment to its job files. It keeps the first four and last three characters of a
     sensitive literal, which is most of a short token, and writes a literal under any other name in full. It writes a
     ``${NAME}`` reference as it is, whatever the name, and resolves the reference from this process's environment when
