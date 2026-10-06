@@ -108,7 +108,9 @@ class PowerContextPiAgent(Pi):
                 "agent's logs, which requires an environment that mounts /logs"
             )
         last: dict[str, Any] = {}
-        for line in output.read_text(encoding="utf-8", errors="replace").splitlines():
+        # Pi ends each record with LF. str.splitlines would also split at U+2028 and the other separators, which
+        # JSON leaves unescaped inside a string, and each half of a record split there is dropped as invalid JSON.
+        for line in output.read_text(encoding="utf-8", errors="replace").split("\n"):
             try:
                 event = json.loads(line)
             except json.JSONDecodeError:

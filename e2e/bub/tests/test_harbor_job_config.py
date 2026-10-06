@@ -552,7 +552,11 @@ def _leave_pi_output(agent: Pi, *lines: str) -> None:
 
 
 def _pi_message(stop_reason: str, **fields: str) -> str:
-    return json.dumps({"type": "message_end", "message": {"role": "assistant", "stopReason": stop_reason, **fields}})
+    # Pi serializes with JSON.stringify, which leaves U+2028 and other non-ASCII characters unescaped.
+    return json.dumps(
+        {"type": "message_end", "message": {"role": "assistant", "stopReason": stop_reason, **fields}},
+        ensure_ascii=False,
+    )
 
 
 def _run_pi_with_output(monkeypatch, tmp_path: Path, *lines: str) -> None:
@@ -590,6 +594,29 @@ def test_pi_session_that_recovered_from_a_failed_model_request_is_an_attempt(mon
         _pi_message("error", errorMessage="429: rate limited"),
         _pi_message("stop"),
     )
+
+
+# JSON leaves these unescaped inside a string, and str.splitlines would split a record at each of them.
+_LINE_SEPARATORS = ["\u2028", "\u2029", "\u0085"]
+
+
+@pytest.mark.parametrize("separator", _LINE_SEPARATORS, ids=lambda s: f"U+{ord(s):04X}")
+def test_pi_message_text_cannot_change_the_run_classification(monkeypatch, tmp_path: Path, separator: str) -> None:
+    # A retry answered with this text would otherwise lose its message_end, and the stale 429 would exclude the arm.
+    _run_pi_with_output(
+        monkeypatch,
+        tmp_path,
+        _pi_message("error", errorMessage="429: rate limited"),
+        _pi_message("stop", content=f"The team chose OceanBase.{separator}It runs 12 shards."),
+    )
+
+    with pytest.raises(NonZeroAgentExitCodeError, match="invalid key"):
+        _run_pi_with_output(
+            monkeypatch,
+            tmp_path,
+            _pi_message("stop", content="An earlier turn."),
+            _pi_message("error", errorMessage=f"401: invalid key{separator}request id 7"),
+        )
 
 
 @pytest.mark.parametrize("powercontext", [True, False])
