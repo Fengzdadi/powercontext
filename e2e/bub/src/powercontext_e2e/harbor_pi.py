@@ -94,12 +94,19 @@ class PowerContextPiAgent(Pi):
         """Return why the session's last model request failed, or nothing when it completed.
 
         Harbor runs Pi in JSON mode, where Pi exits 0 after a failed or aborted model request. Pi's text mode exits 1
-        on the same condition: the last message is an assistant message that stopped on an error.
+        on the same condition: the last message is an assistant message that stopped on an error. The output must be
+        on the host when this runs; see below.
         """
 
         output = self.logs_dir / self._OUTPUT_FILENAME
         if not output.is_file():
-            return None
+            # Harbor's Pi agent writes the file in the container and downloads the agent's logs only after this
+            # method runs, so the check reads it through the bind mount of Harbor's Docker environment. An
+            # environment without that mount would otherwise pass every failed session as an attempt.
+            raise RuntimeError(  # noqa: TRY003
+                f"Pi's output {output} is not on the host: the harness reads it before Harbor downloads the "
+                "agent's logs, which requires an environment that mounts /logs"
+            )
         last: dict[str, Any] = {}
         for line in output.read_text(encoding="utf-8", errors="replace").splitlines():
             try:

@@ -69,8 +69,10 @@ class PowerContextBubAcpAgent(harbor_acp.AcpAgent):
     @override
     async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
         try:
-            await self.exec_as_agent(environment, command=f"rm -rf {BUB_TAPES}")
+            # The marker comes first: the verifier reads a missing marker as a passed step, so every failure
+            # after this line, including a failed removal, must leave it in place.
             await environment.exec(command=f"touch {STEP_FAILURE_MARKER}")
+            await self.exec_as_agent(environment, command=f"rm -rf {BUB_TAPES}")
             if not self._invocation_scopes:
                 await super().run(instruction, environment, context)
             else:

@@ -198,7 +198,8 @@ but a run that gets nothing useful still counts as an ON attempt.
 Integration failures and harness or infrastructure errors are reported but left out of success rates and paired
 differences. A session whose model request failed is such an error on every host: Codex and Claude Code exit non-zero,
 Harbor reads OpenCode's error events, and the harness reads Pi's last message, because Pi exits 0 in the JSON mode
-Harbor uses. An agent timeout counts as a failed attempt in either arm.
+Harbor uses. The harness reads Pi's output through the logs that Harbor's Docker environment mounts and stops with an
+error when the file is not there. An agent timeout counts as a failed attempt in either arm.
 
 The harness Client waits for each flush, which runs the Server's generation model, so raise its 10-second default
 timeout; the Bub plugin also flushes during a session.
@@ -362,8 +363,8 @@ forwards other native `BUB_*` values without translating them.
 
 If the agent task container requires an outbound proxy, set `POWERCONTEXT_E2E_AGENT_PROXY_URL` to a URL reachable
 from that container. In the fixed nested-container harness, `host-gateway` addresses the harness container, so a
-proxy exposed there can be passed as `http://host-gateway:<port>`. The typed setting is also treated as a secret when
-evidence is written.
+proxy exposed there can be passed as `http://host-gateway:<port>`. The URL can carry credentials, so the harness
+treats it as a secret when evidence is written and gives Harbor a reference to it rather than the value.
 
 The agent container sees only the repository files that installation needs: the `powercontext` package and the host
 integration, and none of them in a paired OFF arm. Workload files, answer keys, and benchmark data stay on the host,
@@ -405,8 +406,10 @@ boundary. The Bub plugin uses Bub's Pydantic settings extension and accepts the 
 section of `bub.yml`. Every `*_API_KEY`, `*_TOKEN`, `*_AUTHORIZATION`, and `*_SECRET_ACCESS_KEY` value in the harness
 environment, including Bub's API keys and the PowerContext Client token, is redacted in every file the harness writes,
 whatever its length. A name with `_TOKEN_` in the middle, such as `AWS_BEARER_TOKEN_BEDROCK`, counts too, and names
-match in any case. Only common placeholders for local model servers, such as `1` or `ollama`, are left in place,
-because they protect nothing and redacting them by substring would rewrite the evidence. CI scans evidence with
-TruffleHog before publishing it. Harbor writes the files under `harbor-jobs/` itself, and the harness does not redact
-them: the job configuration holds references to secrets rather than their values, but every host's own output there can
-contain arbitrary command output, such as an agent printing its environment, and should be reviewed before sharing.
+match in any case, but a name ending in `_FILE`, `_PATH`, or `_URL`, such as `AWS_WEB_IDENTITY_TOKEN_FILE`, says
+where a token is and is left alone. Only common placeholders for local model servers, such as `1` or `ollama`, are
+left in place, because they protect nothing and redacting them by substring would rewrite the evidence. CI scans
+evidence with TruffleHog before publishing it. Harbor writes the files under `harbor-jobs/` itself, and the harness
+does not redact them: the job configuration holds references to secrets rather than their values, but every host's
+own output there can contain arbitrary command output, such as an agent printing its environment, and should be
+reviewed before sharing.
