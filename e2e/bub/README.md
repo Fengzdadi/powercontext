@@ -381,7 +381,8 @@ evidence are as for continuation workloads. Each SWE-bench Pro task gives the ag
 of memory, which the harness does not enforce, and its image is several GB, so plan disk space and time per run
 accordingly. The manifests' `max_steps` and `max_tokens` budgets apply to Bub only; the other hosts run with their own
 defaults. This OFF arm differs from the published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but
-disabled; see above for why. The benchmark's images keep the repository's git history, including the commit that
+disabled: here OFF is the host as a user without PowerContext has it, the same on every host, so that the arms differ
+in nothing but the integration. The benchmark's images keep the repository's git history, including the commit that
 holds the gold tests, in both arms alike; the harness does not change the benchmark's own exposure.
 
 Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its

@@ -756,6 +756,7 @@ def test_sessions_start_without_the_tests_an_earlier_step_left(
         (PowerContextPiAgent, Pi),
     ],
 )
+@pytest.mark.skipif(os.geteuid() == 0, reason="root can remove files from a read-only directory")
 def test_a_session_does_not_start_when_the_earlier_tests_cannot_be_removed(
     monkeypatch, tmp_path: Path, agent_class: type, harbor_class: type
 ) -> None:

@@ -349,8 +349,8 @@ def arm_outcome(
 def step_rewards(step_results: Sequence[StepResult]) -> dict[str, float]:
     """Return each step's own reward.
 
-    The recall step's reward decides an arm. Harbor's trial reward follows the task's multi-step strategy and can
-    average in earlier steps, whose small jobs are unrelated to recall.
+    A continuation workload's recall step reward decides its arm. Harbor's trial reward follows the task's
+    multi-step strategy and can average in earlier steps, whose small jobs are unrelated to recall.
     """
 
     return {
@@ -392,7 +392,8 @@ def step_observations(step_results: Sequence[StepResult]) -> tuple[StepObservati
 def treatment_failures(sessions: Sequence[SessionSnapshot], recall_session: int) -> tuple[str, ...]:
     """Explain why an ON run did not receive PowerContext's treatment, or return nothing when it did.
 
-    The treatment is the integration capturing Sources and asking PowerContext for context during the scored
+    ``recall_session`` is the scored session: a continuation workload's recall session, or 0 for a single-session
+    workload. The treatment is the integration capturing Sources and asking PowerContext for context during that
     session: for a continuation workload, Sources from the earlier sessions; for a single-session workload, Sources
     from the session itself. Whether a flush creates Memory and whether recall returns content are PowerContext's own
     behavior under that treatment, so they are recorded in the snapshots but do not decide whether a run counts.

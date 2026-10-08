@@ -61,7 +61,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dataset_dir", type=Path, help="The downloaded swebenchpro dataset directory.")
     parser.add_argument("--output", type=Path, default=Path("e2e/bub/paired-tasks/swebench-pro"))
-    parser.add_argument("--version", default=VERSION, help="The registry dataset version the manifests name.")
+    parser.add_argument(
+        "--version",
+        default=VERSION,
+        help="The registry dataset version the manifests name; the downloaded copy must be that version, because "
+        "each checksum is computed from it.",
+    )
     parser.add_argument("--per-repository", type=int, default=1)
     parser.add_argument("--task", action="append", default=[], help="Select a task by name instead of the rule.")
     parser.add_argument(
