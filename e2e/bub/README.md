@@ -431,6 +431,11 @@ from that container. In the fixed nested-container harness, `host-gateway` addre
 proxy exposed there can be passed as `http://host-gateway:<port>`. The URL can carry credentials, so the harness
 treats it as a secret when evidence is written and gives Harbor a reference to it rather than the value.
 
+Bub's runtime install, in every run, sets pip's index to PyPI, or to `POWERCONTEXT_E2E_PIP_INDEX_URL` when that names
+a mirror the containers can reach; the host's own `PIP_INDEX_URL` is not forwarded. The value is passed to one
+install command in the container and is not written to evidence, but it does appear in that command's environment,
+so prefer a mirror that needs no credentials in its URL.
+
 The agent container sees only the repository files that installation needs: the `powercontext` package and the host
 integration, and none of them in a paired OFF arm. Workload files, answer keys, and benchmark data stay on the host,
 because the agent can search its container. Agent setup uses Bub's supported installation path: `uv tool install`

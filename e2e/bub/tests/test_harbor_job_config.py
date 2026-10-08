@@ -418,19 +418,19 @@ class _RecordingEnvironment:
 
 
 @pytest.mark.parametrize(
-    ("host_index", "expected"),
+    ("setting", "expected"),
     [(None, "https://pypi.org/simple"), ("https://mirror.test/simple", "https://mirror.test/simple")],
 )
 def test_bub_runtime_install_does_not_use_the_task_images_pip_index(
-    monkeypatch, tmp_path: Path, host_index: str | None, expected: str
+    monkeypatch, tmp_path: Path, setting: str | None, expected: str
 ) -> None:
     # SWE-bench Pro images configure pip for the index their build used, which no longer answers. The host's own
     # PIP_INDEX_URL is not forwarded: a host mirror is often unreachable from a container.
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:3141/simple")
-    if host_index is None:
+    if setting is None:
         monkeypatch.delenv("POWERCONTEXT_E2E_PIP_INDEX_URL", raising=False)
     else:
-        monkeypatch.setenv("POWERCONTEXT_E2E_PIP_INDEX_URL", host_index)
+        monkeypatch.setenv("POWERCONTEXT_E2E_PIP_INDEX_URL", setting)
     environment = _RecordingEnvironment()
 
     asyncio.run(PowerContextBubAcpAgent(logs_dir=tmp_path, powercontext=False).install(environment))
