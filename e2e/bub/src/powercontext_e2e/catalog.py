@@ -143,6 +143,10 @@ class TaskOutcomeComparisonSpec(CatalogModel):
     comparison: Literal["task-outcome"]
 
 
+# The workloads that compare PowerContext off and on; only the paired command runs them.
+PAIRED_EVALUATIONS = (ContinuationEvaluationSpec, TaskOutcomeComparisonSpec)
+
+
 class E2ETask(CatalogModel):
     schema_: Literal["powercontext.e2e-task/v1"] = Field(alias="schema")
     id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*$")
@@ -151,6 +155,10 @@ class E2ETask(CatalogModel):
     dataset: HarborDatasetSpec
     execution: BubExecutionSpec
     evaluation: MemoryEvaluationSpec | OutcomeEvaluationSpec | ContinuationEvaluationSpec | TaskOutcomeComparisonSpec
+
+
+def is_paired(task: E2ETask) -> bool:
+    return isinstance(task.evaluation, PAIRED_EVALUATIONS)
 
 
 class TaskSelectionError(ValueError):

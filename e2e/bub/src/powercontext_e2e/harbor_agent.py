@@ -75,7 +75,7 @@ class PowerContextBubAcpAgent(harbor_acp.AcpAgent):
             # after this line, including a failed removal, must leave it in place.
             await environment.exec(command=f"touch {STEP_FAILURE_MARKER}")
             await self.exec_as_agent(environment, command=f"rm -rf {BUB_TAPES}")
-            await self.exec_as_root(environment, command=clear_step_tests_command())
+            await clear_step_tests(environment)
             if not self._invocation_scopes:
                 await super().run(instruction, environment, context)
             else:
@@ -127,15 +127,16 @@ class PowerContextBubAcpAgent(harbor_acp.AcpAgent):
         self._selected_distribution_kind = "uvx"
 
 
-def clear_step_tests_command() -> str:
+async def clear_step_tests(environment: BaseEnvironment) -> None:
     """Remove the tests Harbor uploaded for an earlier step's verifier.
 
     Harbor uploads a step's tests before its verifier runs and leaves them in the container, so a later session
     could read an earlier step's verifier, which can hint at a continuation workload's answer. Each verifier uploads
-    its own tests again, so a later step loses nothing.
+    its own tests again, so a later step loses nothing. Harbor's own directory reset runs as root, which owns the
+    uploaded files, and leaves an empty directory whatever was at the path.
     """
 
-    return f"if [ -d {STEP_TESTS_DIR} ]; then find {STEP_TESTS_DIR} -mindepth 1 -delete; fi"
+    await environment.empty_dirs([STEP_TESTS_DIR], chmod=False)
 
 
 def _tool_environment() -> str:

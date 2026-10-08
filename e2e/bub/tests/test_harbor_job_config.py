@@ -19,7 +19,9 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import NamedTuple
 
 import pytest
@@ -29,9 +31,10 @@ from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.opencode import OpenCode
 from harbor.agents.installed.pi import Pi
-from harbor.environments.base import ExecResult
+from harbor.environments.base import BaseEnvironment, ExecResult
 from harbor.models.agent.context import AgentContext
 from harbor.models.job.config import JobConfig
+from harbor.models.task.config import TaskOS
 from harbor.utils.env import resolve_env_vars
 
 from powercontext_e2e import harbor_agent
@@ -239,6 +242,21 @@ def test_off_arm_runs_the_host_without_powercontext(
     assert on_agent.kwargs == {}
 
 
+@pytest.mark.parametrize("manifest", ["project-decision-continuation.yaml", "swebench-pro"])
+def test_bub_on_arm_captures_every_paired_workload(monkeypatch, isolated_host_environment: Path, manifest: str) -> None:
+    # Bub captures nothing by default; the ON arm must record the session on both paired workload kinds, or the
+    # Server never sees a Source and every run is an integration failure.
+    monkeypatch.setenv("BUB_MODEL", "provider:model")
+    monkeypatch.setenv("POWERCONTEXT_BUB_BASE_URL", "http://host-gateway:8000")
+    task = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / manifest)[0]
+
+    (on_agent,) = _job_config(
+        task, "run-1", "scope-1", isolated_host_environment / "on", HarnessSettings(repository=_REPOSITORY)
+    ).agents
+
+    assert on_agent.env["POWERCONTEXT_BUB_CAPTURE_EVENTS"] == "true"
+
+
 class _PluginHost(NamedTuple):
     name: str
     model: str
@@ -380,6 +398,9 @@ class _RecordingEnvironment:
         failed = self._failing is not None and self._failing in command
         return ExecResult(stdout="", stderr="", return_code=1 if failed else 0)
 
+    async def empty_dirs(self, dirs, *, chmod: bool = True) -> ExecResult:
+        return await self.exec(f"empty_dirs {' '.join(str(path) for path in dirs)}")
+
 
 def _opencode_agent(tmp_path: Path, *, powercontext: bool) -> PowerContextOpenCodeAgent:
     return PowerContextOpenCodeAgent(
@@ -418,6 +439,11 @@ class _ShellEnvironment:
         opencode.chmod(0o755)
         self._env = {"HOME": str(self.home), "TMPDIR": str(self.tmp), "PATH": f"{bin_dir}:/usr/bin:/bin", **(env or {})}
         self.commands: list[tuple[str, object]] = []
+
+    async def empty_dirs(self, dirs, *, chmod: bool = True) -> ExecResult:
+        # Harbor's own reset command for a Linux container, run here as the test user.
+        linux = SimpleNamespace(os=TaskOS.LINUX)
+        return await self.exec(BaseEnvironment._empty_dirs_command(linux, dirs, chmod=chmod))
 
     async def exec(self, command: str, **kwargs: object) -> ExecResult:
         self.commands.append((command, kwargs.get("user")))
@@ -666,6 +692,7 @@ def _agent(agent_class: type, tmp_path: Path, *, powercontext: bool):
     )
 
 
+@pytest.mark.parametrize("left", ["directory", "symlink"])
 @pytest.mark.parametrize("powercontext", [True, False])
 @pytest.mark.parametrize(
     ("agent_class", "harbor_class"),
@@ -678,15 +705,20 @@ def _agent(agent_class: type, tmp_path: Path, *, powercontext: bool):
     ],
 )
 def test_sessions_start_without_the_tests_an_earlier_step_left(
-    monkeypatch, tmp_path: Path, agent_class: type, harbor_class: type, powercontext: bool
+    monkeypatch, tmp_path: Path, agent_class: type, harbor_class: type, powercontext: bool, left: str
 ) -> None:
     # Harbor uploads each step's tests before its verifier and leaves them in the container, so a later session
     # could read an earlier step's verifier, which hints at a continuation workload's answer.
     started: list[list[str]] = []
     tests = tmp_path / "tests"
-    (tests / "nested").mkdir(parents=True)
-    (tests / "test.sh").write_text("# Copyright OceanBase: the team chose OceanBase with 12 shards.")
-    (tests / "nested" / "grade.py").write_text("EXPECTED = 12")
+    earlier = tmp_path / "earlier-tests"
+    (earlier / "nested").mkdir(parents=True)
+    (earlier / "test.sh").write_text("# Copyright OceanBase: the team chose OceanBase with 12 shards.")
+    (earlier / "nested" / "grade.py").write_text("EXPECTED = 12")
+    if left == "symlink":
+        tests.symlink_to(earlier)
+    else:
+        shutil.copytree(earlier, tests)
     environment = _ShellEnvironment(tmp_path, env={"BUB_HOME": str(tmp_path / "bub-home")})
 
     async def run_host(self, instruction, environment, context) -> None:
@@ -702,8 +734,7 @@ def test_sessions_start_without_the_tests_an_earlier_step_left(
 
     assert started == [[]]
     assert tests.is_dir()
-    # Harbor copies the tests in as root, so only root can remove them.
-    assert [user for command, user in environment.commands if "find" in command and "-delete" in command] == ["root"]
+    assert not tests.is_symlink()
 
 
 def test_bub_step_whose_tapes_could_not_be_removed_is_marked_failed(monkeypatch, tmp_path: Path) -> None:

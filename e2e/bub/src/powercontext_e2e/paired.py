@@ -116,9 +116,10 @@ async def run_paired(
         for task in tasks:
             for trial in range(1, trials + 1):
                 order: tuple[Arm, Arm] = ("off", "on") if trial % 2 else ("on", "off")
+                mismatch = None
                 for position, arm in enumerate(order, start=1):
                     arm_dir = output_dir / task.id / f"trial-{trial}" / arm
-                    observation = await _run_arm(
+                    observation, mismatch = await _run_arm(
                         client,
                         task,
                         host=adapter,
@@ -135,6 +136,11 @@ async def run_paired(
                         settings,
                     )
                     observations.append(observation)
+                    if mismatch is not None:
+                        break
+                if mismatch is not None:
+                    # The manifest does not describe the task Harbor ran; more trials would only repeat the error.
+                    break
 
     report = summarize(observations, trials=trials, agent=_paired_agent(adapter))
     write_evidence(output_dir / "paired-report.json", report.model_dump_json(by_alias=True, indent=2) + "\n", settings)
@@ -226,7 +232,9 @@ async def _run_arm(
     scored: ScoredSession,
     output_dir: Path,
     settings: HarnessSettings,
-) -> PairedArmObservation:
+) -> tuple[PairedArmObservation, str | None]:
+    """Run one arm and return its observation, with the reason when Harbor's task is not the manifest's."""
+
     run_id = f"{task.id}-t{trial}-{arm}-{uuid4().hex[:12]}"
     output_dir.mkdir(parents=True, exist_ok=True)
     started_at = datetime.now(UTC)
@@ -235,6 +243,7 @@ async def _run_arm(
     harbor = HarborTrialObservation()
     step_results: tuple[StepResult, ...] = ()
     errors: list[str] = []
+    mismatch: str | None = None
     try:
         if arm == "on":
             scope_id = (
@@ -251,12 +260,11 @@ async def _run_arm(
             recorder = SessionRecorder(client, scope_id, final_session=scored.session)
             job.on_agent_ended(recorder)
         harbor, step_results, _ = _harbor_observation(await job.run(), settings)
-        if (mismatch := checksum_failure(task, harbor)) is not None:
+        mismatch = checksum_failure(task, harbor)
+        if mismatch is None and scored.step is None and step_results:
+            mismatch = f"Workload {task.id!r} ran {len(step_results)} steps; a task-outcome workload runs one session"
+        if mismatch is not None:
             errors.append(mismatch)
-        if scored.step is None and step_results:
-            errors.append(
-                f"Workload {task.id!r} ran {len(step_results)} steps; a task-outcome workload runs one session"
-            )
     except Exception as exc:
         errors.append(redact(f"{type(exc).__name__}: {exc}", settings))
 
@@ -269,7 +277,7 @@ async def _run_arm(
         if arm == "on"
         else ()
     )
-    return PairedArmObservation(
+    observation = PairedArmObservation(
         run_id=run_id,
         task_id=task.id,
         trial=trial,
@@ -291,6 +299,7 @@ async def _run_arm(
         sessions=sessions,
         treatment_failures=treatment,
     )
+    return observation, mismatch
 
 
 def checksum_failure(task: E2ETask, harbor: HarborTrialObservation) -> str | None:
@@ -394,18 +403,21 @@ def treatment_failures(sessions: Sequence[SessionSnapshot], recall_session: int)
     before = by_session.get(recall_session - 1) if recall_session else None
     if recall is None or (recall_session and before is None):
         return ("The Server was not observed after every session",)
-    # A single-session workload captures and asks within the session the Server was observed after.
-    captured = recall.sources if before is None else before.sources
-    asked = recall.preparations - (0 if before is None else before.preparations)
+    # A single-session workload captures and asks within the one session the Server was observed after.
+    single = before is None
+    captured = recall.sources if single else before.sources
+    asked = recall.preparations - (0 if single else before.preparations)
     failures: list[str] = []
-    if captured == 0 and before is None:
-        failures.append("No Sources were captured during the session")
-    elif captured == 0:
-        failures.append("No Sources were captured before the recall session")
-    if asked <= 0 and before is None:
-        failures.append("PowerContext was not asked for context during the session")
-    elif asked <= 0:
-        failures.append("PowerContext was not asked for context during the recall session")
+    if captured == 0:
+        failures.append(
+            "No Sources were captured during the session"
+            if single
+            else "No Sources were captured before the recall session"
+        )
+    if asked <= 0:
+        failures.append(
+            "PowerContext was not asked for context during the " + ("session" if single else "recall session")
+        )
     return tuple(failures)
 
 

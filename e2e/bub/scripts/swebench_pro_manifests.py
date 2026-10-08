@@ -20,7 +20,8 @@ Download the dataset first, so each manifest pins the task's checksum::
     uv run --project e2e/bub python e2e/bub/scripts/swebench_pro_manifests.py <dir>/swebenchpro
 
 The subset is the first ``--per-repository`` tasks of every repository, by task name, so the same dataset always
-gives the same manifests. Pass ``--task`` to select tasks by name instead.
+gives the same manifests. Pass ``--task`` to select tasks by name instead. Manifests already in the output directory
+are kept unless ``--replace`` removes the generated ones first.
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ from harbor.models.task.task import Task
 
 DATASET = "swebenchpro"
 VERSION = "1.0"
+ID_PREFIX = "swebench-pro-"
 HEADER = """\
 # Copyright (c) 2026 OceanBase.
 #
@@ -59,45 +61,56 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dataset_dir", type=Path, help="The downloaded swebenchpro dataset directory.")
     parser.add_argument("--output", type=Path, default=Path("e2e/bub/paired-tasks/swebench-pro"))
+    parser.add_argument("--version", default=VERSION, help="The registry dataset version the manifests name.")
     parser.add_argument("--per-repository", type=int, default=1)
     parser.add_argument("--task", action="append", default=[], help="Select a task by name instead of the rule.")
+    parser.add_argument(
+        "--replace", action="store_true", help="Remove generated manifests in the output directory first."
+    )
     args = parser.parse_args()
+    if args.per_repository < 1:
+        parser.error("--per-repository must be at least 1")
 
     tasks = sorted(path for path in args.dataset_dir.iterdir() if path.is_dir())
     if args.task:
         by_name = {path.name: path for path in tasks}
         if unknown := sorted(set(args.task) - set(by_name)):
-            raise SystemExit(f"Tasks not in {args.dataset_dir}: {unknown!r}")  # noqa: TRY003
+            parser.error(f"tasks not in {args.dataset_dir}: {unknown!r}")
         selected = [by_name[name] for name in sorted(set(args.task))]
     else:
         by_repository: dict[str, list[Path]] = defaultdict(list)
         for path in tasks:
-            by_repository[_repository(path.name)].append(path)
+            by_repository[_parse(path.name)["repository"]].append(path)
         selected = [path for paths in by_repository.values() for path in paths[: args.per_repository]]
+    ids = [_workload_id(path.name) for path in selected]
+    if len(ids) != len(set(ids)):
+        parser.error(f"selected tasks share a workload ID: {sorted({i for i in ids if ids.count(i) > 1})!r}")
+
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.replace:
+        for stale in args.output.glob(f"{ID_PREFIX}*.yaml"):
+            stale.unlink()
     for path in selected:
         manifest = args.output / f"{_workload_id(path.name)}.yaml"
-        manifest.write_text(HEADER + _manifest(path), encoding="utf-8")
+        manifest.write_text(HEADER + _manifest(path, args.version), encoding="utf-8")
         print(manifest)
 
 
-def _repository(task_name: str) -> str:
+def _parse(task_name: str) -> re.Match[str]:
     match = TASK_NAME.match(task_name)
     if match is None:
         raise ValueError(f"Unexpected SWE-bench Pro task name {task_name!r}")  # noqa: TRY003
-    return match["repository"]
+    return match
 
 
 def _workload_id(task_name: str) -> str:
-    match = TASK_NAME.match(task_name)
-    if match is None:
-        raise ValueError(f"Unexpected SWE-bench Pro task name {task_name!r}")  # noqa: TRY003
-    return f"swebench-pro-{match['repository']}-{match['commit'][:8]}"
+    match = _parse(task_name)
+    return f"{ID_PREFIX}{match['repository']}-{match['commit'][:8]}"
 
 
-def _manifest(path: Path) -> str:
+def _manifest(path: Path, version: str) -> str:
     task = Task(path)
-    repository = _repository(path.name)
+    repository = _parse(path.name)["repository"]
     return f"""
 schema: powercontext.e2e-task/v1
 id: {_workload_id(path.name)}
@@ -107,7 +120,7 @@ categories:
   - swebench-pro-{repository}
 dataset:
   name: {DATASET}
-  version: "{VERSION}"
+  version: "{version}"
   task_id: "{path.name}"
   checksum: "{task.checksum}"
 execution:

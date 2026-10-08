@@ -42,13 +42,7 @@ from powercontext.client.settings import ClientSettings
 from powercontext.http import CreateScopeRequest, ListMemoryEntriesRequest, PrepareContextRequest
 
 from .artifacts import write_artifacts
-from .catalog import (
-    ContinuationEvaluationSpec,
-    E2ETask,
-    MemoryEvaluationSpec,
-    OutcomeEvaluationSpec,
-    TaskOutcomeComparisonSpec,
-)
+from .catalog import E2ETask, MemoryEvaluationSpec, OutcomeEvaluationSpec, is_paired
 from .evaluation import evaluate_observation, matches_forbidden_context
 from .evidence import fingerprint, load_resolved_instructions, redact, write_evaluation_report, write_evidence
 from .hosts import HostAdapter, host_adapter
@@ -157,8 +151,7 @@ async def run_tasks(
     settings: HarnessSettings,
     failure_policy: FailurePolicy = "collect-all",
 ) -> bool:
-    paired_specs = (ContinuationEvaluationSpec, TaskOutcomeComparisonSpec)
-    if paired_ids := [task.id for task in tasks if isinstance(task.evaluation, paired_specs)]:
+    if paired_ids := [task.id for task in tasks if is_paired(task)]:
         raise ValueError(f"Run OFF/ON comparison workloads with the paired command: {paired_ids!r}")  # noqa: TRY003
     require_runtime_models(tasks)
 

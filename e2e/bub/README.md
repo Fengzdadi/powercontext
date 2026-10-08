@@ -149,8 +149,9 @@ A continuation workload is a Harbor multi-step task written in plain language, s
 earlier session mentions a fact only in the conversation, next to an unrelated small job. The final recall session
 asks for that fact and has the agent write its answer to a file as structured values, so the grader checks what the
 answer asserts rather than keywords that a contradictory or hedged answer could also contain. The recall step's own
-tests grade the answer, and the answer key lives only there, because Harbor leaves every uploaded test directory in
-the container for later steps. The recall step's own reward decides the run whatever the task's multi-step reward
+tests grade the answer, and the answer key lives only there; the harness also empties `/tests` before each session,
+so the recall session cannot read the capture step's tests either. The recall step's own reward decides the run
+whatever the task's multi-step reward
 strategy; earlier steps' rewards are recorded for diagnosis only. A task may not set `min_reward` on an earlier
 step, because Harbor would then skip the recall step when that step's unrelated job falls short.
 
@@ -361,7 +362,8 @@ such a pilot can say. The command does not yet check the Default Scope for leaks
 The same command compares the arms on a task that one agent session completes and the task's own verifier grades,
 such as a SWE-bench Pro instance. Its manifest declares `evaluation: {comparison: task-outcome}` and may name a Harbor
 registry dataset, which Harbor downloads; the manifest pins the task's checksum, and a run whose Harbor task differs
-from it is an error. `e2e/bub/paired-tasks/swebench-pro/` holds one manifest per repository of Harbor's
+from it is an error that also ends that workload's remaining trials. `e2e/bub/paired-tasks/swebench-pro/` holds one
+manifest per repository of Harbor's
 `swebenchpro@1.0` (the 731 SWE-bench Pro public tasks, graded by the benchmark's own `run_script.sh` and `parser.py`
 in its own images), chosen as the first task of each repository by name; `e2e/bub/scripts/swebench_pro_manifests.py`
 writes manifests for another selection from a downloaded copy of the dataset. The default manifest directory
@@ -383,7 +385,8 @@ disabled; see above for why. The benchmark's images keep the repository's git hi
 holds the gold tests, in both arms alike; the harness does not change the benchmark's own exposure.
 
 Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its
-verifier and leaves them, so that a later session cannot read an earlier step's verifier. Harbor uploads a step's
+verifier and leaves them, so that a later session cannot read an earlier step's verifier. It uses Harbor's own
+directory reset, which also replaces a symlink or file at that path with an empty directory. Harbor uploads a step's
 tests again before running that step's verifier, so nothing a verifier needs is lost; the harness assumes the image
 itself ships nothing there.
 

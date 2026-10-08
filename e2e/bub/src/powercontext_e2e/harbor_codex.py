@@ -24,7 +24,7 @@ from harbor.agents.installed.codex import Codex
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
-from .harbor_agent import REMOTE_SOURCE, clear_step_tests_command
+from .harbor_agent import REMOTE_SOURCE, clear_step_tests
 
 CODEX_VERSION = "0.153.4"
 PLUGIN_UV_VERSION = "0.10.12"
@@ -78,7 +78,7 @@ class PowerContextCodexAgent(Codex):
 
     @override
     async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
-        await self.exec_as_root(environment, command=clear_step_tests_command())
+        await clear_step_tests(environment)
         await super().run(instruction, environment, context)
 
     @override

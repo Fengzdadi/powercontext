@@ -204,7 +204,7 @@ class StepObservation(EvidenceModel):
 
 
 class PairedArmObservation(EvidenceModel):
-    """One arm of one OFF/ON trial for a continuation workload."""
+    """One arm of one OFF/ON trial for a paired workload."""
 
     # v2 records each step's time and the host's usage figures, and Server usage in the session snapshots.
     schema_: Literal["powercontext.e2e-paired-arm/v2"] = Field(
