@@ -26,7 +26,7 @@ from powercontext.client import PowerContextClient, UnauthorizedResponseError
 from powercontext.client.settings import ClientSettings
 from powercontext.http import CreateScopeRequest
 
-from .catalog import ContinuationEvaluationSpec, E2ETask, TaskOutcomeComparisonSpec
+from .catalog import ContinuationEvaluationSpec, E2ETask, TaskOutcomeComparisonSpec, is_paired
 from .evidence import redact, write_evidence
 from .hosts import HostAdapter, host_adapter
 from .models import (
@@ -185,6 +185,8 @@ class ScoredSession(NamedTuple):
 
 
 def scored_session(task: E2ETask, settings: HarnessSettings) -> ScoredSession:
+    if not is_paired(task):
+        raise TypeError(f"Workload {task.id!r} is not an OFF/ON comparison workload")  # noqa: TRY003
     evaluation = task.evaluation
     if isinstance(evaluation, ContinuationEvaluationSpec):
         return ScoredSession(recall_session_index(task, settings), evaluation.recall_step)
@@ -193,7 +195,7 @@ def scored_session(task: E2ETask, settings: HarnessSettings) -> ScoredSession:
         if task.dataset.path is not None and _load_harbor_task(task, settings.repository_path()).config.steps:
             raise ValueError(f"Workload {task.id!r} has Harbor steps; a task-outcome workload runs one session")  # noqa: TRY003
         return ScoredSession(0, None)
-    raise TypeError(f"Workload {task.id!r} is not an OFF/ON comparison workload")  # noqa: TRY003
+    raise AssertionError(f"Unhandled paired evaluation {type(evaluation).__name__}")  # noqa: TRY003
 
 
 def recall_session_index(task: E2ETask, settings: HarnessSettings) -> int:

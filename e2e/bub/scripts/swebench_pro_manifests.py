@@ -21,7 +21,7 @@ Download the dataset first, so each manifest pins the task's checksum::
 
 The subset is the first ``--per-repository`` tasks of every repository, by task name, so the same dataset always
 gives the same manifests. Pass ``--task`` to select tasks by name instead. Manifests already in the output directory
-are kept unless ``--replace`` removes the generated ones first.
+are kept unless ``--replace`` first removes every ``swebench-pro-*.yaml`` there.
 """
 
 from __future__ import annotations

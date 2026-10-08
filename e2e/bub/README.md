@@ -192,15 +192,15 @@ a timeout. Host plugins flush on different schedules, so the harness flushes the
 Server's generation model therefore takes part in the ON arm; the run fails early when the Server does not report
 `memory_extraction`.
 
-An ON run counts only when Server statistics for its Scope show that Sources were captured before the recall session
-and that the integration asked PowerContext for context during it. Otherwise it is an integration failure. Whether a
-flush creates Memory and whether recall returns content are PowerContext's own behavior, so the snapshots record them
-but a run that gets nothing useful still counts as an ON attempt.
-Integration failures and harness or infrastructure errors are reported but left out of success rates and paired
-differences. A session whose model request failed is such an error on every host: Codex and Claude Code exit non-zero,
-Harbor reads OpenCode's error events, and the harness reads Pi's last message, because Pi exits 0 in the JSON mode
-Harbor uses. The harness reads Pi's output through the logs that Harbor's Docker environment mounts and stops with an
-error when the file is not there. An agent timeout counts as a failed attempt in either arm.
+An ON run counts only when Server statistics for its Scope show that Sources were captured before the scored session
+(during it, for a single-session workload) and that the integration asked PowerContext for context during it.
+Otherwise it is an integration failure. Whether a flush creates Memory and whether recall returns content are
+PowerContext's own behavior, so the snapshots record them but a run that gets nothing useful still counts as an ON
+attempt. Integration failures and harness or infrastructure errors are reported but left out of success rates and
+paired differences. A session whose model request failed is such an error on every host: Codex and Claude Code exit
+non-zero, Harbor reads OpenCode's error events, and the harness reads Pi's last message, because Pi exits 0 in the
+JSON mode Harbor uses. The harness reads Pi's output through the logs that Harbor's Docker environment mounts and
+stops with an error when the file is not there. An agent timeout counts as a failed attempt in either arm.
 
 The harness Client waits for each flush, which runs the Server's generation model, so raise its 10-second default
 timeout; the Bub plugin also flushes during a session.
@@ -359,15 +359,14 @@ such a pilot can say. The command does not yet check the Default Scope for leaks
 
 ### Task-completion workloads
 
-The same command compares the arms on a task that one agent session completes and the task's own verifier grades,
-such as a SWE-bench Pro instance. Its manifest declares `evaluation: {comparison: task-outcome}` and may name a Harbor
+The same command compares the arms on a task that one agent session completes and the task's own verifier grades, such
+as a SWE-bench Pro instance. Its manifest declares `evaluation: {comparison: task-outcome}` and may name a Harbor
 registry dataset, which Harbor downloads; the manifest pins the task's checksum, and a run whose Harbor task differs
 from it is an error that also ends that workload's remaining trials. `e2e/bub/paired-tasks/swebench-pro/` holds one
-manifest per repository of Harbor's
-`swebenchpro@1.0` (the 731 SWE-bench Pro public tasks, graded by the benchmark's own `run_script.sh` and `parser.py`
-in its own images), chosen as the first task of each repository by name; `e2e/bub/scripts/swebench_pro_manifests.py`
-writes manifests for another selection from a downloaded copy of the dataset. The default manifest directory
-holds only the continuation workloads, so name this one with `--manifest`:
+manifest per repository of Harbor's `swebenchpro@1.0` (the 731 SWE-bench Pro public tasks, graded by the benchmark's
+own `run_script.sh` and `parser.py` in its own images), chosen as the first task of each repository by name;
+`e2e/bub/scripts/swebench_pro_manifests.py` writes manifests for another selection from a downloaded copy of the
+dataset. The default manifest directory holds only the continuation workloads, so name this one with `--manifest`:
 
 ```bash
 make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro --trials 1'
@@ -378,14 +377,14 @@ Each arm runs the task once in a fresh container, scored by the trial's reward. 
 PowerContext adds in a single session is what the integration captures and recalls within it; an ON run counts only
 when the Server shows Sources captured and a context request during that session. The hosts, the OFF arm, and the
 evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and declares 4 GB of
-memory, which the harness does not enforce, and its image is several GB, so plan disk space and time per run
-accordingly. The images configure pip for the index their build used, which no longer answers, so Bub's runtime
-install sets `PIP_INDEX_URL` to PyPI, or to the value the harness environment holds. The manifests' `max_steps` and
-`max_tokens` budgets apply to Bub only; the other hosts run with their own defaults. This OFF arm differs from the
-published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but disabled: here OFF is the host as a user
-without PowerContext has it, the same on every host, so that the arms differ in nothing but the integration. The
-benchmark's images keep the repository's git history, including the commit that holds the gold tests, in both arms
-alike; the harness does not change the benchmark's own exposure.
+memory, which the harness does not enforce, and its image is one to several GB (the ansible image is 1.6 GB), so plan
+disk space and time per run accordingly. The images configure pip for the index their build used, which no longer
+answers, so Bub's runtime install sets `PIP_INDEX_URL` to PyPI, or to the value the harness environment holds; uv and
+apt keep their defaults. The manifests' `max_steps` and `max_tokens` budgets apply to Bub only; the other hosts run
+with their own defaults. This OFF arm differs from the published SWE-bench Pro run, whose OFF arm had the Codex plugin
+installed but disabled: here OFF is the host as a user without PowerContext has it, the same on every host, so that
+the arms differ in nothing but the integration. The benchmark's images keep the repository's git history, including
+the commit that holds the gold tests, in both arms alike; the harness does not change the benchmark's own exposure.
 
 Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its
 verifier and leaves them, so that a later session cannot read an earlier step's verifier. It uses Harbor's own
