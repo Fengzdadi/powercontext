@@ -136,7 +136,11 @@ async def clear_step_tests(environment: BaseEnvironment) -> None:
     uploaded files, and leaves an empty directory whatever was at the path.
     """
 
-    await environment.empty_dirs([STEP_TESTS_DIR], chmod=False)
+    # Harbor's environments return a failed command rather than raising, and a session must not start with the
+    # earlier tests still readable.
+    result = await environment.empty_dirs([STEP_TESTS_DIR], chmod=False)
+    if result is not None and result.return_code != 0:
+        raise RuntimeError(f"Emptying {STEP_TESTS_DIR} failed with exit code {result.return_code}: {result.stderr}")  # noqa: TRY003
 
 
 def _tool_environment() -> str:

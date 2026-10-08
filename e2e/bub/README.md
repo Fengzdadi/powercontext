@@ -32,7 +32,7 @@ summary.
 ```text
 e2e/bub/
   tasks/                  # PowerContext manifests and evaluation expectations
-  paired-tasks/           # OFF/ON continuation manifests for the paired command
+  paired-tasks/           # OFF/ON manifests for the paired command
   harbor-tasks/           # Local Harbor tasks used by built-in samples
   src/powercontext_e2e/   # One Harbor runner and one Memory evaluator
 ```

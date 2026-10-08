@@ -86,13 +86,16 @@ def main() -> None:
     if len(ids) != len(set(ids)):
         parser.error(f"selected tasks share a workload ID: {sorted({i for i in ids if ids.count(i) > 1})!r}")
 
+    # Render everything before touching the output directory, so a task that fails to load leaves it as it was.
+    manifests = {
+        args.output / f"{_workload_id(path.name)}.yaml": HEADER + _manifest(path, args.version) for path in selected
+    }
     args.output.mkdir(parents=True, exist_ok=True)
     if args.replace:
         for stale in args.output.glob(f"{ID_PREFIX}*.yaml"):
             stale.unlink()
-    for path in selected:
-        manifest = args.output / f"{_workload_id(path.name)}.yaml"
-        manifest.write_text(HEADER + _manifest(path, args.version), encoding="utf-8")
+    for manifest, text in manifests.items():
+        manifest.write_text(text, encoding="utf-8")
         print(manifest)
 
 

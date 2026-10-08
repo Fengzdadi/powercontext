@@ -49,6 +49,7 @@ from powercontext_e2e.paired import (
     classify_outcome,
     recall_session_index,
     require_authenticated_server,
+    run_paired,
     scored_session,
     step_observations,
     summarize,
@@ -684,3 +685,51 @@ def test_a_local_task_outcome_workload_cannot_have_steps() -> None:
 
     with pytest.raises(ValueError, match="has Harbor steps"):
         scored_session(_task_outcome(continuation), HarnessSettings())
+
+
+class _ReadyClient:
+    """A Server client whose readiness and capabilities checks pass."""
+
+    async def __aenter__(self) -> _ReadyClient:
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        del exc_info
+
+    async def get_readiness(self) -> None:
+        return None
+
+    async def get_capabilities(self) -> SimpleNamespace:
+        return SimpleNamespace(memory_extraction=True)
+
+
+def test_a_workload_ends_after_harbor_ran_a_task_the_manifest_does_not_pin(monkeypatch, tmp_path: Path) -> None:
+    # Every further trial of that workload would repeat the error at the cost of a full run; other workloads go on.
+    stale, sound = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "swebench-pro")[:2]
+    runs: list[tuple[str, int, str]] = []
+
+    async def run_arm(client, task, *, trial, arm, output_dir, **kwargs):
+        output_dir.mkdir(parents=True)
+        runs.append((task.id, trial, arm))
+        mismatch = "Harbor ran task checksum 0, not the manifest's 1" if task is stale else None
+        return _observation(trial, arm, "error" if mismatch else "passed", task_id=task.id), mismatch
+
+    async def authenticated() -> None:
+        return None
+
+    monkeypatch.setattr(paired_module, "_powercontext_client", _ReadyClient)
+    monkeypatch.setattr(paired_module, "require_authenticated_server", authenticated)
+    monkeypatch.setattr(paired_module, "require_runtime_models", lambda tasks, host: None)
+    monkeypatch.setattr(paired_module, "_run_arm", run_arm)
+
+    report = asyncio.run(run_paired((stale, sound), output_dir=tmp_path, settings=_SETTINGS, trials=2, host="pi"))
+
+    assert runs == [
+        (stale.id, 1, "off"),
+        (sound.id, 1, "off"),
+        (sound.id, 1, "on"),
+        (sound.id, 2, "on"),
+        (sound.id, 2, "off"),
+    ]
+    assert (report.tasks[0].off.errors, report.tasks[0].pairs) == (1, 0)
+    assert report.tasks[1].pairs == 2

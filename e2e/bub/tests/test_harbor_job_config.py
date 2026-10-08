@@ -60,6 +60,15 @@ _PAIRED_TASK = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "projec
 
 
 @pytest.fixture(autouse=True)
+def step_tests_dir(monkeypatch, tmp_path: Path) -> Path:
+    """Keep every agent's pre-session tests reset inside the test's own directory, never the host's /tests."""
+
+    tests = tmp_path / "tests"
+    monkeypatch.setattr(harbor_agent, "STEP_TESTS_DIR", str(tests))
+    return tests
+
+
+@pytest.fixture(autouse=True)
 def isolated_host_environment(monkeypatch, tmp_path: Path) -> Path:
     for name in tuple(os.environ):
         if name.startswith(("BUB_", "POWERCONTEXT_")) or name in {"CODEX_HOME", "GITHUB_SHA", "OPENAI_API_KEY"}:
@@ -735,6 +744,46 @@ def test_sessions_start_without_the_tests_an_earlier_step_left(
     assert started == [[]]
     assert tests.is_dir()
     assert not tests.is_symlink()
+
+
+@pytest.mark.parametrize(
+    ("agent_class", "harbor_class"),
+    [
+        (PowerContextBubAcpAgent, harbor_acp.AcpAgent),
+        (PowerContextCodexAgent, Codex),
+        (PowerContextClaudeCodeAgent, ClaudeCode),
+        (PowerContextOpenCodeAgent, OpenCode),
+        (PowerContextPiAgent, Pi),
+    ],
+)
+def test_a_session_does_not_start_when_the_earlier_tests_cannot_be_removed(
+    monkeypatch, tmp_path: Path, agent_class: type, harbor_class: type
+) -> None:
+    # Harbor's environments report a failed command instead of raising; the session must still not start.
+    started: list[bool] = []
+    tests = tmp_path / "tests"
+    (tests / "locked").mkdir(parents=True)
+    (tests / "locked" / "test.sh").write_text("The team chose OceanBase with 12 shards.")
+    (tests / "locked").chmod(0o555)  # the test user cannot remove files from it
+    environment = _ShellEnvironment(tmp_path, env={"BUB_HOME": str(tmp_path / "bub-home")})
+    marker = tmp_path / "step-failed"
+
+    async def run_host(self, instruction, environment, context) -> None:
+        started.append(True)
+
+    monkeypatch.setattr(harbor_class, "run", run_host)
+    monkeypatch.setattr(harbor_agent, "STEP_FAILURE_MARKER", str(marker))
+    monkeypatch.setattr(harbor_agent, "STEP_TESTS_DIR", str(tests))
+    try:
+        with pytest.raises(RuntimeError, match=r"Emptying .* failed"):
+            asyncio.run(_agent(agent_class, tmp_path, powercontext=True).run("task", environment, AgentContext()))
+    finally:
+        (tests / "locked").chmod(0o755)
+
+    assert started == []
+    assert (tests / "locked" / "test.sh").exists()
+    if agent_class is PowerContextBubAcpAgent:
+        assert marker.exists()
 
 
 def test_bub_step_whose_tapes_could_not_be_removed_is_marked_failed(monkeypatch, tmp_path: Path) -> None:
