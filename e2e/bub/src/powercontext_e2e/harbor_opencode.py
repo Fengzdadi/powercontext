@@ -22,7 +22,7 @@ from harbor.agents.installed.opencode import OpenCode
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
-from .harbor_agent import REMOTE_SOURCE
+from .harbor_agent import REMOTE_SOURCE, clear_step_tests_command
 
 OPENCODE_VERSION = "1.18.33"
 REMOTE_PLUGIN = f"{REMOTE_SOURCE}/integrations/opencode/plugins/powercontext"
@@ -73,6 +73,7 @@ class PowerContextOpenCodeAgent(OpenCode):
     @override
     async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
         await self.exec_as_agent(environment, command=clear_sessions_command())
+        await self.exec_as_root(environment, command=clear_step_tests_command())
         await super().run(instruction, environment, context)
 
 

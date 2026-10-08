@@ -25,6 +25,8 @@ from typing import NamedTuple
 import pytest
 from harbor.agents.installed import acp as harbor_acp
 from harbor.agents.installed.base import NonZeroAgentExitCodeError
+from harbor.agents.installed.claude_code import ClaudeCode
+from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.opencode import OpenCode
 from harbor.agents.installed.pi import Pi
 from harbor.environments.base import ExecResult
@@ -415,8 +417,10 @@ class _ShellEnvironment:
         opencode.write_text(f"#!/bin/sh\nprintf '%s' '{sessions}'\n")
         opencode.chmod(0o755)
         self._env = {"HOME": str(self.home), "TMPDIR": str(self.tmp), "PATH": f"{bin_dir}:/usr/bin:/bin", **(env or {})}
+        self.commands: list[tuple[str, object]] = []
 
-    async def exec(self, command: str, **_: object) -> ExecResult:
+    async def exec(self, command: str, **kwargs: object) -> ExecResult:
+        self.commands.append((command, kwargs.get("user")))
         # Harbor runs agent commands with bash, and prefixes them with `set -o pipefail`, which dash rejects.
         process = await asyncio.create_subprocess_exec(
             "bash", "-c", command, env=self._env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -647,6 +651,59 @@ def test_bub_sessions_start_without_the_tapes_an_earlier_session_left(
     asyncio.run(agent.run("task", environment, AgentContext()))
 
     assert started == [False]
+
+
+def _agent(agent_class: type, tmp_path: Path, *, powercontext: bool):
+    if agent_class is PowerContextBubAcpAgent:
+        return PowerContextBubAcpAgent(logs_dir=tmp_path, powercontext=powercontext)
+    kwargs = {"reasoning_effort": "medium"} if agent_class in (PowerContextOpenCodeAgent, PowerContextPiAgent) else {}
+    return agent_class(
+        logs_dir=tmp_path,
+        model_name="openrouter/model-test",
+        server_url="http://host-gateway:8000",
+        powercontext=powercontext,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("powercontext", [True, False])
+@pytest.mark.parametrize(
+    ("agent_class", "harbor_class"),
+    [
+        (PowerContextBubAcpAgent, harbor_acp.AcpAgent),
+        (PowerContextCodexAgent, Codex),
+        (PowerContextClaudeCodeAgent, ClaudeCode),
+        (PowerContextOpenCodeAgent, OpenCode),
+        (PowerContextPiAgent, Pi),
+    ],
+)
+def test_sessions_start_without_the_tests_an_earlier_step_left(
+    monkeypatch, tmp_path: Path, agent_class: type, harbor_class: type, powercontext: bool
+) -> None:
+    # Harbor uploads each step's tests before its verifier and leaves them in the container, so a later session
+    # could read an earlier step's verifier, which hints at a continuation workload's answer.
+    started: list[list[str]] = []
+    tests = tmp_path / "tests"
+    (tests / "nested").mkdir(parents=True)
+    (tests / "test.sh").write_text("# Copyright OceanBase: the team chose OceanBase with 12 shards.")
+    (tests / "nested" / "grade.py").write_text("EXPECTED = 12")
+    environment = _ShellEnvironment(tmp_path, env={"BUB_HOME": str(tmp_path / "bub-home")})
+
+    async def run_host(self, instruction, environment, context) -> None:
+        started.append(sorted(path.name for path in tests.rglob("*")))
+        if harbor_class is Pi:
+            _leave_pi_output(self)
+
+    monkeypatch.setattr(harbor_class, "run", run_host)
+    monkeypatch.setattr(harbor_agent, "STEP_FAILURE_MARKER", str(tmp_path / "step-failed"))
+    monkeypatch.setattr(harbor_agent, "STEP_TESTS_DIR", str(tests))
+
+    asyncio.run(_agent(agent_class, tmp_path, powercontext=powercontext).run("task", environment, AgentContext()))
+
+    assert started == [[]]
+    assert tests.is_dir()
+    # Harbor copies the tests in as root, so only root can remove them.
+    assert [user for command, user in environment.commands if "find" in command and "-delete" in command] == ["root"]
 
 
 def test_bub_step_whose_tapes_could_not_be_removed_is_marked_failed(monkeypatch, tmp_path: Path) -> None:

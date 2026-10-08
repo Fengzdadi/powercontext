@@ -356,6 +356,37 @@ report cannot tell that from a real 0. The report shows `n/a` when no run report
 The report is marked preliminary. With two trials the intervals are wide, which is the point: they show how little
 such a pilot can say. The command does not yet check the Default Scope for leaks or run in the fixed Compose harness.
 
+### Task-completion workloads
+
+The same command compares the arms on a task that one agent session completes and the task's own verifier grades,
+such as a SWE-bench Pro instance. Its manifest declares `evaluation: {comparison: task-outcome}` and may name a Harbor
+registry dataset, which Harbor downloads; the manifest pins the task's checksum, and a run whose Harbor task differs
+from it is an error. `e2e/bub/paired-tasks/swebench-pro/` holds one manifest per repository of Harbor's
+`swebenchpro@1.0` (the 731 SWE-bench Pro public tasks, graded by the benchmark's own `run_script.sh` and `parser.py`
+in its own images), chosen as the first task of each repository by name; `e2e/bub/scripts/swebench_pro_manifests.py`
+writes manifests for another selection from a downloaded copy of the dataset. The default manifest directory
+holds only the continuation workloads, so name this one with `--manifest`:
+
+```bash
+make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro --trials 1'
+make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro --id swebench-pro-flipt-02e21636 --trials 3'
+```
+
+Each arm runs the task once in a fresh container, scored by the trial's reward. The ON arm binds a new Scope, so what
+PowerContext adds in a single session is what the integration captures and recalls within it; an ON run counts only
+when the Server shows Sources captured and a context request during that session. The hosts, the OFF arm, and the
+evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and declares 4 GB
+of memory, which the harness does not enforce, and its image is several GB, so plan disk space and time per run
+accordingly. The manifests' `max_steps` and `max_tokens` budgets apply to Bub only; the other hosts run with their own
+defaults. This OFF arm differs from the published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but
+disabled; see above for why. The benchmark's images keep the repository's git history, including the commit that
+holds the gold tests, in both arms alike; the harness does not change the benchmark's own exposure.
+
+Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its
+verifier and leaves them, so that a later session cannot read an earlier step's verifier. Harbor uploads a step's
+tests again before running that step's verifier, so nothing a verifier needs is lost; the harness assumes the image
+itself ships nothing there.
+
 ## Long-horizon task
 
 The Terminal-Bench manifest pins its task checksum, model requirement, step budget, capture cadence, recall probes,

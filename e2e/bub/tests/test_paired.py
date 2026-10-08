@@ -31,7 +31,7 @@ from harbor.models.verifier.result import VerifierResult
 from powercontext.client import UnauthorizedResponseError
 
 from powercontext_e2e import paired as paired_module
-from powercontext_e2e.catalog import load_tasks
+from powercontext_e2e.catalog import TaskOutcomeComparisonSpec, load_tasks
 from powercontext_e2e.models import (
     HarborTrialObservation,
     MetricSummary,
@@ -42,11 +42,14 @@ from powercontext_e2e.models import (
     StepObservation,
 )
 from powercontext_e2e.paired import (
+    ScoredSession,
     UnauthenticatedServerError,
     arm_outcome,
+    checksum_failure,
     classify_outcome,
     recall_session_index,
     require_authenticated_server,
+    scored_session,
     step_observations,
     summarize,
     treatment_failures,
@@ -125,9 +128,12 @@ def test_recall_step_must_be_the_final_session() -> None:
         recall_session_index(task, _SETTINGS)
 
 
-def test_acceptance_rejects_continuation_workloads(tmp_path: Path) -> None:
+@pytest.mark.parametrize("manifest", ["project-decision-continuation.yaml", "swebench-pro"])
+def test_acceptance_rejects_paired_workloads(tmp_path: Path, manifest: str) -> None:
+    tasks = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / manifest)
+
     with pytest.raises(ValueError, match="paired command"):
-        asyncio.run(run_tasks(_PAIRED_TASKS, output_dir=tmp_path / "out", settings=_SETTINGS))
+        asyncio.run(run_tasks(tasks[:1], output_dir=tmp_path / "out", settings=_SETTINGS))
 
 
 def _snapshot(session: int, *, sources: int = 1, memory: int = 1, asked: int = 0, ready: int = 0) -> SessionSnapshot:
@@ -178,7 +184,7 @@ def test_the_recall_step_reward_decides_the_arm_whatever_harbor_averaged() -> No
     )
     averaged = HarborTrialObservation(rewards={"reward": 0.5})
 
-    outcome = arm_outcome(steps, averaged, recall_step="recall", harness_failed=False, treatment_failures=())
+    outcome = arm_outcome(steps, averaged, scored_step="recall", harness_failed=False, treatment_failures=())
 
     assert outcome == "passed"
 
@@ -590,3 +596,91 @@ def test_paired_refuses_a_server_that_answers_without_a_token(monkeypatch) -> No
 
     with pytest.raises(UnauthenticatedServerError):
         asyncio.run(require_authenticated_server())
+
+
+def test_a_task_outcome_workload_is_scored_by_the_trial_reward() -> None:
+    # A single-session task has no step results; Harbor records its verifier's reward on the trial.
+    passed = HarborTrialObservation(rewards={"reward": 1})
+    failed = HarborTrialObservation(rewards={"reward": 0.0})
+    unscored = HarborTrialObservation()
+    no_trial = HarborTrialObservation(exception_type="HarborJobError")
+
+    outcomes = [
+        arm_outcome((), harbor, scored_step=None, harness_failed=False, treatment_failures=())
+        for harbor in (passed, failed, unscored, no_trial)
+    ]
+
+    assert outcomes == ["passed", "failed", "failed", "error"]
+
+
+def test_task_outcome_workloads_score_their_single_session() -> None:
+    tasks = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "swebench-pro")
+
+    repositories = [category for task in tasks for category in task.categories if category.startswith("swebench-pro-")]
+    assert len(repositories) == len(set(repositories)) == len(tasks) == 11
+    assert {scored_session(task, HarnessSettings()) for task in tasks} == {ScoredSession(0, None)}
+    assert all(task.dataset.name == "swebenchpro" and "paired" in task.categories for task in tasks)
+    assert len({task.dataset.task_id for task in tasks}) == len(tasks)
+
+
+def test_continuation_workloads_score_their_recall_step() -> None:
+    (task,) = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "project-decision-continuation.yaml")
+
+    assert scored_session(task, HarnessSettings()) == ScoredSession(1, "recall")
+
+
+def test_a_run_whose_task_differs_from_the_manifest_is_reported() -> None:
+    (task,) = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "project-decision-continuation.yaml")
+    pinned = task.dataset.checksum
+
+    assert checksum_failure(task, HarborTrialObservation(task_checksum=pinned)) is None
+    assert checksum_failure(task, HarborTrialObservation()) is None
+    failure = checksum_failure(task, HarborTrialObservation(task_checksum="0" * 64))
+    assert failure is not None
+    assert pinned in failure
+    assert "0" * 64 in failure
+
+
+def test_treatment_of_a_single_session_needs_capture_and_a_context_request_in_that_session() -> None:
+    assert treatment_failures((_snapshot(0, asked=1, ready=0),), recall_session=0) == ()
+    assert treatment_failures((), recall_session=0) == ("The Server was not observed after every session",)
+    failures = treatment_failures((_snapshot(0, sources=0, memory=0, asked=0),), recall_session=0)
+    assert failures == (
+        "No Sources were captured during the session",
+        "PowerContext was not asked for context during the session",
+    )
+
+
+def _task_outcome(task):
+    return task.model_copy(update={"evaluation": TaskOutcomeComparisonSpec(comparison="task-outcome")})
+
+
+def test_a_local_task_outcome_workload_runs_its_single_step_task(tmp_path: Path) -> None:
+    task_dir = tmp_path / "tasks" / "single"
+    (task_dir / "tests").mkdir(parents=True)
+    (task_dir / "instruction.md").write_text("Fix it.")
+    (task_dir / "task.toml").write_text('version = "1.3"\n')
+    (task_dir / "tests" / "test.sh").write_text("echo 1 > /logs/verifier/reward.txt\n")
+    (task,) = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "swebench-pro")[:1]
+    local = _task_outcome(task).model_copy(
+        update={
+            "dataset": task.dataset.model_copy(
+                update={
+                    "name": None,
+                    "version": None,
+                    "path": Path("tasks"),
+                    "task_id": "single",
+                    "checksum": HarborTask(task_dir).checksum,
+                }
+            )
+        }
+    )
+
+    assert scored_session(local, HarnessSettings(repository=tmp_path)) == ScoredSession(0, None)
+
+
+def test_a_local_task_outcome_workload_cannot_have_steps() -> None:
+    (continuation,) = load_tasks(_REPOSITORY / "e2e" / "bub" / "paired-tasks" / "project-decision-continuation.yaml")
+
+    with pytest.raises(ValueError, match="has Harbor steps"):
+        scored_session(_task_outcome(continuation), HarnessSettings())
