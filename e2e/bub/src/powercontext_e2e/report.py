@@ -20,7 +20,18 @@ from marko import Markdown, block
 from marko.element import Element
 from marko.md_renderer import MarkdownRenderer
 
-from .models import ArmSummary, EvaluationReport, PairedAgent, PairedReport, PairedSummary, TaskObservation
+from .models import (
+    Arm,
+    ArmSummary,
+    EvaluationReport,
+    Interval,
+    MetricSummary,
+    PairedAgent,
+    PairedReport,
+    PairedSummary,
+    ServerUsageSummary,
+    TaskObservation,
+)
 
 
 def render_report(observation: TaskObservation, report: EvaluationReport) -> str:
@@ -76,8 +87,11 @@ def render_paired_report(report: PairedReport) -> str:
         block.BlankLine(0),
         *_nodes(
             markdown,
-            f"Preliminary: {report.trials} trial(s) per arm and no uncertainty estimate. Errors and ON runs that did "
-            "not receive PowerContext's treatment are counted but left out of success rates and paired differences.",
+            f"Preliminary: {report.trials} trial(s) per arm. Intervals are 95%: a Wilson score interval for each "
+            "arm's success rate and a seeded percentile bootstrap over scored pairs for ON minus OFF. Errors and ON "
+            "runs that did not receive PowerContext's treatment are counted but left out of success rates, paired "
+            "differences, and step metrics; timed-out runs stay in all three. Step metrics are the host's own usage "
+            "figures as Harbor reports them, so a host that reports none shows n/a.",
         ),
         block.BlankLine(0),
         *_nodes(markdown, _agent_text(report.agent)),
@@ -88,6 +102,9 @@ def render_paired_report(report: PairedReport) -> str:
     ):
         children.extend((block.BlankLine(0), *_nodes(markdown, f"## {title}"), block.BlankLine(0)))
         children.extend(_nodes(markdown, _paired_summary_text(summary)))
+        if table := _step_table(summary):
+            children.extend((block.BlankLine(0), *_nodes(markdown, table)))
+        children.extend((block.BlankLine(0), *_nodes(markdown, _server_text(summary.on.server))))
     document.children = children
     return markdown.render(document)
 
@@ -98,19 +115,74 @@ def _agent_text(agent: PairedAgent) -> str:
 
 
 def _paired_summary_text(summary: PairedSummary) -> str:
-    delta = "n/a" if summary.mean_delta is None else f"{summary.mean_delta:+.2f}"
+    delta = "n/a" if summary.mean_delta is None else f"{summary.mean_delta:+.2f}{_interval(summary.delta_interval)}"
     return "\n".join((
         f"- OFF: {_arm_text(summary.off)}",
         f"- ON: {_arm_text(summary.on)}",
-        f"- Scored pairs: {summary.pairs}; mean ON minus OFF: {delta}",
+        f"- Scored pairs: {summary.pairs}; ON minus OFF: {delta}; ON better in {summary.on_better}, "
+        f"OFF better in {summary.off_better}, tied in {summary.tied}",
     ))
 
 
 def _arm_text(arm: ArmSummary) -> str:
+    rate = "" if arm.success_rate is None else f", {arm.success_rate:.0%}{_interval(arm.success_rate_interval, '.0%')}"
     return (
-        f"{arm.passed}/{arm.scored} passed ({arm.timeouts} timed out); "
+        f"{arm.passed}/{arm.scored} passed{rate} ({arm.timeouts} timed out); "
         f"{arm.errors} error(s), {arm.integration_failures} integration failure(s) not scored"
     )
+
+
+def _interval(interval: Interval | None, spec: str = "+.2f") -> str:
+    return "" if interval is None else f" [{interval.low:{spec}}, {interval.high:{spec}}]"
+
+
+def _step_table(summary: PairedSummary) -> str:
+    arms: tuple[tuple[Arm, ArmSummary], ...] = (("off", summary.off), ("on", summary.on))
+    names = dict.fromkeys(name for _, arm in arms for name in arm.steps)
+    if not names:
+        return ""
+    rows = [
+        "| Step | Arm | Runs | Seconds | Input tokens (cached) | Output tokens | Cost USD |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for name in names:
+        for arm, arm_summary in arms:
+            if (step := arm_summary.steps.get(name)) is None:
+                continue
+            cached = "" if step.cache_tokens is None else f" ({_count(step.cache_tokens)})"
+            rows.append(
+                f"| {name} | {arm.upper()} | {step.runs} | {_seconds(step.seconds)} | "
+                f"{_count(step.input_tokens)}{cached} | {_count(step.output_tokens)} | {_cost(step.cost_usd)} |"
+            )
+    return "\n".join(rows)
+
+
+def _seconds(metric: MetricSummary | None) -> str:
+    return "n/a" if metric is None else f"{metric.mean:.1f} ({metric.min:.1f}-{metric.max:.1f})"
+
+
+def _count(metric: MetricSummary | None) -> str:
+    return "n/a" if metric is None else f"{metric.mean:,.0f}"
+
+
+def _cost(metric: MetricSummary | None) -> str:
+    return "n/a" if metric is None else f"{metric.mean:.4f}"
+
+
+def _server_text(server: ServerUsageSummary | None) -> str:
+    if server is None:
+        return "Server usage: no scored ON run has a Scope snapshot."
+    return (
+        f"Server usage, mean over {server.runs} scored ON run(s): generation {server.generation_requests:.1f} "
+        "request(s), "
+        f"{_tokens(server.generation_input_tokens)} input / {_tokens(server.generation_output_tokens)} output tokens; "
+        f"embedding {server.embedding_requests:.1f} request(s), {_tokens(server.embedding_input_tokens)} tokens; "
+        f"{server.recalled_tokens:,.0f} estimated tokens of context returned."
+    )
+
+
+def _tokens(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:,.0f}"
 
 
 def _nodes(markdown: Markdown, source: str) -> list[Element]:
