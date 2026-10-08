@@ -377,13 +377,15 @@ make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro
 Each arm runs the task once in a fresh container, scored by the trial's reward. The ON arm binds a new Scope, so what
 PowerContext adds in a single session is what the integration captures and recalls within it; an ON run counts only
 when the Server shows Sources captured and a context request during that session. The hosts, the OFF arm, and the
-evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and declares 4 GB
-of memory, which the harness does not enforce, and its image is several GB, so plan disk space and time per run
-accordingly. The manifests' `max_steps` and `max_tokens` budgets apply to Bub only; the other hosts run with their own
-defaults. This OFF arm differs from the published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but
-disabled: here OFF is the host as a user without PowerContext has it, the same on every host, so that the arms differ
-in nothing but the integration. The benchmark's images keep the repository's git history, including the commit that
-holds the gold tests, in both arms alike; the harness does not change the benchmark's own exposure.
+evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and declares 4 GB of
+memory, which the harness does not enforce, and its image is several GB, so plan disk space and time per run
+accordingly. The images configure pip for the index their build used, which no longer answers, so Bub's runtime
+install sets `PIP_INDEX_URL` to PyPI, or to the value the harness environment holds. The manifests' `max_steps` and
+`max_tokens` budgets apply to Bub only; the other hosts run with their own defaults. This OFF arm differs from the
+published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but disabled: here OFF is the host as a user
+without PowerContext has it, the same on every host, so that the arms differ in nothing but the integration. The
+benchmark's images keep the repository's git history, including the commit that holds the gold tests, in both arms
+alike; the harness does not change the benchmark's own exposure.
 
 Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its
 verifier and leaves them, so that a later session cannot read an earlier step's verifier. It uses Harbor's own

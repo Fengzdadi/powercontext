@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import shlex
 from importlib.metadata import version
+from os import environ
 from pathlib import Path
 from typing import Any, override
 
@@ -42,6 +43,7 @@ BUB_ACP_SERVER_VERSION = "0.0.2"
 STEP_FAILURE_MARKER = "/logs/agent/powercontext-step-failed"
 # Harbor uploads each step's tests to this directory before running the step's verifier and leaves them there.
 STEP_TESTS_DIR = "/tests"
+PYPI_INDEX_URL = "https://pypi.org/simple"
 
 
 class PowerContextBubAcpAgent(harbor_acp.AcpAgent):
@@ -96,7 +98,7 @@ class PowerContextBubAcpAgent(harbor_acp.AcpAgent):
         await self.exec_as_root(
             environment,
             command=self._build_dependencies_command("uvx"),
-            env={"DEBIAN_FRONTEND": "noninteractive"},
+            env={"DEBIAN_FRONTEND": "noninteractive", "PIP_INDEX_URL": pip_index_url()},
         )
         await self.exec_as_root(environment, command=_install_bub_command(powercontext=self._powercontext))
         await self.exec_as_root(environment, command=_install_acp_server_command())
@@ -125,6 +127,17 @@ class PowerContextBubAcpAgent(harbor_acp.AcpAgent):
             user="root",
         )
         self._selected_distribution_kind = "uvx"
+
+
+def pip_index_url() -> str:
+    """Return the index Harbor's ACP runtime install uses for pip, overriding any the task image configured.
+
+    SWE-bench Pro images keep a pip configuration that names the index their build used, which no longer exists,
+    so pip inside them cannot install anything until the index is overridden. A ``PIP_INDEX_URL`` in the harness
+    environment wins, for operators with their own mirror.
+    """
+
+    return environ.get("PIP_INDEX_URL") or PYPI_INDEX_URL
 
 
 async def clear_step_tests(environment: BaseEnvironment) -> None:

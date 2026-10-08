@@ -400,15 +400,43 @@ class _RecordingEnvironment:
 
     def __init__(self, *, failing: str | None = None) -> None:
         self.commands: list[str] = []
+        self.envs: list[dict[str, str]] = []
         self._failing = failing
 
-    async def exec(self, command: str, **_: object) -> ExecResult:
+    async def exec(self, command: str, **kwargs: object) -> ExecResult:
         self.commands.append(command)
+        self.envs.append(kwargs.get("env") or {})  # type: ignore[arg-type]
         failed = self._failing is not None and self._failing in command
         return ExecResult(stdout="", stderr="", return_code=1 if failed else 0)
 
     async def empty_dirs(self, dirs, *, chmod: bool = True) -> ExecResult:
         return await self.exec(f"empty_dirs {' '.join(str(path) for path in dirs)}")
+
+    async def upload_file(self, *, source_path: Path, target_path: str) -> None:
+        self.commands.append(f"upload {source_path.name} {target_path}")
+        self.envs.append({})
+
+
+@pytest.mark.parametrize(
+    ("host_index", "expected"),
+    [(None, "https://pypi.org/simple"), ("https://mirror.test/simple", "https://mirror.test/simple")],
+)
+def test_bub_runtime_install_does_not_use_the_task_images_pip_index(
+    monkeypatch, tmp_path: Path, host_index: str | None, expected: str
+) -> None:
+    # SWE-bench Pro images configure pip for the index their build used, which no longer answers.
+    if host_index is None:
+        monkeypatch.delenv("PIP_INDEX_URL", raising=False)
+    else:
+        monkeypatch.setenv("PIP_INDEX_URL", host_index)
+    environment = _RecordingEnvironment()
+
+    asyncio.run(PowerContextBubAcpAgent(logs_dir=tmp_path, powercontext=False).install(environment))
+
+    (install_env,) = [
+        env for command, env in zip(environment.commands, environment.envs, strict=True) if "pip install" in command
+    ]
+    assert install_env["PIP_INDEX_URL"] == expected
 
 
 def _opencode_agent(tmp_path: Path, *, powercontext: bool) -> PowerContextOpenCodeAgent:
