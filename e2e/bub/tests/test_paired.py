@@ -34,6 +34,7 @@ from powercontext_e2e import paired as paired_module
 from powercontext_e2e.catalog import load_tasks
 from powercontext_e2e.models import (
     HarborTrialObservation,
+    MetricSummary,
     PairedAgent,
     PairedArmObservation,
     RunEnvironment,
@@ -381,7 +382,8 @@ def test_summary_server_usage_comes_from_each_scored_on_runs_final_snapshot() ->
     assert report.total.off.server is None
     server = report.total.on.server
     assert server is not None
-    assert (server.runs, server.generation_requests, server.generation_input_tokens) == (2, 4, 4000)
+    assert (server.runs, server.generation_requests) == (2, 4)
+    assert server.generation_input_tokens == MetricSummary(runs=2, mean=4000, min=3000, max=5000)
     assert (server.embedding_requests, server.embedding_input_tokens, server.recalled_tokens) == (0, None, 1500)
 
 
@@ -428,12 +430,47 @@ def test_paired_report_renders_intervals_a_step_table_and_server_usage() -> None
     assert "- OFF: 0/2 passed, 0% [0%, 66%] (0 timed out)" in rendered
     assert "- ON: 1/2 passed, 50% [9%, 91%] (1 timed out)" in rendered
     assert "ON minus OFF: +0.50 [+0.00, +1.00]; ON better in 1, OFF better in 0, tied in 1" in rendered
-    assert "| recall | OFF | 2 | 3.5 (3.5-3.5) | 6,500 (3,250) | 10 | 0.0065 |" in rendered
-    assert "| recall | ON | 2 | 4.3 (4.3-4.3) | n/a | n/a | n/a |" in rendered
+    assert "| recall | OFF | 2 | 3.5 (3.5-3.5) | 6,500 | 3,250 | 10 | 0.0065 |" in rendered
+    assert "| recall | ON | 2 | 4.3 (4.3-4.3) | n/a | n/a | n/a | n/a |" in rendered
     # A step only one arm ran gets that arm's row alone.
-    assert "| flush | ON | 1 | 1.0 (1.0-1.0) | n/a | n/a | n/a |" in rendered
+    assert "| flush | ON | 1 | 1.0 (1.0-1.0) | n/a | n/a | n/a | n/a |" in rendered
     assert "| flush | OFF" not in rendered
-    assert "Server usage, mean over 1 scored ON run(s): generation 0.0 request(s), n/a input / n/a output" in rendered
+    assert (
+        "Server usage, mean over 1 scored ON run(s): generation 0.0 request(s), input tokens n/a, output tokens n/a"
+    ) in rendered
+
+
+def test_paired_report_gives_the_runs_behind_a_mean_only_some_runs_reported() -> None:
+    def snapshot(tokens: int | None) -> SessionSnapshot:
+        return _snapshot(0, asked=1).model_copy(
+            update={"generation_requests": 1, "generation_input_tokens": tokens, "generation_output_tokens": tokens}
+        )
+
+    report = summarize(
+        (
+            # Both OFF runs are scored, but the timed-out one's host recorded no usage.
+            _observation(1, "off", "passed", steps=(_step("recall", seconds=2, tokens=1000),)),
+            _observation(2, "off", "timeout", steps=(_step("recall", seconds=600),)),
+            # The Server leaves a Scope's tokens unknown when a provider did not report them.
+            _observation(1, "on", "passed", sessions=(snapshot(800),)),
+            _observation(2, "on", "passed", sessions=(snapshot(None),)),
+        ),
+        trials=2,
+        agent=_AGENT,
+    )
+
+    server = report.total.on.server
+    assert server is not None
+    assert server.generation_input_tokens == MetricSummary(runs=1, mean=800, min=800, max=800)
+    rendered = render_paired_report(report)
+    assert (
+        "| recall | OFF | 2 | 301.0 (2.0-600.0) | 1,000 (1 of 2 runs) | 500 (1 of 2 runs) | 10 (1 of 2 runs) | "
+        "0.0010 (1 of 2 runs) |"
+    ) in rendered
+    assert (
+        "Server usage, mean over 2 scored ON run(s): generation 1.0 request(s), input tokens 800 (1 of 2 runs), "
+        "output tokens 800 (1 of 2 runs);"
+    ) in rendered
 
 
 class _FlushingClient:

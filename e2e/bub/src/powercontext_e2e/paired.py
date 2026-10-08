@@ -469,14 +469,9 @@ def _server_usage(scored: Sequence[PairedArmObservation]) -> ServerUsageSummary 
     return ServerUsageSummary(
         runs=len(finals),
         generation_requests=fmean(snapshot.generation_requests for snapshot in finals),
-        generation_input_tokens=_mean(snapshot.generation_input_tokens for snapshot in finals),
-        generation_output_tokens=_mean(snapshot.generation_output_tokens for snapshot in finals),
+        generation_input_tokens=_metric(snapshot.generation_input_tokens for snapshot in finals),
+        generation_output_tokens=_metric(snapshot.generation_output_tokens for snapshot in finals),
         embedding_requests=fmean(snapshot.embedding_requests for snapshot in finals),
-        embedding_input_tokens=_mean(snapshot.embedding_input_tokens for snapshot in finals),
+        embedding_input_tokens=_metric(snapshot.embedding_input_tokens for snapshot in finals),
         recalled_tokens=fmean(snapshot.recalled_tokens for snapshot in finals),
     )
-
-
-def _mean(values: Iterable[int | None]) -> float | None:
-    metric = _metric(values)
-    return None if metric is None else metric.mean

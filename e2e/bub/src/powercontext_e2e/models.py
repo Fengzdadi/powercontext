@@ -251,14 +251,18 @@ class StepSummary(EvidenceModel):
 
 
 class ServerUsageSummary(EvidenceModel):
-    """Mean Server usage per scored ON run, from each run's final Scope snapshot."""
+    """Mean Server usage per scored ON run, from each run's final Scope snapshot.
+
+    The Server leaves a Scope's tokens unknown when a provider did not report them, so each token metric covers only
+    the runs whose snapshot has them.
+    """
 
     runs: int = Field(ge=1)
     generation_requests: float
-    generation_input_tokens: float | None = None
-    generation_output_tokens: float | None = None
+    generation_input_tokens: MetricSummary | None = None
+    generation_output_tokens: MetricSummary | None = None
     embedding_requests: float
-    embedding_input_tokens: float | None = None
+    embedding_input_tokens: MetricSummary | None = None
     recalled_tokens: float
 
 

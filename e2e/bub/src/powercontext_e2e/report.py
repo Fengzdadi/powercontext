@@ -91,7 +91,8 @@ def render_paired_report(report: PairedReport) -> str:
             "arm's success rate and a seeded percentile bootstrap over scored pairs for ON minus OFF. Errors and ON "
             "runs that did not receive PowerContext's treatment are counted but left out of success rates, paired "
             "differences, and step metrics; timed-out runs stay in all three. Step metrics are the host's own usage "
-            "figures as Harbor reports them, so a host that reports none shows n/a.",
+            "figures as Harbor reports them. Each figure is a mean over the runs that reported it: n/a when none did, "
+            "and followed by its count, as in `1,000 (1 of 2 runs)`, when only some did.",
         ),
         block.BlankLine(0),
         *_nodes(markdown, _agent_text(report.agent)),
@@ -142,31 +143,31 @@ def _step_table(summary: PairedSummary) -> str:
     if not names:
         return ""
     rows = [
-        "| Step | Arm | Runs | Seconds | Input tokens (cached) | Output tokens | Cost USD |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Step | Arm | Runs | Seconds | Input tokens | Cached input tokens | Output tokens | Cost USD |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for name in names:
         for arm, arm_summary in arms:
             if (step := arm_summary.steps.get(name)) is None:
                 continue
-            cached = "" if step.cache_tokens is None else f" ({_count(step.cache_tokens)})"
-            rows.append(
-                f"| {name} | {arm.upper()} | {step.runs} | {_seconds(step.seconds)} | "
-                f"{_count(step.input_tokens)}{cached} | {_count(step.output_tokens)} | {_cost(step.cost_usd)} |"
+            cells = (
+                _figure(step.seconds, step.runs, ".1f", spread=True),
+                _figure(step.input_tokens, step.runs, ",.0f"),
+                _figure(step.cache_tokens, step.runs, ",.0f"),
+                _figure(step.output_tokens, step.runs, ",.0f"),
+                _figure(step.cost_usd, step.runs, ".4f"),
             )
+            rows.append(f"| {name} | {arm.upper()} | {step.runs} | {' | '.join(cells)} |")
     return "\n".join(rows)
 
 
-def _seconds(metric: MetricSummary | None) -> str:
-    return "n/a" if metric is None else f"{metric.mean:.1f} ({metric.min:.1f}-{metric.max:.1f})"
-
-
-def _count(metric: MetricSummary | None) -> str:
-    return "n/a" if metric is None else f"{metric.mean:,.0f}"
-
-
-def _cost(metric: MetricSummary | None) -> str:
-    return "n/a" if metric is None else f"{metric.mean:.4f}"
+def _figure(metric: MetricSummary | None, runs: int, spec: str, *, spread: bool = False) -> str:
+    if metric is None:
+        return "n/a"
+    notes = [f"{metric.min:{spec}}-{metric.max:{spec}}"] if spread else []
+    if metric.runs < runs:
+        notes.append(f"{metric.runs} of {runs} runs")
+    return f"{metric.mean:{spec}}" + (f" ({'; '.join(notes)})" if notes else "")
 
 
 def _server_text(server: ServerUsageSummary | None) -> str:
@@ -174,15 +175,11 @@ def _server_text(server: ServerUsageSummary | None) -> str:
         return "Server usage: no scored ON run has a Scope snapshot."
     return (
         f"Server usage, mean over {server.runs} scored ON run(s): generation {server.generation_requests:.1f} "
-        "request(s), "
-        f"{_tokens(server.generation_input_tokens)} input / {_tokens(server.generation_output_tokens)} output tokens; "
-        f"embedding {server.embedding_requests:.1f} request(s), {_tokens(server.embedding_input_tokens)} tokens; "
+        f"request(s), input tokens {_figure(server.generation_input_tokens, server.runs, ',.0f')}, output tokens "
+        f"{_figure(server.generation_output_tokens, server.runs, ',.0f')}; embedding {server.embedding_requests:.1f} "
+        f"request(s), input tokens {_figure(server.embedding_input_tokens, server.runs, ',.0f')}; "
         f"{server.recalled_tokens:,.0f} estimated tokens of context returned."
     )
-
-
-def _tokens(value: float | None) -> str:
-    return "n/a" if value is None else f"{value:,.0f}"
 
 
 def _nodes(markdown: Markdown, source: str) -> list[Element]:
