@@ -424,11 +424,13 @@ class _RecordingEnvironment:
 def test_bub_runtime_install_does_not_use_the_task_images_pip_index(
     monkeypatch, tmp_path: Path, host_index: str | None, expected: str
 ) -> None:
-    # SWE-bench Pro images configure pip for the index their build used, which no longer answers.
+    # SWE-bench Pro images configure pip for the index their build used, which no longer answers. The host's own
+    # PIP_INDEX_URL is not forwarded: a host mirror is often unreachable from a container.
+    monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:3141/simple")
     if host_index is None:
-        monkeypatch.delenv("PIP_INDEX_URL", raising=False)
+        monkeypatch.delenv("POWERCONTEXT_E2E_PIP_INDEX_URL", raising=False)
     else:
-        monkeypatch.setenv("PIP_INDEX_URL", host_index)
+        monkeypatch.setenv("POWERCONTEXT_E2E_PIP_INDEX_URL", host_index)
     environment = _RecordingEnvironment()
 
     asyncio.run(PowerContextBubAcpAgent(logs_dir=tmp_path, powercontext=False).install(environment))

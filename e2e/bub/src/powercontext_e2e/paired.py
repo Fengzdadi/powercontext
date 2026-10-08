@@ -264,7 +264,10 @@ async def _run_arm(
         harbor, step_results, _ = _harbor_observation(await job.run(), settings)
         mismatch = checksum_failure(task, harbor)
         if mismatch is None and scored.step is None and step_results:
-            mismatch = f"Workload {task.id!r} ran {len(step_results)} steps; a task-outcome workload runs one session"
+            mismatch = (
+                f"Workload {task.id!r} has {len(step_results)} Harbor step(s); a task-outcome workload runs one "
+                "session without steps"
+            )
         if mismatch is not None:
             errors.append(mismatch)
     except Exception as exc:
