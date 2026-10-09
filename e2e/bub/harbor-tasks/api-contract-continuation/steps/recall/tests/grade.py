@@ -23,12 +23,12 @@ from __future__ import annotations
 
 import json
 import sys
-import unicodedata
 from pathlib import Path
 
 EXPECTED_PATH = "/v3/ledger/settle"
 EXPECTED_HEADER = "x-ledger-idempotency-key"
 ANSWER_KEYS = {"path", "header"}
+ASCII_WHITESPACE = " \t\r\n"
 
 
 class DuplicateKeyError(ValueError):
@@ -43,9 +43,12 @@ def score(answer: str) -> int:
     # Extra keys could carry a hedge or an alternative that the checked fields do not show.
     if not isinstance(payload, dict) or set(payload) != ANSWER_KEYS:
         return 0
+    # Apart from surrounding ASCII whitespace, the path is compared character for character. Header names are
+    # case-insensitive, but only ASCII case: a look-alike such as a fullwidth letter is a different name, as a
+    # superscript digit is a different path.
     path = _text(payload.get("path"))
     header = _text(payload.get("header"))
-    return int(path == EXPECTED_PATH and header is not None and header.casefold() == EXPECTED_HEADER)
+    return int(path == EXPECTED_PATH and header is not None and header.isascii() and header.lower() == EXPECTED_HEADER)
 
 
 def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -58,7 +61,7 @@ def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
 def _text(value: object) -> str | None:
     if not isinstance(value, str):
         return None
-    return unicodedata.normalize("NFKC", value).strip()
+    return value.strip(ASCII_WHITESPACE)
 
 
 def main(answer_path: Path, reward_path: Path) -> None:

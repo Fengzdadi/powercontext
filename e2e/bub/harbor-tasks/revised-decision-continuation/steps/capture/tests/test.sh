@@ -21,3 +21,9 @@ if grep -q 'rebuilt' /workspace/README.md && ! grep -q 'rebuit' /workspace/READM
 else
     echo 0 > /logs/verifier/reward.txt
 fi
+
+# Harbor keeps the container for the recall session, so leave it only the corrected README: notes the agent wrote
+# into the workspace would otherwise stand in for memory of the conversation. The reward above is already written;
+# a file the reset could not remove is reported in the verifier output and the README is rewritten regardless.
+find /workspace -mindepth 1 -delete || echo 'workspace reset incomplete' >&2
+printf '# Search service\n\nResults are cached per query; the cache is cleared when the index is rebuilt.\n' > /workspace/README.md

@@ -28,6 +28,7 @@ from pathlib import Path
 EXPECTED_TTL_SECONDS = 90
 EXPECTED_PREVIOUS_TTL_SECONDS = 30
 ANSWER_KEYS = {"ttl_seconds", "previous_ttl_seconds"}
+ASCII_WHITESPACE = " \t\r\n"
 
 
 class DuplicateKeyError(ValueError):
@@ -58,8 +59,9 @@ def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
 def _integer(value: object) -> int | None:
     if isinstance(value, int) and not isinstance(value, bool):
         return value
-    if isinstance(value, str) and value.strip().isdecimal():
-        return int(value.strip())
+    # ASCII digits only: a fullwidth or other look-alike digit is not accepted, as a look-alike letter is not.
+    if isinstance(value, str) and value.isascii() and value.strip(ASCII_WHITESPACE).isdecimal():
+        return int(value.strip(ASCII_WHITESPACE))
     return None
 
 

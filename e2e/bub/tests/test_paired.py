@@ -89,6 +89,9 @@ def _grade(answer_path: Path, reward_path: Path, task: str = "project-decision-c
         ("project-decision-continuation", '{"database": "OceanBase?", "shard_count": 12}', 0),
         ("project-decision-continuation", '{"database": "maybe OceanBase", "shard_count": 12}', 0),
         ("project-decision-continuation", '{"database": "OceanBase", "shard_count": "about 12"}', 0),
+        # A fullwidth O is a different name, not a case variant; fullwidth digits are not digits either.
+        ("project-decision-continuation", '{"database": "\uff2fceanBase", "shard_count": 12}', 0),
+        ("project-decision-continuation", '{"database": "OceanBase", "shard_count": "\uff11\uff12"}', 0),
         ("project-decision-continuation", '["OceanBase", 12]', 0),
         # A repeated key or an extra field could hide a contradiction from the checked values.
         ("project-decision-continuation", '{"database": "PostgreSQL", "database": "OceanBase", "shard_count": 12}', 0),
@@ -97,9 +100,15 @@ def _grade(answer_path: Path, reward_path: Path, task: str = "project-decision-c
             '{"database": "OceanBase", "shard_count": 12, "note": "or PostgreSQL with 24"}',
             0,
         ),
-        # Header names are case-insensitive; paths are exact.
+        # Header names are case-insensitive in ASCII; paths are exact. A look-alike character is a different name.
         ("api-contract-continuation", '{"path": "/v3/ledger/settle", "header": "X-Ledger-Idempotency-Key"}', 1),
         ("api-contract-continuation", '{"path": "/v3/ledger/settle", "header": " x-ledger-idempotency-key "}', 1),
+        ("api-contract-continuation", '{"path": "/v3/ledger/settle", "header": "X-LEDGER-IDEMPOTENCY-KEY"}', 1),
+        ("api-contract-continuation", '{"path": " /v3/ledger/settle ", "header": "X-Ledger-Idempotency-Key"}', 1),
+        # Superscript three in the path; fullwidth X, then the Kelvin sign (which lowercases to ASCII k) in the header.
+        ("api-contract-continuation", '{"path": "/v\u00b3/ledger/settle", "header": "X-Ledger-Idempotency-Key"}', 0),
+        ("api-contract-continuation", '{"path": "/v3/ledger/settle", "header": "\uff38-Ledger-Idempotency-Key"}', 0),
+        ("api-contract-continuation", '{"path": "/v3/ledger/settle", "header": "X-Ledger-Idempotency-\u212aey"}', 0),
         ("api-contract-continuation", '{"path": "/V3/Ledger/Settle", "header": "X-Ledger-Idempotency-Key"}', 0),
         ("api-contract-continuation", '{"path": "/v3/ledger/settle/", "header": "X-Ledger-Idempotency-Key"}', 0),
         ("api-contract-continuation", '{"path": "/v3/ledger/settle", "header": "Idempotency-Key"}', 0),
@@ -112,6 +121,7 @@ def _grade(answer_path: Path, reward_path: Path, task: str = "project-decision-c
         # The current value and the superseded one must both be right, in their own keys.
         ("revised-decision-continuation", '{"ttl_seconds": 90, "previous_ttl_seconds": 30}', 1),
         ("revised-decision-continuation", '{"ttl_seconds": "90", "previous_ttl_seconds": "30"}', 1),
+        ("revised-decision-continuation", '{"ttl_seconds": "\uff19\uff10", "previous_ttl_seconds": 30}', 0),
         ("revised-decision-continuation", '{"ttl_seconds": 30, "previous_ttl_seconds": 90}', 0),
         ("revised-decision-continuation", '{"ttl_seconds": 30, "previous_ttl_seconds": 30}', 0),
         ("revised-decision-continuation", '{"ttl_seconds": 90, "previous_ttl_seconds": null}', 0),
@@ -157,8 +167,8 @@ _LICENSE_HEADER = (
 def test_task_files_do_not_hold_the_answer(task) -> None:
     # The fact belongs in the capture instruction alone, and the answer key in the recall tests. Both arms can read
     # every other file the task puts in the container, so none may hold an expected value. The repository's license
-    # header is on every file and is skipped; the "OceanBase" it leaves in the capture tests is the hint that
-    # #1881 removes by emptying /tests before each session.
+    # header is on every file and is skipped; the "OceanBase" it leaves in the capture tests is out of the recall
+    # session's reach because the harness empties /tests before each session.
     task_dir = _HARBOR_TASKS / task.dataset.task_id
     recall_tests = task_dir / "steps" / "recall" / "tests"
     grader = runpy.run_path(str(recall_tests / "grade.py"))

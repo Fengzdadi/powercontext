@@ -20,7 +20,7 @@ categories:
 dataset:
   path: e2e/bub/harbor-tasks
   task_id: revised-decision-continuation
-  checksum: cba2d46e54b1f777aace7ef88d27a8ab6f34d9def2c3d5e3570a5c8276315c1d
+  checksum: c4ee52babc88a46f6017e27874c0465939d6fd7c37201467826fb002ffd43a58
 execution:
   type: bub
   model: true

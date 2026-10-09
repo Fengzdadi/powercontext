@@ -161,7 +161,10 @@ name, and `revised-decision-continuation` for a value that was revised before th
 replaced, both stated in one message, so a run that keeps only the first value scores 0. All three run by default, so
 a default run takes about three times as long as one workload; `--id` selects one. The three share one capture-session
 shape, a fact stated in the first user message next to a one-word edit, and differ in what is asked back, so three
-passes show three answer shapes recalled, not three ways of capturing.
+passes show three answer shapes recalled, not three ways of capturing. Harbor keeps the container between the two
+sessions, so each capture step's verifier, after recording its diagnostic reward, resets the workspace to the
+corrected README: notes the capture agent wrote there cannot stand in for memory in the recall session. The reset
+covers the workspace only; a file the agent writes elsewhere in the container is not reset.
 
 The `paired` command runs each selected workload with PowerContext off and on, in separate containers, and repeats
 this for `--trials` trials. The arm that runs first alternates between trials. `--host` selects the agent host for
