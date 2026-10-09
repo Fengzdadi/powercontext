@@ -32,7 +32,7 @@ summary.
 ```text
 e2e/bub/
   tasks/                  # PowerContext manifests and evaluation expectations
-  paired-tasks/           # OFF/ON continuation manifests for the paired command
+  paired-tasks/           # OFF/ON manifests for the paired command
   harbor-tasks/           # Local Harbor tasks used by built-in samples
   src/powercontext_e2e/   # One Harbor runner and one Memory evaluator
 ```
@@ -149,8 +149,9 @@ A continuation workload is a Harbor multi-step task written in plain language, s
 earlier session mentions a fact only in the conversation, next to an unrelated small job. The final recall session
 asks for that fact and has the agent write its answer to a file as structured values, so the grader checks what the
 answer asserts rather than keywords that a contradictory or hedged answer could also contain. The recall step's own
-tests grade the answer, and the answer key lives only there, because Harbor leaves every uploaded test directory in
-the container for later steps. The recall step's own reward decides the run whatever the task's multi-step reward
+tests grade the answer, and the answer key lives only there; the harness also empties `/tests` before each session,
+so the recall session cannot read the capture step's tests either. The recall step's own reward decides the run
+whatever the task's multi-step reward
 strategy; earlier steps' rewards are recorded for diagnosis only. A task may not set `min_reward` on an earlier
 step, because Harbor would then skip the recall step when that step's unrelated job falls short.
 
@@ -191,15 +192,15 @@ a timeout. Host plugins flush on different schedules, so the harness flushes the
 Server's generation model therefore takes part in the ON arm; the run fails early when the Server does not report
 `memory_extraction`.
 
-An ON run counts only when Server statistics for its Scope show that Sources were captured before the recall session
-and that the integration asked PowerContext for context during it. Otherwise it is an integration failure. Whether a
-flush creates Memory and whether recall returns content are PowerContext's own behavior, so the snapshots record them
-but a run that gets nothing useful still counts as an ON attempt.
-Integration failures and harness or infrastructure errors are reported but left out of success rates and paired
-differences. A session whose model request failed is such an error on every host: Codex and Claude Code exit non-zero,
-Harbor reads OpenCode's error events, and the harness reads Pi's last message, because Pi exits 0 in the JSON mode
-Harbor uses. The harness reads Pi's output through the logs that Harbor's Docker environment mounts and stops with an
-error when the file is not there. An agent timeout counts as a failed attempt in either arm.
+An ON run counts only when Server statistics for its Scope show that Sources were captured before the scored session
+(during it, for a single-session workload) and that the integration asked PowerContext for context during it.
+Otherwise it is an integration failure. Whether a flush creates Memory and whether recall returns content are
+PowerContext's own behavior, so the snapshots record them but a run that gets nothing useful still counts as an ON
+attempt. Integration failures and harness or infrastructure errors are reported but left out of success rates and
+paired differences. A session whose model request failed is such an error on every host: Codex and Claude Code exit
+non-zero, Harbor reads OpenCode's error events, and the harness reads Pi's last message, because Pi exits 0 in the
+JSON mode Harbor uses. The harness reads Pi's output through the logs that Harbor's Docker environment mounts and
+stops with an error when the file is not there. An agent timeout counts as a failed attempt in either arm.
 
 The harness Client waits for each flush, which runs the Server's generation model, so raise its 10-second default
 timeout; the Bub plugin also flushes during a session.
@@ -356,6 +357,44 @@ report cannot tell that from a real 0. The report shows `n/a` when no run report
 The report is marked preliminary. With two trials the intervals are wide, which is the point: they show how little
 such a pilot can say. The command does not yet check the Default Scope for leaks or run in the fixed Compose harness.
 
+### Task-completion workloads
+
+The same command compares the arms on a task that one agent session completes and the task's own verifier grades, such
+as a SWE-bench Pro instance. Its manifest declares `evaluation: {comparison: task-outcome}` and may name a Harbor
+registry dataset, which Harbor downloads; the manifest pins the task's checksum, and a run whose Harbor task differs
+from it is an error that also ends that workload's remaining trials. `e2e/bub/paired-tasks/swebench-pro/` holds one
+manifest per repository of Harbor's `swebenchpro@1.0` (the 731 SWE-bench Pro public tasks, graded by the benchmark's
+own `run_script.sh` and `parser.py` in its own images), chosen as the first task of each repository by name;
+`e2e/bub/scripts/swebench_pro_manifests.py` writes manifests for another selection from a downloaded copy of the
+dataset. The default manifest directory holds only the continuation workloads, so name this one with `--manifest`:
+
+```bash
+make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro --trials 1'
+make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro --id swebench-pro-flipt-02e21636 --trials 3'
+```
+
+Each arm runs the task once in a fresh container, scored by the trial's reward. The ON arm binds a new Scope, so what
+PowerContext adds in a single session is what the integration captures and recalls within it; an ON run counts only
+when the Server shows Sources captured and a context request during that session. The report's step table shows that
+session as the step `task`, with the time and usage figures Harbor records for a single-step trial. The hosts, the
+OFF arm, and the evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and
+declares 4 GB of memory, which the harness does not enforce, and its image is one to several GB (the ansible image is
+1.6 GB), so plan disk space and time per run accordingly. The images keep a pip configuration that names the index
+their build used, at a loopback address that no longer answers (confirmed in the ansible image), so Bub's runtime
+install sets `PIP_INDEX_URL` to PyPI, or to `POWERCONTEXT_E2E_PIP_INDEX_URL` for a mirror the containers can reach;
+the host's own `PIP_INDEX_URL` is not forwarded, and uv and apt keep their defaults. The manifests' `max_steps` and
+`max_tokens` budgets apply to Bub only; the other hosts run with their own defaults. This OFF arm differs from the
+published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but disabled: here OFF is the host as a user
+without PowerContext has it, the same on every host, so that the arms differ in nothing but the integration. The
+benchmark's images keep the repository's git history, including the commit that holds the gold tests, in both arms
+alike; the harness does not change the benchmark's own exposure.
+
+Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its
+verifier and leaves them, so that a later session cannot read an earlier step's verifier. It uses Harbor's own
+directory reset, which also replaces a symlink or file at that path with an empty directory. Harbor uploads a step's
+tests again before running that step's verifier, so nothing a verifier needs is lost; the harness assumes the image
+itself ships nothing there.
+
 ## Long-horizon task
 
 The Terminal-Bench manifest pins its task checksum, model requirement, step budget, capture cadence, recall probes,
@@ -392,6 +431,11 @@ If the agent task container requires an outbound proxy, set `POWERCONTEXT_E2E_AG
 from that container. In the fixed nested-container harness, `host-gateway` addresses the harness container, so a
 proxy exposed there can be passed as `http://host-gateway:<port>`. The URL can carry credentials, so the harness
 treats it as a secret when evidence is written and gives Harbor a reference to it rather than the value.
+
+Bub's runtime install, in every run, sets pip's index to PyPI, or to `POWERCONTEXT_E2E_PIP_INDEX_URL` when that names
+a mirror the containers can reach; the host's own `PIP_INDEX_URL` is not forwarded. The value is passed to one
+install command in the container and is not written to evidence, but it does appear in that command's environment,
+so prefer a mirror that needs no credentials in its URL.
 
 The agent container sees only the repository files that installation needs: the `powercontext` package and the host
 integration, and none of them in a paired OFF arm. Workload files, answer keys, and benchmark data stay on the host,
