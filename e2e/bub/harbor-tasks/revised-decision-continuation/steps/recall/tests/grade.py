@@ -25,9 +25,9 @@ import json
 import sys
 from pathlib import Path
 
-EXPECTED_DATABASE = "oceanbase"
-EXPECTED_SHARD_COUNT = 12
-ANSWER_KEYS = {"database", "shard_count"}
+EXPECTED_TTL_SECONDS = 90
+EXPECTED_PREVIOUS_TTL_SECONDS = 30
+ANSWER_KEYS = {"ttl_seconds", "previous_ttl_seconds"}
 ASCII_WHITESPACE = " \t\r\n"
 
 
@@ -43,14 +43,9 @@ def score(answer: str) -> int:
     # Extra keys could carry a hedge or an alternative that the checked fields do not show.
     if not isinstance(payload, dict) or set(payload) != ANSWER_KEYS:
         return 0
-    database = payload.get("database")
-    shard_count = payload.get("shard_count")
-    # The name is case-insensitive, but only ASCII case: a look-alike such as a fullwidth letter is a different name.
     return int(
-        isinstance(database, str)
-        and database.isascii()
-        and database.strip(ASCII_WHITESPACE).lower() == EXPECTED_DATABASE
-        and _integer(shard_count) == EXPECTED_SHARD_COUNT
+        _integer(payload.get("ttl_seconds")) == EXPECTED_TTL_SECONDS
+        and _integer(payload.get("previous_ttl_seconds")) == EXPECTED_PREVIOUS_TTL_SECONDS
     )
 
 

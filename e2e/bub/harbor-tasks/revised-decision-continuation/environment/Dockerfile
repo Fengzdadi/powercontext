@@ -12,19 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-schema: powercontext.e2e-task/v1
-id: project-decision-continuation
-categories:
-  - paired
-  - sample
-dataset:
-  path: e2e/bub/harbor-tasks
-  task_id: project-decision-continuation
-  checksum: 16320025602428ceb5086ac7f367c5113530bc9cad610fe1628d81927005f83b
-execution:
-  type: bub
-  model: true
-  max_steps: 30
-  max_tokens: 16384
-evaluation:
-  recall_step: recall
+FROM python:3.12-slim-bookworm
+WORKDIR /workspace
+RUN printf '# Search service\n\nResults are cached per query; the cache is cleared when the index is rebuit.\n' > /workspace/README.md

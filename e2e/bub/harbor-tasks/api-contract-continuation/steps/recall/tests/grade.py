@@ -25,9 +25,9 @@ import json
 import sys
 from pathlib import Path
 
-EXPECTED_DATABASE = "oceanbase"
-EXPECTED_SHARD_COUNT = 12
-ANSWER_KEYS = {"database", "shard_count"}
+EXPECTED_PATH = "/v3/ledger/settle"
+EXPECTED_HEADER = "x-ledger-idempotency-key"
+ANSWER_KEYS = {"path", "header"}
 ASCII_WHITESPACE = " \t\r\n"
 
 
@@ -43,15 +43,12 @@ def score(answer: str) -> int:
     # Extra keys could carry a hedge or an alternative that the checked fields do not show.
     if not isinstance(payload, dict) or set(payload) != ANSWER_KEYS:
         return 0
-    database = payload.get("database")
-    shard_count = payload.get("shard_count")
-    # The name is case-insensitive, but only ASCII case: a look-alike such as a fullwidth letter is a different name.
-    return int(
-        isinstance(database, str)
-        and database.isascii()
-        and database.strip(ASCII_WHITESPACE).lower() == EXPECTED_DATABASE
-        and _integer(shard_count) == EXPECTED_SHARD_COUNT
-    )
+    # Apart from surrounding ASCII whitespace, the path is compared character for character. Header names are
+    # case-insensitive, but only ASCII case: a look-alike such as a fullwidth letter is a different name, as a
+    # superscript digit is a different path.
+    path = _text(payload.get("path"))
+    header = _text(payload.get("header"))
+    return int(path == EXPECTED_PATH and header is not None and header.isascii() and header.lower() == EXPECTED_HEADER)
 
 
 def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -61,13 +58,10 @@ def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return dict(pairs)
 
 
-def _integer(value: object) -> int | None:
-    if isinstance(value, int) and not isinstance(value, bool):
-        return value
-    # ASCII digits only: a fullwidth or other look-alike digit is not accepted, as a look-alike letter is not.
-    if isinstance(value, str) and value.isascii() and value.strip(ASCII_WHITESPACE).isdecimal():
-        return int(value.strip(ASCII_WHITESPACE))
-    return None
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return value.strip(ASCII_WHITESPACE)
 
 
 def main(answer_path: Path, reward_path: Path) -> None:
