@@ -375,18 +375,19 @@ make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/swebench-pro
 
 Each arm runs the task once in a fresh container, scored by the trial's reward. The ON arm binds a new Scope, so what
 PowerContext adds in a single session is what the integration captures and recalls within it; an ON run counts only
-when the Server shows Sources captured and a context request during that session. The hosts, the OFF arm, and the
-evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and declares 4 GB of
-memory, which the harness does not enforce, and its image is one to several GB (the ansible image is 1.6 GB), so plan
-disk space and time per run accordingly. The images keep a pip configuration that names the index their build used, at
-a loopback address that no longer answers (confirmed in the ansible image), so Bub's runtime install sets
-`PIP_INDEX_URL` to PyPI, or to `POWERCONTEXT_E2E_PIP_INDEX_URL` for a mirror the containers can reach; the host's own
-`PIP_INDEX_URL` is not forwarded, and uv and apt keep their defaults. The manifests' `max_steps` and `max_tokens`
-budgets apply to Bub only; the other hosts run with their own defaults. This OFF arm differs from the published
-SWE-bench Pro run, whose OFF arm had the Codex plugin installed but disabled: here OFF is the host as a user without
-PowerContext has it, the same on every host, so that the arms differ in nothing but the integration. The benchmark's
-images keep the repository's git history, including the commit that holds the gold tests, in both arms alike; the
-harness does not change the benchmark's own exposure.
+when the Server shows Sources captured and a context request during that session. The report's step table shows that
+session as the step `task`, with the time and usage figures Harbor records for a single-step trial. The hosts, the
+OFF arm, and the evidence are as for continuation workloads. Each SWE-bench Pro task gives the agent 3,000 seconds and
+declares 4 GB of memory, which the harness does not enforce, and its image is one to several GB (the ansible image is
+1.6 GB), so plan disk space and time per run accordingly. The images keep a pip configuration that names the index
+their build used, at a loopback address that no longer answers (confirmed in the ansible image), so Bub's runtime
+install sets `PIP_INDEX_URL` to PyPI, or to `POWERCONTEXT_E2E_PIP_INDEX_URL` for a mirror the containers can reach;
+the host's own `PIP_INDEX_URL` is not forwarded, and uv and apt keep their defaults. The manifests' `max_steps` and
+`max_tokens` budgets apply to Bub only; the other hosts run with their own defaults. This OFF arm differs from the
+published SWE-bench Pro run, whose OFF arm had the Codex plugin installed but disabled: here OFF is the host as a user
+without PowerContext has it, the same on every host, so that the arms differ in nothing but the integration. The
+benchmark's images keep the repository's git history, including the commit that holds the gold tests, in both arms
+alike; the harness does not change the benchmark's own exposure.
 
 Before each session on every host, the harness also empties `/tests`, where Harbor uploads each step's tests for its
 verifier and leaves them, so that a later session cannot read an earlier step's verifier. It uses Harbor's own

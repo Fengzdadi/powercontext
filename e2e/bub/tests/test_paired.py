@@ -51,6 +51,7 @@ from powercontext_e2e.paired import (
     require_authenticated_server,
     run_paired,
     scored_session,
+    single_session_step,
     step_observations,
     summarize,
     treatment_failures,
@@ -411,6 +412,33 @@ def test_step_observations_take_time_and_usage_from_harbor() -> None:
         name="capture", seconds=7.5, input_tokens=4599, cache_tokens=3264, output_tokens=127, cost_usd=0.0016
     )
     assert recall == StepObservation(name="recall")
+
+
+def test_a_single_step_trial_records_its_session_as_the_step_task() -> None:
+    # Harbor keeps a single-step trial's agent figures on the trial, where a task-outcome workload's session is.
+    started = datetime(2026, 10, 9, 10, 0, 0, tzinfo=UTC)
+    timing = TimingInfo(started_at=started, finished_at=started + timedelta(seconds=27))
+    context = AgentContext(n_input_tokens=30462, n_cache_tokens=0, n_output_tokens=900, cost_usd=0.01)
+    single = SimpleNamespace(
+        trial_results=[SimpleNamespace(step_results=None, agent_result=context, agent_execution=timing)]
+    )
+    multi = SimpleNamespace(
+        trial_results=[
+            SimpleNamespace(step_results=[StepResult(step_name="recall")], agent_result=None, agent_execution=None)
+        ]
+    )
+    unstarted = SimpleNamespace(
+        trial_results=[SimpleNamespace(step_results=None, agent_result=None, agent_execution=None)]
+    )
+
+    (task,) = single_session_step(single)
+
+    assert step_observations((task,)) == (
+        StepObservation(name="task", seconds=27, input_tokens=30462, cache_tokens=0, output_tokens=900, cost_usd=0.01),
+    )
+    assert single_session_step(multi) == ()
+    assert single_session_step(unstarted) == ()
+    assert single_session_step(SimpleNamespace(trial_results=[])) == ()
 
 
 def test_paired_report_renders_intervals_a_step_table_and_server_usage() -> None:

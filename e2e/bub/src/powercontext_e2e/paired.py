@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, NamedTuple
 from uuid import uuid4
 
 from harbor.job import Job
+from harbor.models.trial.result import StepResult
 from powercontext.client import PowerContextClient, UnauthorizedResponseError
 from powercontext.client.settings import ClientSettings
 from powercontext.http import CreateScopeRequest
@@ -63,7 +64,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from pathlib import Path
 
-    from harbor.models.trial.result import StepResult
+    from harbor.models.job.result import JobResult
     from powercontext.client import PowerContextClient
 
 SCORES: dict[ArmOutcome, int] = {"passed": 1, "failed": 0, "timeout": 0}
@@ -244,6 +245,7 @@ async def _run_arm(
     recorder: SessionRecorder | None = None
     harbor = HarborTrialObservation()
     step_results: tuple[StepResult, ...] = ()
+    agent_steps: tuple[StepResult, ...] = ()
     errors: list[str] = []
     mismatch: str | None = None
     try:
@@ -261,7 +263,9 @@ async def _run_arm(
         if scope_id is not None:
             recorder = SessionRecorder(client, scope_id, final_session=scored.session)
             job.on_agent_ended(recorder)
-        harbor, step_results, _ = _harbor_observation(await job.run(), settings)
+        result = await job.run()
+        harbor, step_results, _ = _harbor_observation(result, settings)
+        agent_steps = step_results or single_session_step(result)
         mismatch = checksum_failure(task, harbor)
         if mismatch is None and scored.step is None and step_results:
             mismatch = (
@@ -292,7 +296,7 @@ async def _run_arm(
         scope_id=scope_id,
         harbor=harbor,
         step_rewards=step_rewards(step_results),
-        steps=step_observations(step_results),
+        steps=step_observations(agent_steps),
         outcome=arm_outcome(
             step_results,
             harbor,
@@ -392,6 +396,21 @@ def step_observations(step_results: Sequence[StepResult]) -> tuple[StepObservati
             )
         )
     return tuple(observations)
+
+
+def single_session_step(result: JobResult) -> tuple[StepResult, ...]:
+    """Return a single-step trial's agent session as the step ``task``, or nothing when the trial has steps or no session.
+
+    Harbor records a multi-step trial's agent time and usage on each step and a single-step trial's on the trial
+    itself, so a task-outcome workload's one session is reported under the step name ``task``.
+    """
+
+    if not result.trial_results:
+        return ()
+    trial = result.trial_results[0]
+    if trial.step_results or (trial.agent_result is None and trial.agent_execution is None):
+        return ()
+    return (StepResult(step_name="task", agent_result=trial.agent_result, agent_execution=trial.agent_execution),)
 
 
 def treatment_failures(sessions: Sequence[SessionSnapshot], recall_session: int) -> tuple[str, ...]:
