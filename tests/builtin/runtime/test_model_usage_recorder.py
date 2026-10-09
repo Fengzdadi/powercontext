@@ -184,7 +184,21 @@ def test_long_shared_transaction_drops_usage_without_invalidating_memory() -> No
     asyncio.run(scenario())
 
 
-def test_file_writer_lock_does_not_consume_busy_timeout(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("write_timeout_seconds", "flush_timeout_seconds", "maximum_settle_seconds", "require_settled_flush"),
+    [
+        pytest.param(0.25, 0.3, 2.0, False, id="bounded-best-effort-flush"),
+        pytest.param(0.2, 2.0, 3.0, True, id="settled-native-lock-wait"),
+    ],
+)
+def test_file_writer_lock_does_not_consume_busy_timeout(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    write_timeout_seconds: float,
+    flush_timeout_seconds: float,
+    maximum_settle_seconds: float,
+    require_settled_flush: bool,
+) -> None:
     async def scenario() -> None:
         config = SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path / 'locked.db'}", busy_timeout_ms=5_000)
         async with _database(config) as database:
@@ -192,7 +206,10 @@ def test_file_writer_lock_does_not_consume_busy_timeout(tmp_path: Path) -> None:
             # sub-second event-loop scheduling. Keep enough separation to catch
             # a wait on that database timeout without flaking on a loaded runner.
             recorder = _ModelUsageRecorder(
-                database, StatisticsRepository(), write_timeout_seconds=0.25, flush_timeout_seconds=0.3
+                database,
+                StatisticsRepository(),
+                write_timeout_seconds=write_timeout_seconds,
+                flush_timeout_seconds=flush_timeout_seconds,
             )
             try:
                 async with database.transaction() as connection:
@@ -203,7 +220,7 @@ def test_file_writer_lock_does_not_consume_busy_timeout(tmp_path: Path) -> None:
                     # settles the expired write. Keep the lock held and wait for
                     # that prefix to settle within a bound still well below the
                     # configured busy timeout.
-                    async with asyncio.timeout(2.0):
+                    async with asyncio.timeout(maximum_settle_seconds):
                         while recorder._settled < target:
                             await recorder.flush(target)
                 assert await _rows(database) == ()
@@ -222,7 +239,10 @@ def test_file_writer_lock_does_not_consume_busy_timeout(tmp_path: Path) -> None:
             finally:
                 await recorder.close()
 
-    asyncio.run(scenario())
+    with caplog.at_level(logging.WARNING):
+        asyncio.run(scenario())
+    if require_settled_flush:
+        assert "Model usage flush timed out" not in caplog.text
 
 
 def test_writer_lock_released_inside_the_budget_still_records(tmp_path: Path) -> None:
@@ -230,9 +250,11 @@ def test_writer_lock_released_inside_the_budget_still_records(tmp_path: Path) ->
         path = tmp_path / "retry.db"
         config = SQLiteConfig(url=f"sqlite+aiosqlite:///{path}", busy_timeout_ms=5_000)
         async with _database(config) as database:
-            # One record's budget is spent in slices, so a writer that lets go
-            # partway through still yields a recorded usage row.
-            recorder = _ModelUsageRecorder(database, StatisticsRepository(), write_timeout_seconds=2.0)
+            # The held lock is released inside the write budget. Wait longer
+            # than that budget before asserting the committed usage row.
+            recorder = _ModelUsageRecorder(
+                database, StatisticsRepository(), write_timeout_seconds=5.0, flush_timeout_seconds=6.0
+            )
             holder = sqlite3.connect(path)
             try:
                 holder.execute("BEGIN IMMEDIATE")
