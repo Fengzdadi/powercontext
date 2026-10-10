@@ -194,14 +194,17 @@ harness holds that value in its own environment and gives Harbor a reference to 
 reference and no part of the token. The token still lets an ON agent read other Scopes on the same Server, including
 earlier trials'.
 
-After each ON session the harness records the Scope's Server statistics. When another session follows, it first
-flushes the Scope, standing in for the time that passes between real sessions, and repeats the flush until the Scope
-has processed every captured Source, a flush makes no progress, or 20 rounds pass. This runs from a Harbor agent-end
-hook after the agent's timed phase, so it does not use the agent's time budget. A failed flush or statistics read is
-recorded as a treatment failure rather than replacing the agent's own outcome, so a timed-out session still counts as
-a timeout. Host plugins flush on different schedules, so the harness flushes the same way for every host. The
-Server's generation model therefore takes part in the ON arm; the run fails early when the Server does not report
-`memory_extraction`.
+After each ON session the harness records the Scope's Server statistics. When another session follows, it first flushes
+the Scope, standing in for the time that passes between real sessions, and repeats the flush until the Scope has
+processed every captured Source, a flush makes no progress, or 20 rounds pass. This runs from a Harbor agent-end hook
+after the agent's timed phase, so it does not use the agent's time budget. A failed flush or statistics read is recorded
+as a treatment failure rather than replacing the agent's own outcome, so a timed-out session still counts as a timeout.
+The one exception is HTTP 503 `artifact_owner_pending`: a host plugin's own end-of-session flush can still be running on
+the Server after the plugin stops waiting for it, and until that request records who owns the Memory it created, the
+Server answers a flush of the Scope, and reads that list its Memory, with this code. The harness retries such a call
+after 1, 2, 4, and 8 seconds before it records the failure. Host plugins flush on different schedules, so the harness
+flushes the same way for every host. The Server's generation model therefore takes part in the ON arm; the run fails
+early when the Server does not report `memory_extraction`.
 
 An ON run counts only when Server statistics for its Scope show that Sources were captured before the scored session
 (during it, for a single-session workload) and that the integration asked PowerContext for context during it.
