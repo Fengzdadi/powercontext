@@ -191,7 +191,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the default Scope binding target */
+        /**
+         * Get the default Scope binding target
+         * @description A missing default binding returns 404 scope_not_found. A persisted default binding whose target is missing returns 409 scope_binding_target_missing with details.scope_id; repair the binding or restore its target explicitly instead of automatically provisioning a replacement.
+         */
         get: operations["get_default_scope"];
         /** Change the default Scope binding target */
         put: operations["set_default_scope"];
@@ -230,7 +233,7 @@ export interface paths {
         put?: never;
         /**
          * Resolve an explicit durable or default Scope binding
-         * @description Inspect the Server-owned Scope selection for the current host identity before an operation that needs a binding. Reuse the returned Scope. Do not guess a Scope from the repository, branch, directory, or prompt, and do not change bindings while diagnosing availability.
+         * @description Inspect the Server-owned Scope selection for the current host identity before an operation that needs a binding. Reuse the returned Scope. Do not guess a Scope from the repository, branch, directory, or prompt, and do not change bindings while diagnosing availability. No resolvable binding, or an unknown explicit Scope ID, returns 404 scope_not_found. A persisted durable or default binding whose target is missing returns 409 scope_binding_target_missing with details.scope_id. Resolution stops at that binding without falling back or creating a replacement Scope. Operator repair is required; clients must not treat this conflict as an unprovisioned identity.
          */
         post: operations["resolve_scope_binding"];
         delete?: never;
@@ -5039,6 +5042,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             503: components["responses"]["Unavailable"];
         };
     };
@@ -5124,6 +5128,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["InvalidRequest"];
             503: components["responses"]["Unavailable"];
         };
