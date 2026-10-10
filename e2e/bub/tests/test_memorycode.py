@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import json
 import runpy
+import sys
 import tomllib
 from collections import Counter
 from pathlib import Path
 
+import pytest
 from harbor.models.task.task import Task as HarborTask
 
 from powercontext_e2e.catalog import load_tasks
@@ -155,6 +157,18 @@ def test_the_sample_draws_the_same_short_dialogues_for_every_session_count(tmp_p
     assert sample == _GENERATOR["sample_dialogues"](dataset, per_session_count=3, seed=11)
     assert all(dialogue <= 210 for dialogue in sample)
     assert Counter(1 + dialogue % 6 for dialogue in sample) == dict.fromkeys(range(1, 6), 3)
+
+
+def test_an_empty_sample_is_rejected_before_touching_the_manifests(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["memorycode_tasks.py", str(tmp_path), "--sample", "0"])
+
+    with pytest.raises(SystemExit) as excinfo:
+        _GENERATOR["main"]()
+
+    assert excinfo.value.code == 2
+    assert "--sample must be at least 1" in capsys.readouterr().err
 
 
 def test_checked_in_manifests_draw_ten_dialogues_for_each_session_count() -> None:

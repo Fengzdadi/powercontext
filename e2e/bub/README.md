@@ -381,8 +381,8 @@ unrelated topics. `e2e/bub/scripts/memorycode_tasks.py` turns a dialogue into on
 session, which gives the agent that session's transcript and asks only for an acknowledgement, then a recall session
 that asks for code for the dialogue's history eval queries, one file each, following the mentor's latest guidelines
 without restating them. The paper gives the model the whole history in one prompt; here the recall session sees no
-transcript, so what it knows of the guidelines comes from the host's memory. Each session's verifier empties the
-workspace, so notes the agent writes there cannot stand in for that memory.
+transcript, so what it knows of the guidelines comes from the host's memory. Each mentoring session's verifier empties
+the workspace, so notes the agent writes there cannot stand in for that memory.
 
 The recall step grades the files with MemoryCode's own object extraction and checks, ported to
 `e2e/bub/scripts/memorycode_grade.py` with upstream's quirks: a guideline about objects that a file does not define is

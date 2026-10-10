@@ -149,6 +149,9 @@ def main() -> None:
     )
     parser.add_argument("--seed", type=int, default=SEED, help=f"sampling seed for --sample (default {SEED})")
     args = parser.parse_args()
+    if args.sample is not None and args.sample < 1:
+        # A sample of zero would skip the manifest replacement and leave the previous sample in place.
+        parser.error("--sample must be at least 1")
 
     revision = checkout_revision(args.source)
     if revision != REVISION:
