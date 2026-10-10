@@ -371,6 +371,49 @@ report cannot tell that from a real 0. The report shows `n/a` when no run report
 The report is marked preliminary. With two trials the intervals are wide, which is the point: they show how little
 such a pilot can say. The command does not yet check the Default Scope for leaks or run in the fixed Compose harness.
 
+### MemoryCode workloads
+
+`e2e/bub/paired-tasks/memorycode/` holds continuation workloads built from MemoryCode (Rakotonirina et al., "From Tools
+to Teammates: Evaluating LLMs in Multi-Session Coding Interactions", ACL 2025; Apache-2.0), a published dataset rather
+than tasks written for this harness. In each dialogue a mentor gives a mentee coding guidelines across mentoring
+sessions, such as a prefix for argument names or a decorator on every function, updates some of them, and talks about
+unrelated topics. `e2e/bub/scripts/memorycode_tasks.py` turns a dialogue into one task: an agent session per mentoring
+session, which gives the agent that session's transcript and asks only for an acknowledgement, then a recall session
+that asks for code for the dialogue's history eval queries, one file each, following the mentor's latest guidelines
+without restating them. The paper gives the model the whole history in one prompt; here the recall session sees no
+transcript, so what it knows of the guidelines comes from the host's memory. Each session's verifier empties the
+workspace, so notes the agent writes there cannot stand in for that memory.
+
+The recall step grades the files with MemoryCode's own object extraction and checks, ported to
+`e2e/bub/scripts/memorycode_grade.py` with upstream's quirks: a guideline about objects that a file does not define is
+not scored for that file, and a name rule checks the first name of each object. Upstream grades the first fenced block
+of a chat answer; a file that parses is graded whole, so a fenced example in a docstring does not replace it. An answer
+without code scores 0 on every guideline, which here means a missing or empty file. The trial reward is 1 only when at
+least one guideline applies and every output follows every guideline that applies to it. The verifier's reward file also
+records the counts of applicable and passed checks and, when any check applies, MemoryCode's macro score over outputs;
+each arm's observation keeps them under `harbor.rewards`. The task image does not install `pedantic`, the module the
+decorator guidelines name, so an agent that runs its code sees an import error; this is the same in both arms.
+
+The manifests pin 50 short dialogues, 10 for each count of one to five mentoring sessions, drawn with seed 1705. The
+dataset is not copied into this repository. Generate the tasks from a MemoryCode checkout at the pinned revision: the
+script writes them to `e2e/bub/memorycode-tasks/`, which git ignores, and fails when a task's checksum differs from its
+manifest. Every task holds a copy of the grader, so after changing the grader or the task format, `--pin` writes the new
+checksums for the same dialogues; `--sample N` draws another sample, with `--seed`, and replaces the manifests.
+
+```bash
+git clone https://github.com/Cohere-Labs-Community/MemoryCode /path/to/MemoryCode
+git -C /path/to/MemoryCode checkout 1ab87e119b2f9a498de8075219e1c07f6041b394
+uv run --project e2e/bub python e2e/bub/scripts/memorycode_tasks.py /path/to/MemoryCode
+make harness-paired ARGS='--host pi --manifest e2e/bub/paired-tasks/memorycode --trials 1'
+```
+
+`--category memorycode-sessions-3` selects the dialogues with three mentoring sessions. Each session's transcript is 175
+to 971 words in this sample, and the Server's generation model extracts Memory from it while the harness settles the
+Scope between sessions. With `deepseek/deepseek-v4-pro` through OpenRouter the default 30-second
+`POWERCONTEXT_SERVER_INFERENCE_GENERATION_TIMEOUT_SECONDS` often expired and the run became an integration failure; 120
+seconds was enough. A dialogue with five mentoring sessions runs six agent sessions per arm, and its ON arm also waits
+for each extraction, so plan a few minutes per dialogue.
+
 ### Task-completion workloads
 
 The same command compares the arms on a task that one agent session completes and the task's own verifier grades, such
