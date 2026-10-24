@@ -74,6 +74,17 @@ function validatePiArguments(tool: Tool & { prepareArguments?: (args: unknown) =
   return validateToolArguments(tool, { ...call, arguments: args })
 }
 
+function piAccepts(tool: unknown, args: Record<string, unknown>): boolean {
+  const piTool = tool as Tool & { prepareArguments?: (args: unknown) => Record<string, unknown> }
+  try {
+    validatePiArguments(piTool, { type: 'toolCall', id: 'call-contract', name: piTool.name, arguments: args })
+    return true
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Validation failed')) return false
+    throw error
+  }
+}
+
 describe('Pi native tool surface', () => {
   it('registers the explicit Memory and Handoff tools', () => {
     const tools: Array<{ name: string }> = []
@@ -234,20 +245,36 @@ describe('Pi native tool surface', () => {
   it('keeps the read-only tool schemas within the API contract', () => {
     const registered: Array<Record<string, unknown>> = []
     registerTools({ registerTool: (tool: Record<string, unknown>) => registered.push(tool) } as never, createRuntime(vi.fn()))
-    const state = registeredTool<Record<string, unknown>>(registered, 'pc_memory_state') as unknown as { parameters: TSchema }
-    const stats = registeredTool<Record<string, unknown>>(registered, 'pc_stats') as unknown as { parameters: TSchema }
+    const state = registeredTool<Record<string, unknown>>(registered, 'pc_memory_state')
+    const stats = registeredTool<Record<string, unknown>>(registered, 'pc_stats')
 
-    expect(Value.Check(state.parameters, {})).toBe(false)
-    expect(Value.Check(state.parameters, { artifact_id: 'atomic-7' })).toBe(true)
-    expect(Value.Check(state.parameters, { artifact_id: '' })).toBe(false)
-    expect(Value.Check(state.parameters, { artifact_id: null })).toBe(false)
-    expect(Value.Check(state.parameters, { artifact_id: 'has space' })).toBe(false)
-    expect(Value.Check(state.parameters, { artifact_id: 'atomic-7', extra: true })).toBe(false)
-    expect(Value.Check(stats.parameters, {})).toBe(true)
-    expect(Value.Check(stats.parameters, { period: 'today' })).toBe(true)
-    expect(Value.Check(stats.parameters, { period: '7d' })).toBe(true)
-    expect(Value.Check(stats.parameters, { period: '90d' })).toBe(false)
-    expect(Value.Check(stats.parameters, { period: '30d', extra: true })).toBe(false)
+    expect(piAccepts(state, {})).toBe(false)
+    expect(piAccepts(state, { artifact_id: 'atomic-7' })).toBe(true)
+    expect(piAccepts(state, { artifact_id: '' })).toBe(false)
+    expect(piAccepts(state, { artifact_id: null })).toBe(false)
+    expect(piAccepts(state, { artifact_id: 'has space' })).toBe(false)
+    expect(piAccepts(state, { artifact_id: 'atomic-7', extra: true })).toBe(false)
+    expect(piAccepts(stats, {})).toBe(true)
+    expect(piAccepts(stats, { period: 'today' })).toBe(true)
+    expect(piAccepts(stats, { period: '7d' })).toBe(true)
+    expect(piAccepts(stats, { period: '90d' })).toBe(false)
+    expect(piAccepts(stats, { period: '30d', extra: true })).toBe(false)
+  })
+
+  it('shows the model text limits and choices without identifier-only constraints', () => {
+    const registered: Array<Record<string, unknown>> = []
+    registerTools({ registerTool: (tool: Record<string, unknown>) => registered.push(tool) } as never, createRuntime(vi.fn()))
+    const reject = registeredTool<Record<string, unknown>>(registered, 'pc_review_reject') as unknown as {
+      parameters: { properties: Record<string, Record<string, unknown>> }
+    }
+    const stats = registeredTool<Record<string, unknown>>(registered, 'pc_stats') as unknown as {
+      parameters: { properties: { period: Record<string, unknown> } }
+    }
+
+    expect(reject.parameters.properties.candidate_id).toEqual({ type: 'string' })
+    expect(JSON.stringify(reject.parameters.properties.reason)).toContain('"maxLength":2000')
+    expect(stats.parameters.properties.period).toMatchObject({ enum: ['today', '7d', '30d'] })
+    expect(stats.parameters.properties.period).not.toHaveProperty('anyOf')
   })
 
   it('preserves exact Atomic Memory identity through Pi argument validation', () => {
@@ -480,31 +507,31 @@ describe('Pi native tool surface', () => {
     const registered: Array<Record<string, unknown>> = []
     registerTools({ registerTool: (tool: Record<string, unknown>) => registered.push(tool) } as never, createRuntime(vi.fn()))
 
-    const approve = registeredTool<Record<string, unknown>>(registered, 'pc_review_approve') as unknown as { parameters: TSchema }
-    const reject = registeredTool<Record<string, unknown>>(registered, 'pc_review_reject') as unknown as { parameters: TSchema }
+    const approve = registeredTool<Record<string, unknown>>(registered, 'pc_review_approve')
+    const reject = registeredTool<Record<string, unknown>>(registered, 'pc_review_reject')
     const revise = registeredTool<Record<string, unknown>>(registered, 'pc_review_revise') as unknown as { parameters: TSchema }
 
-    expect(Value.Check(approve.parameters, { candidate_id: 'candidate-1', expected_version: 1 })).toBe(true)
-    expect(Value.Check(approve.parameters, { candidate_id: '', expected_version: 1 })).toBe(false)
-    expect(Value.Check(approve.parameters, { candidate_id: 'candidate-1', expected_version: 0 })).toBe(false)
-    expect(Value.Check(approve.parameters, { candidate_id: 'candidate-1', expected_version: 1, extra: true })).toBe(false)
-    expect(Value.Check(reject.parameters, { candidate_id: 'candidate-1', expected_version: 1, reason: '   ' })).toBe(false)
-    expect(Value.Check(reject.parameters, { candidate_id: 'candidate-1', expected_version: 1, reason: 'x'.repeat(2001) })).toBe(false)
-    expect(Value.Check(revise.parameters, {
+    expect(piAccepts(approve, { candidate_id: 'candidate-1', expected_version: 1 })).toBe(true)
+    expect(piAccepts(approve, { candidate_id: '', expected_version: 1 })).toBe(false)
+    expect(piAccepts(approve, { candidate_id: 'candidate-1', expected_version: 0 })).toBe(false)
+    expect(piAccepts(approve, { candidate_id: 'candidate-1', expected_version: 1, extra: true })).toBe(false)
+    expect(piAccepts(reject, { candidate_id: 'candidate-1', expected_version: 1, reason: '   ' })).toBe(false)
+    expect(piAccepts(reject, { candidate_id: 'candidate-1', expected_version: 1, reason: 'x'.repeat(2001) })).toBe(false)
+    expect(piAccepts(revise, {
       candidate_id: 'candidate-1',
       expected_version: 1,
       proposal: { situation: 'before', action: 'change', outcome: 'after', lesson: 'keep tests' },
       source_refs: [],
       artifact_refs: [],
     })).toBe(true)
-    expect(Value.Check(revise.parameters, {
+    expect(piAccepts(revise, {
       candidate_id: 'candidate-1',
       expected_version: 1,
       proposal: { situation: 'before', action: 'change', outcome: 'after', lesson: 'keep tests', extra: 'reject' },
       source_refs: [],
       artifact_refs: [],
     })).toBe(false)
-    expect(Value.Check(revise.parameters, {
+    expect(piAccepts(revise, {
       candidate_id: 'candidate-1',
       expected_version: 1,
       proposal: { situation: 'before', action: 'change', outcome: 'after', lesson: 'keep tests' },
@@ -512,7 +539,7 @@ describe('Pi native tool surface', () => {
       source_refs: [],
       artifact_refs: [],
     })).toBe(false)
-    expect(Value.Check(revise.parameters, {
+    expect(piAccepts(revise, {
       candidate_id: 'candidate-1',
       expected_version: 1,
       proposal: { situation: 'before', action: 'change', outcome: 'after', lesson: 'keep tests' },

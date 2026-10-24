@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { validateToolArguments } from '@earendil-works/pi-ai'
 import { defineTool, type ExtensionAPI } from '@earendil-works/pi-coding-agent'
 import { Type, type Static, type TSchema } from 'typebox'
 import { Value } from 'typebox/value'
@@ -310,23 +311,64 @@ async function invoke(
   return invokeScopedOperation(runtime, { cwd: context.cwd, signal }, operationId, payload)
 }
 
+// The model copies identifiers from Server results, so their non-empty, character-set and length limits only
+// cost prompt tokens. Every model call carries these schemas; validation still applies the complete schema.
+const VALIDATION_ONLY_PATTERNS = new Set(['.*\\S.*', '^\\S(?:.*\\S)?$', '^[\\x21-\\x7E]+$'])
+const IDENTIFIER_MAX_LENGTH = 256
+const SUBSCHEMA_LISTS = new Set(['anyOf', 'oneOf', 'allOf'])
+
+function modelSchema(schema: unknown): unknown {
+  if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) return schema
+  const node: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === 'minLength' && value === 1) continue
+    if (key === 'pattern' && typeof value === 'string' && VALIDATION_ONLY_PATTERNS.has(value)) continue
+    if (key === 'maxLength' && typeof value === 'number' && value <= IDENTIFIER_MAX_LENGTH) continue
+    if (key === 'properties' && typeof value === 'object' && value !== null) {
+      node[key] = Object.fromEntries(Object.entries(value).map(([name, property]) => [name, modelSchema(property)]))
+    } else if (SUBSCHEMA_LISTS.has(key) && Array.isArray(value)) {
+      node[key] = value.map(modelSchema)
+    } else if (key === 'items' || key === 'additionalProperties' || key === 'not') {
+      node[key] = modelSchema(value)
+    } else {
+      node[key] = value
+    }
+  }
+  return literalEnum(node) ?? node
+}
+
+// TypeBox compiles a union of literals to anyOf/const branches; one enum carries the same choices.
+function literalEnum(node: Record<string, unknown>): Record<string, unknown> | undefined {
+  const branches = node.anyOf
+  if (!Array.isArray(branches) || branches.length === 0) return undefined
+  const type = (branches[0] as Record<string, unknown>).type
+  const literal = (branch: Record<string, unknown>) =>
+    Object.keys(branch).length === 2 && 'const' in branch && branch.type === type
+  if (!branches.every((branch) => typeof branch === 'object' && branch !== null && literal(branch))) return undefined
+  const { anyOf: _anyOf, ...rest } = node
+  return { ...rest, type, enum: branches.map((branch) => (branch as Record<string, unknown>).const) }
+}
+
 function registerOperationTool<TParams extends TSchema>(
   pi: ExtensionAPI,
   runtime: PluginRuntime,
   definition: OperationTool<TParams>,
 ): void {
+  const contract = { name: definition.name, description: definition.description, parameters: definition.parameters }
   pi.registerTool(defineTool({
     name: definition.name,
     label: definition.label,
     description: definition.description,
-    parameters: definition.parameters,
-    prepareArguments: definition.preserveIdentity ? (args: unknown) => {
+    parameters: modelSchema(definition.parameters) as TParams,
+    prepareArguments: (args: unknown) => {
       // Pi converts primitive arguments before validation; exact references must be checked first.
-      if (!Value.Check(definition.parameters, args)) {
+      if (definition.preserveIdentity && !Value.Check(definition.parameters, args)) {
         throw new Error(`Validation failed for tool "${definition.name}": arguments must preserve exact Memory identity.`)
       }
-      return args as Static<TParams>
-    } : undefined,
+      // Pi validates against the model schema next; apply the complete schema with Pi's own conversion first.
+      const call = { type: 'toolCall' as const, id: definition.name, name: definition.name, arguments: args as Record<string, unknown> }
+      return validateToolArguments(contract, call) as Static<TParams>
+    },
     async execute(_toolCallId, params, signal, _onUpdate, context) {
       const invalid = definition.validate?.(params)
       if (invalid) return render(invalid)
