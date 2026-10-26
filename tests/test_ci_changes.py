@@ -60,6 +60,7 @@ RULES = tomllib.loads((ROOT / ".github/ci-paths.toml").read_text(encoding="utf-8
         (["scripts/run_atomic_memory_clean_migration.py"], {"tests", "database"}),
         (["scripts/check_atomic_memory_migration_shards.py"], {"tests", "database"}),
         (["scripts/sync_dsh_plugin_tree.py"], {"tests", "dsh"}),
+        (["scripts/generate_integration_lifecycle.py"], {"tests", "hermes"}),
         (["integrations/bub/src/powercontext_bub/__init__.py"], {"tests", "harness"}),
         (
             ["docs/en/docs/quickstart.md", "integrations/opencode/package.json"],
