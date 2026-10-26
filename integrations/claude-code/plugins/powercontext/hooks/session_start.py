@@ -44,7 +44,6 @@ from hooks.bootstrap_context import (  # noqa: E402
     validate_bootstrap_context,
     validate_delivery_receipt,
 )
-from hooks.diagnostics import should_emit as _should_emit_diagnostic  # noqa: E402
 from scope_binding_errors import (  # noqa: E402
     ScopeBindingError,
     ScopeBindingRejectedError,
@@ -61,14 +60,6 @@ _LIFECYCLES = frozenset({"startup", "resume", "clear", "compact", "fork"})
 _MAX_RESPONSE_BYTES = 1_048_576
 _READ_CHUNK_BYTES = 65_536
 _BOOTSTRAP_PROFILE = "powercontext.scope-bootstrap.v1"
-_FAILURE_OUTCOMES = frozenset({
-    "authentication_failed",
-    "authorization_denied",
-    "delivery_failed",
-    "invalid_response",
-    "server_unavailable",
-    "version_mismatch",
-})
 _REQUEST_HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
@@ -364,8 +355,6 @@ def _emit_bootstrap_event(
     receipt_state: str | None = None,
     recovery: str | None = None,
 ) -> None:
-    if outcome in _FAILURE_OUTCOMES and not _should_emit_diagnostic(outcome):
-        return
     event: dict[str, object] = {
         "component": "powercontext.claude_code.bootstrap",
         "event": "context_bootstrap",

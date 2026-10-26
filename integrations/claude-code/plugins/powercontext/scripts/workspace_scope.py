@@ -25,6 +25,7 @@ import sys
 import threading
 from collections.abc import Mapping, Sequence
 from hashlib import sha256
+from http.client import HTTPException
 from pathlib import Path
 from shutil import which
 from time import monotonic
@@ -70,13 +71,7 @@ class ScopeBindingSettings(Protocol):
 
 
 class _Response(Protocol):
-    status: int
-
-    def __enter__(self) -> _Response: ...
-
-    def __exit__(self, *args: object) -> object: ...
-
-    def read(self, amount: int = -1) -> bytes: ...
+    def read(self, amount: int = -1, /) -> bytes: ...
 
 
 class _RejectRedirects(HTTPRedirectHandler):
@@ -245,17 +240,39 @@ def _request_json(
         if error.code == 401:
             raise ScopeBindingRejectedError from error
         if error.code == 503:
-            raise ScopeBindingUnavailableError from error
-        raise ScopeBindingStatusError(error.code, path) from error
-    except (OSError, TimeoutError) as error:
+            raise ScopeBindingUnavailableError(503) from error
+        raise ScopeBindingStatusError(error.code, path, _error_code(error, deadline=request_deadline)) from error
+    except (OSError, TimeoutError, HTTPException) as error:
+        # http.client reports a truncated or malformed response as HTTPException, not OSError.
         raise ScopeBindingUnavailableError from error
     try:
         value: Any = json.loads(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+    except (ValueError, RecursionError) as error:
+        # Besides JSONDecodeError, json raises ValueError for an over-long integer and RecursionError for deep nesting.
         raise ScopeBindingError from error
     if not isinstance(value, dict):
         raise ScopeBindingError
     return value
+
+
+def _error_code(error: HTTPError, *, deadline: float) -> str | None:
+    """Return the code of an error body, which fails the request when it outlasts the deadline or the size bound."""
+
+    try:
+        raw = _read_bounded(error, deadline=deadline)
+    except ScopeBindingError:
+        raise
+    except TimeoutError as timeout:
+        raise ScopeBindingUnavailableError from timeout
+    except (OSError, HTTPException):
+        return None
+    try:
+        body: Any = json.loads(raw)
+    except (ValueError, RecursionError):
+        return None
+    detail = body.get("error") if isinstance(body, dict) else None
+    code = detail.get("code") if isinstance(detail, dict) else None
+    return code if isinstance(code, str) else None
 
 
 def _remaining_time(deadline: float) -> float:

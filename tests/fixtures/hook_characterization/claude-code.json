@@ -3277,9 +3277,29 @@
           "expected": {
             "exit_code": 0,
             "requests": [],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"server_unavailable\",\"recovery\":\"powercontext doctor\"}"
+              }
+            ],
             "stderr": [],
-            "state": {}
+            "state": {
+              "$HOME/.local/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
+                "mode": "644",
+                "json": {
+                  "server_unavailable": "$NOW"
+                }
+              }
+            }
           }
         }
       ]
@@ -3328,9 +3348,29 @@
                 }
               }
             ],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"server_unavailable\",\"http_status\":503,\"recovery\":\"powercontext doctor\"}"
+              }
+            ],
             "stderr": [],
-            "state": {}
+            "state": {
+              "$HOME/.local/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
+                "mode": "644",
+                "json": {
+                  "server_unavailable": "$NOW"
+                }
+              }
+            }
           }
         }
       ]
@@ -3379,9 +3419,29 @@
                 }
               }
             ],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"authentication_failed\",\"http_status\":401}"
+              }
+            ],
             "stderr": [],
-            "state": {}
+            "state": {
+              "$HOME/.local/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
+                "mode": "644",
+                "json": {
+                  "authentication_failed": "$NOW"
+                }
+              }
+            }
           }
         }
       ]
@@ -3430,9 +3490,29 @@
                 }
               }
             ],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"version_mismatch\",\"http_status\":404}"
+              }
+            ],
             "stderr": [],
-            "state": {}
+            "state": {
+              "$HOME/.local/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
+                "mode": "644",
+                "json": {
+                  "version_mismatch": "$NOW"
+                }
+              }
+            }
           }
         }
       ]
@@ -3484,9 +3564,29 @@
                 }
               }
             ],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"invalid_response\",\"http_status\":404,\"error_code\":\"scope_not_found\"}"
+              }
+            ],
             "stderr": [],
-            "state": {}
+            "state": {
+              "$HOME/.local/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
+                "mode": "644",
+                "json": {
+                  "invalid_response": "$NOW"
+                }
+              }
+            }
           }
         }
       ]
@@ -3535,9 +3635,29 @@
                 }
               }
             ],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"invalid_response\"}"
+              }
+            ],
             "stderr": [],
-            "state": {}
+            "state": {
+              "$HOME/.local/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/": {
+                "mode": "755"
+              },
+              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
+                "mode": "644",
+                "json": {
+                  "invalid_response": "$NOW"
+                }
+              }
+            }
           }
         }
       ]
@@ -4388,21 +4508,6 @@
               }
             ],
             "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "server_unavailable": "$NOW"
-                }
-              },
               "$STATE/powercontext-bootstrap/": {
                 "mode": "700"
               }
@@ -4495,21 +4600,6 @@
             ],
             "stderr": [],
             "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "server_unavailable": "$NOW"
-                }
-              },
               "$STATE/powercontext-bootstrap/": {
                 "mode": "700"
               }
@@ -4818,23 +4908,7 @@
                 "profile": "powercontext.scope-bootstrap.v1"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "delivery_failed": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -4910,23 +4984,7 @@
                 "profile": "powercontext.scope-bootstrap.v1"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "authentication_failed": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -5002,23 +5060,7 @@
                 "profile": "powercontext.scope-bootstrap.v1"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "authorization_denied": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -5094,23 +5136,7 @@
                 "profile": "powercontext.scope-bootstrap.v1"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "version_mismatch": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -5186,23 +5212,7 @@
                 "profile": "powercontext.scope-bootstrap.v1"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "invalid_response": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -5262,23 +5272,7 @@
                 "recovery": "powercontext doctor"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "server_unavailable": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -5353,23 +5347,7 @@
                 "profile": "powercontext.scope-bootstrap.v1"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "invalid_response": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         }
       ]
@@ -5404,23 +5382,7 @@
                 "recovery": "powercontext doctor"
               }
             ],
-            "state": {
-              "$HOME/.local/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/": {
-                "mode": "755"
-              },
-              "$HOME/.local/state/powercontext/claude-code-diagnostics.json": {
-                "mode": "644",
-                "json": {
-                  "server_unavailable": "$NOW"
-                }
-              }
-            }
+            "state": {}
           }
         },
         {
@@ -5441,7 +5403,11 @@
           "expected": {
             "exit_code": 0,
             "requests": [],
-            "stdout": [],
+            "stdout": [
+              {
+                "systemMessage": "{\"component\":\"powercontext.claude_code.recall\",\"event\":\"scope_resolve\",\"outcome\":\"server_unavailable\",\"recovery\":\"powercontext doctor\"}"
+              }
+            ],
             "stderr": [],
             "state": {
               "$HOME/.local/": {

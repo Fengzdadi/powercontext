@@ -44,6 +44,107 @@ def _serve(handler: type[BaseHTTPRequestHandler]) -> Generator[str, None, None]:
         server.server_close()
 
 
+_RESOLUTION_FAILURES = [
+    pytest.param(
+        None, b"", {"outcome": "server_unavailable", "recovery": "powercontext doctor"}, id="dropped-connection"
+    ),
+    pytest.param(
+        503,
+        b'{"error":{"code":"server_unavailable","message":"unavailable"}}',
+        {"outcome": "server_unavailable", "http_status": 503, "recovery": "powercontext doctor"},
+        id="unavailable",
+    ),
+    pytest.param(
+        401,
+        b'{"error":{"code":"authentication_required","message":"missing credential"}}',
+        {"outcome": "authentication_failed", "http_status": 401},
+        id="rejected-credential",
+    ),
+    pytest.param(
+        404, b'{"detail":"Not Found"}', {"outcome": "version_mismatch", "http_status": 404}, id="missing-route"
+    ),
+    pytest.param(
+        404,
+        b'{"error":{"code":"scope_not_found","message":"no such Scope"}}',
+        {"outcome": "invalid_response", "http_status": 404, "error_code": "scope_not_found"},
+        id="unknown-scope",
+    ),
+    pytest.param(
+        409,
+        b'{"error":{"code":"scope_binding_target_missing","message":"binding target missing"}}',
+        {"outcome": "invalid_response", "http_status": 409, "error_code": "scope_binding_target_missing"},
+        id="missing-binding-target",
+    ),
+    pytest.param(
+        404,
+        b'{"error":{"code":"scope_not_found","message":"' + b"x" * 1_048_576 + b'"}}',
+        {"outcome": "invalid_response"},
+        id="oversized-error-body",
+    ),
+    pytest.param(200, b"<html><body>maintenance</body></html>", {"outcome": "invalid_response"}, id="non-json"),
+]
+
+
+def _resolution_handler(status: int | None, body: bytes, paths: list[str]) -> type[BaseHTTPRequestHandler]:
+    """Answer every request with one response, or close the connection without one when status is None."""
+
+    class ResolutionHandler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            paths.append(self.path)
+            self.rfile.read(int(self.headers["Content-Length"]))
+            if status is None:
+                return
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            with suppress(BrokenPipeError, ConnectionResetError):
+                self.wfile.write(body)
+
+        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+            pass
+
+    return ResolutionHandler
+
+
+class _SlowResolutionErrorHandler(BaseHTTPRequestHandler):
+    def do_POST(self) -> None:
+        self.rfile.read(int(self.headers["Content-Length"]))
+        body = b'{"error":{"code":"scope_not_found","message":"a slowly sent error body"}}'
+        self.send_response(404)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        for byte in body:
+            try:
+                self.wfile.write(bytes((byte,)))
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                return
+            time.sleep(0.02)
+
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        pass
+
+
+def _truncated_resolution_handler(status: int) -> type[BaseHTTPRequestHandler]:
+    """Answer every request with a chunked body that ends inside its first chunk."""
+
+    class TruncatedResolutionHandler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            self.rfile.read(int(self.headers["Content-Length"]))
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            self.wfile.write(b'40\r\n{"error":{"code":')
+
+        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+            pass
+
+    return TruncatedResolutionHandler
+
+
 def _prepared(content: str | None = "prepared context", *, status: str = "ready") -> dict[str, object]:
     return {
         "schema": "powercontext.prepared-context.v1",
@@ -364,6 +465,168 @@ def test_host_diagnostic_is_throttled_across_hook_invocations(
 
     assert json.loads(outputs[0])["systemMessage"]
     assert outputs[1] == ""
+
+
+def _run_hook(
+    module: ModuleType, monkeypatch: pytest.MonkeyPatch, payload: dict[str, object], settings: Any
+) -> tuple[str, str]:
+    output = io.StringIO()
+    errors = io.StringIO()
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload)))
+    monkeypatch.setattr(sys, "stdout", output)
+    monkeypatch.setattr(sys, "stderr", errors)
+    assert module.main(settings) == 0
+    return output.getvalue(), errors.getvalue()
+
+
+@pytest.mark.parametrize(("status", "body", "diagnostic"), _RESOLUTION_FAILURES)
+def test_scope_resolution_failure_is_reported_and_nothing_else_is_sent(
+    recall_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    status: int | None,
+    body: bytes,
+    diagnostic: dict[str, object],
+) -> None:
+    paths: list[str] = []
+    with _serve(_resolution_handler(status, body, paths)) as server_url:
+        # Reading the oversized body byte by byte can take seconds on a busy runner; let it reach the size bound.
+        settings = recall_module.CodexPluginSettings(request_timeout_seconds=10.0, http_budget_seconds=10.0)
+        object.__setattr__(settings, "server_url", server_url)
+        output, errors = _run_hook(
+            recall_module,
+            monkeypatch,
+            {"hook_event_name": "UserPromptSubmit", "cwd": str(tmp_path), "prompt": "Recall context"},
+            settings,
+        )
+
+    assert paths == ["/v1/scope-bindings/resolve"]
+    assert errors == ""
+    assert json.loads(json.loads(output)["systemMessage"]) == {
+        "component": "powercontext.codex.recall",
+        "event": "scope_resolve",
+        **diagnostic,
+    }
+
+
+def test_scope_resolution_error_body_that_outlasts_the_budget_reports_an_unavailable_server(
+    recall_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    with _serve(_SlowResolutionErrorHandler) as server_url:
+        settings = recall_module.CodexPluginSettings(request_timeout_seconds=1.0, http_budget_seconds=0.5)
+        object.__setattr__(settings, "server_url", server_url)
+        output, errors = _run_hook(
+            recall_module,
+            monkeypatch,
+            {"hook_event_name": "UserPromptSubmit", "cwd": str(tmp_path), "prompt": "Recall context"},
+            settings,
+        )
+
+    assert errors == ""
+    assert json.loads(json.loads(output)["systemMessage"]) == {
+        "component": "powercontext.codex.recall",
+        "event": "scope_resolve",
+        "outcome": "server_unavailable",
+        "recovery": "powercontext doctor",
+    }
+
+
+@pytest.mark.parametrize(
+    ("status", "diagnostic"),
+    [
+        pytest.param(404, {"outcome": "version_mismatch", "http_status": 404}, id="error-body"),
+        pytest.param(200, {"outcome": "server_unavailable", "recovery": "powercontext doctor"}, id="success-body"),
+    ],
+)
+def test_truncated_scope_resolution_response_is_reported(
+    recall_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    status: int,
+    diagnostic: dict[str, object],
+) -> None:
+    with _serve(_truncated_resolution_handler(status)) as server_url:
+        settings = recall_module.CodexPluginSettings()
+        object.__setattr__(settings, "server_url", server_url)
+        output, errors = _run_hook(
+            recall_module,
+            monkeypatch,
+            {"hook_event_name": "UserPromptSubmit", "cwd": str(tmp_path), "prompt": "Recall context"},
+            settings,
+        )
+
+    assert errors == ""
+    assert json.loads(json.loads(output)["systemMessage"]) == {
+        "component": "powercontext.codex.recall",
+        "event": "scope_resolve",
+        **diagnostic,
+    }
+
+
+@pytest.mark.parametrize(
+    ("handler", "outcome"),
+    [
+        pytest.param(_truncated_resolution_handler(404), "version_mismatch", id="truncated-error-body"),
+        pytest.param(_resolution_handler(404, b"[" * 100_000, []), "version_mismatch", id="deeply-nested-error-body"),
+        pytest.param(_resolution_handler(404, b"1" * 5_000, []), "version_mismatch", id="long-number-error-body"),
+        pytest.param(_resolution_handler(200, b"[" * 100_000, []), "invalid_response", id="deeply-nested-body"),
+        pytest.param(_resolution_handler(200, b"1" * 5_000, []), "invalid_response", id="long-number-body"),
+    ],
+)
+def test_session_start_clears_the_kept_receipt_when_the_resolution_response_cannot_be_decoded(
+    session_binding_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    handler: type[BaseHTTPRequestHandler],
+    outcome: str,
+) -> None:
+    session_binding_module.save_receipt("thread-a", "scope:test", "bcr_previous")
+    with _serve(handler) as server_url:
+        settings = session_binding_module.CodexPluginSettings()
+        object.__setattr__(settings, "server_url", server_url)
+        _, errors = _run_hook(
+            session_binding_module,
+            monkeypatch,
+            {"hook_event_name": "SessionStart", "session_id": "thread-a", "cwd": str(tmp_path), "source": "compact"},
+            settings,
+        )
+
+    assert json.loads(errors)["outcome"] == outcome
+    assert session_binding_module.load_receipt_state("thread-a") is None
+
+
+def test_failed_session_start_does_not_hold_back_the_next_prompt_diagnostic(
+    recall_module: ModuleType,
+    session_binding_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    unavailable = b'{"error":{"code":"server_unavailable","message":"unavailable"}}'
+    with _serve(_resolution_handler(503, unavailable, [])) as server_url:
+        settings = recall_module.CodexPluginSettings()
+        object.__setattr__(settings, "server_url", server_url)
+        _, session_errors = _run_hook(
+            session_binding_module,
+            monkeypatch,
+            {"hook_event_name": "SessionStart", "session_id": "thread-a", "cwd": str(tmp_path), "source": "startup"},
+            settings,
+        )
+        output, _ = _run_hook(
+            recall_module,
+            monkeypatch,
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "thread-a",
+                "cwd": str(tmp_path),
+                "prompt": "Recall context",
+            },
+            settings,
+        )
+
+    assert json.loads(session_errors)["outcome"] == "server_unavailable"
+    assert json.loads(json.loads(output)["systemMessage"])["outcome"] == "server_unavailable"
 
 
 def test_recall_authentication_failure_is_non_blocking_and_content_free(
