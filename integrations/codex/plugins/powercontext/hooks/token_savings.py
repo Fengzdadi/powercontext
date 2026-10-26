@@ -221,14 +221,15 @@ def _emit_failure(error: BaseException, *, emitted: set[str], events: list[dict[
                 emitted=emitted,
                 events=events,
             )
-        elif error.status == 404 and error.path == "/v1/scope-bindings/resolve":
+        elif error.status == 404 and error.path == "/v1/scope-bindings/resolve" and error.code is None:
             _append_event(
                 "version_mismatch", {"http_status": error.status}, recovery=None, emitted=emitted, events=events
             )
         else:
-            _append_event(
-                "invalid_response", {"http_status": error.status}, recovery=None, emitted=emitted, events=events
-            )
+            fields: dict[str, object] = {"http_status": error.status}
+            if error.code is not None:
+                fields["error_code"] = error.code
+            _append_event("invalid_response", fields, recovery=None, emitted=emitted, events=events)
         return
     if isinstance(error, (ScopeBindingUnavailableError, _ServerUnavailableError, TimeoutError)):
         _append_event(

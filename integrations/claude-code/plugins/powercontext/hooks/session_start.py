@@ -206,7 +206,9 @@ def _resolve_and_prepare(
         _emit_bootstrap_event("authentication_failed")
     except (ScopeBindingUnavailableError, OSError, TimeoutError):
         _emit_bootstrap_event("server_unavailable", recovery="powercontext doctor")
-    except (ScopeBindingStatusError, _HttpStatusError) as error:
+    except ScopeBindingStatusError as error:
+        _emit_http_failure(error.status, error.code)
+    except _HttpStatusError as error:
         _emit_http_failure(error.status)
     except (ScopeBindingError, InvalidBootstrapResponse, UnicodeDecodeError, json.JSONDecodeError):
         _emit_bootstrap_event("invalid_response")
@@ -327,12 +329,12 @@ def _synchronize_non_ready_receipt(
     return receipt
 
 
-def _emit_http_failure(status: int) -> None:
+def _emit_http_failure(status: int, code: str | None = None) -> None:
     if status == 401:
         outcome = "authentication_failed"
     elif status == 403:
         outcome = "authorization_denied"
-    elif status == 404:
+    elif status == 404 and code is None:
         outcome = "version_mismatch"
     elif status == 503:
         outcome = "server_unavailable"
@@ -341,6 +343,7 @@ def _emit_http_failure(status: int) -> None:
     _emit_bootstrap_event(
         outcome,
         http_status=status,
+        error_code=code,
         recovery="powercontext doctor" if outcome == "server_unavailable" else None,
     )
 
@@ -349,6 +352,7 @@ def _emit_bootstrap_event(
     outcome: str,
     *,
     http_status: int | None = None,
+    error_code: str | None = None,
     context_status: str | None = None,
     content_bytes: int | None = None,
     truncated: bool | None = None,
@@ -363,6 +367,8 @@ def _emit_bootstrap_event(
     }
     if http_status is not None:
         event["http_status"] = http_status
+    if error_code is not None:
+        event["error_code"] = error_code
     if context_status is not None:
         event["context_status"] = context_status
     if content_bytes is not None:

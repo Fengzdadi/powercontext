@@ -608,6 +608,42 @@ def test_session_start_clears_the_kept_receipt_when_the_resolution_response_cann
     assert session_start_module.load_receipt_state("session-a") is None
 
 
+@pytest.mark.parametrize(
+    ("body", "diagnostic"),
+    [
+        pytest.param(
+            b'{"detail":"Not Found"}', {"outcome": "version_mismatch", "http_status": 404}, id="missing-route"
+        ),
+        pytest.param(
+            b'{"error":{"code":"scope_not_found","message":"no such Scope"}}',
+            {"outcome": "invalid_response", "http_status": 404, "error_code": "scope_not_found"},
+            id="unknown-scope",
+        ),
+    ],
+)
+def test_session_start_classifies_a_resolution_404_by_its_error_code(
+    session_start_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    body: bytes,
+    diagnostic: dict[str, object],
+) -> None:
+    with _serve(_resolution_handler(404, body, [])) as server_url:
+        _, errors = _run_main(
+            session_start_module,
+            monkeypatch,
+            {"hook_event_name": "SessionStart", "session_id": "session-a", "cwd": str(tmp_path), "source": "startup"},
+            settings=session_start_module.ClaudeCodePluginSettings(server_url=server_url),
+        )
+
+    assert json.loads(errors) == {
+        "component": "powercontext.claude_code.bootstrap",
+        "event": "context_bootstrap",
+        "profile": "powercontext.scope-bootstrap.v1",
+        **diagnostic,
+    }
+
+
 def test_failed_session_start_does_not_hold_back_the_next_prompt_diagnostic(
     hook_module: ModuleType,
     session_start_module: ModuleType,
