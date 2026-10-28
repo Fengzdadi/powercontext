@@ -145,6 +145,7 @@ from powercontext.builtin.runtime.processing_registry import (
     canonical_processing_manifest,
     dream_operations,
     processing_capabilities,
+    source_count_thresholds,
 )
 from powercontext.builtin.runtime.protocols import RuntimeTracing
 from powercontext.builtin.runtime.readiness import (
@@ -738,6 +739,7 @@ def _artifact_processing_bindings(  # noqa: C901 - validate and assemble one reg
         return tuple(configured)
     _validate_processing_source_registry(config, configured, source_registry)
     injected_pipelines = injected_pipelines or {}
+    thresholds = source_count_thresholds(config)
     for family in capabilities:
         if family in registered:
             continue
@@ -771,6 +773,7 @@ def _artifact_processing_bindings(  # noqa: C901 - validate and assemble one reg
             entrypoint = partial(run_family_worker, FamilyWorkerSpec(config=config, worker_security=worker_security))
         interval = None if family == "profile" else automatic[family]
         binding = canonical[family]
+        count_threshold = thresholds.get(binding)
         configured.append(
             ArtifactProcessingBinding(
                 binding_name=binding,
@@ -783,9 +786,12 @@ def _artifact_processing_bindings(  # noqa: C901 - validate and assemble one reg
                 if family == "profile" and config.runtime.profile_schedule_enabled
                 else None,
                 timezone=config.runtime.profile_timezone if family == "profile" else "Asia/Shanghai",
+                source_count_threshold=count_threshold,
                 pending_provider=None
                 if family == "skill"
-                else SourceProcessingPendingProvider(contexts.database, binding, family),
+                else SourceProcessingPendingProvider(
+                    contexts.database, binding, family, source_count_threshold=count_threshold
+                ),
                 automatic_scope_filter=enabled_profile_scopes if family == "profile" else None,
             )
         )
@@ -950,6 +956,7 @@ async def open_builtin_contexts(
                 source_registry=source_registry,
                 cursor_secret=cursor_secret,
                 tracing=tracing,
+                source_count_thresholds=source_count_thresholds(config),
             )
             try:
                 await contexts.scopes.bootstrap_default()
@@ -1027,6 +1034,7 @@ async def open_builtin_contexts(
             source_registry=source_registry,
             cursor_secret=cursor_secret,
             tracing=tracing,
+            source_count_thresholds=source_count_thresholds(config),
         )
         try:
             await contexts.scopes.bootstrap_default()

@@ -79,12 +79,15 @@ class SourceRepository:
         self,
         definitions: SourceDefinitionRegistry | Iterable[_AnySourceAdapter],
         /,
+        *,
+        source_count_thresholds: Mapping[str, int] | None = None,
     ) -> None:
         self._registry = (
             definitions
             if isinstance(definitions, SourceDefinitionRegistry)
             else SourceDefinitionRegistry.from_adapters(definitions)
         )
+        self._source_count_thresholds = dict(source_count_thresholds or {})
 
     async def add(
         self,
@@ -171,6 +174,10 @@ class SourceRepository:
         intents = ArtifactProcessingIntentRepository()
         for binding_name in SOURCE_PROCESSING_BINDINGS:
             await intents.mark_dirty(connection, scope_id, binding_name)
+        # Count admission joins the same transaction, so a journal entry that
+        # completes a threshold is never committed without its accepted work.
+        for binding_name, threshold in self._source_count_thresholds.items():
+            await intents.request_pending_sources(connection, scope_id, binding_name, threshold, source_head=position)
         return StoredSource(ref=ref, value=source, journal_position=position), True
 
     async def get(
