@@ -30,11 +30,13 @@ from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from powercontext.builtin.persistence.cursors import SourceCursorRepository
 from powercontext.builtin.persistence.errors import InvalidRepositoryArgumentError
 from powercontext.builtin.persistence.tables import (
     ARTIFACT_PROCESSING_BINDING_STATES_TABLE,
     ARTIFACT_PROCESSING_INTENTS_TABLE,
     ARTIFACT_PROCESSING_SEQUENCES_TABLE,
+    SOURCE_JOURNAL_HEADS_TABLE,
 )
 from powercontext.limits import MAX_BINDING_NAME_LENGTH, MAX_SCOPE_ID_LENGTH
 
@@ -140,6 +142,43 @@ class ArtifactProcessingIntentRepository:
         return cast(
             StoredArtifactProcessingIntent, await self.load(connection, scope_id, binding_name, for_update=True)
         )
+
+    async def request_pending_sources(
+        self,
+        connection: AsyncConnection,
+        scope_id: str,
+        binding_name: str,
+        threshold: int,
+        /,
+        *,
+        source_head: int | None = None,
+    ) -> bool:
+        """Accept one invocation once the journal holds ``threshold`` entries after the committed cursor.
+
+        Accepted but unhandled work already covers every pending entry, so this
+        never accepts it twice; callers re-evaluate after the cursor advances.
+        """
+
+        _require_key(scope_id, binding_name)
+        if type(threshold) is not int or threshold < 1:
+            raise InvalidRepositoryArgumentError("threshold", "must be a positive integer")
+        if source_head is None:
+            # Lock the journal head before the intent, matching Source publication.
+            heads = SOURCE_JOURNAL_HEADS_TABLE
+            await connection.execute(
+                update(heads).where(heads.c.scope_id == scope_id).values(position=heads.c.position)
+            )
+            source_head = int(
+                await connection.scalar(select(heads.c.position).where(heads.c.scope_id == scope_id)) or 0
+            )
+        current = await self.load(connection, scope_id, binding_name, for_update=True)
+        if current is not None and current.requested_generation > current.handled_generation:
+            return False
+        cursor = await SourceCursorRepository().load(connection, scope_id, binding_name)
+        if source_head - (0 if cursor is None else cursor.cursor.sequence) < threshold:
+            return False
+        await self.request(connection, scope_id, binding_name)
+        return True
 
     async def acknowledge(
         self,

@@ -61,6 +61,19 @@ def processing_capabilities(config: BuiltinConfig) -> tuple[str, ...]:
     return tuple(sorted(families))
 
 
+def source_count_thresholds(config: BuiltinConfig) -> dict[str, int]:
+    """Map each executable Source-window binding to its pending-entry admission threshold."""
+
+    families = processing_capabilities(config)
+    configured = (
+        ("memory", SOURCE_WINDOW_TRIGGER_NAME, config.runtime.memory_source_count_threshold),
+        ("topic-memory", TOPIC_MEMORY_SOURCE_WINDOW_BINDING, config.runtime.topic_memory_source_count_threshold),
+    )
+    return {
+        binding: threshold for family, binding, threshold in configured if threshold is not None and family in families
+    }
+
+
 def dream_operations(config: BuiltinConfig) -> tuple[DreamOperation, ...]:
     """Declare admission independently of API-side model construction."""
 

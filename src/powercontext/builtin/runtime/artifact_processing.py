@@ -113,12 +113,14 @@ class ArtifactProcessingBinding:
     cron: str | None = None
     timezone: str = "Asia/Shanghai"
     config_prefix: str | None = None
+    # Accept a Scope once this many journal entries follow its committed cursor.
+    source_count_threshold: int | None = None
     pending_provider: ArtifactProcessingPendingProvider | None = None
     # Only automatic admission is filtered; already accepted requests retain
     # their own Worker authorization and domain completion semantics.
     automatic_scope_filter: Callable[[AsyncConnection, tuple[str, ...]], Awaitable[frozenset[str]]] | None = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> None:  # noqa: C901 - one flat check per configured field
         if not self.binding_name or self.binding_name != self.binding_name.strip():
             raise ValueError("binding_name must be nonempty and trimmed")  # noqa: TRY003
         if re.fullmatch(r"[a-z][a-z0-9-]*", self.artifact_family) is None:
@@ -138,6 +140,10 @@ class ArtifactProcessingBinding:
                 raise ValueError("interval and cron cannot both be enabled")  # noqa: TRY003
         if self.cron is not None:
             CronTrigger.from_crontab(self.cron, timezone=ZoneInfo(self.timezone))
+        if self.source_count_threshold is not None and (
+            type(self.source_count_threshold) is not int or self.source_count_threshold < 1
+        ):
+            raise ValueError("source_count_threshold must be a positive integer")  # noqa: TRY003
 
 
 class _WorkerResultSender(Protocol):
@@ -515,6 +521,13 @@ class ArtifactProcessingSupervisor:
             if binding_name is None or binding_name == name:
                 state.discovery_pending = True
         self._wake.set()
+
+    def sources_published(self) -> None:
+        """Discover work that committed Source publication accepted by pending count."""
+
+        for name, state in self._families.items():
+            if state.binding.source_count_threshold is not None:
+                self.wake(name)
 
     async def close(self) -> None:
         self._stop.set()
@@ -983,9 +996,22 @@ class ArtifactProcessingSupervisor:
                         asyncio.get_running_loop().time() + _CONTROL_CONFLICT_RETRY_SECONDS,
                     )
                     continue
+                threshold = state.binding.source_count_threshold
                 async with self._database.transaction() as connection:
                     await self._leases.require_fence(connection, self._require_current_fence())
                     row = await self._intents.load(connection, scope, state.binding.binding_name)
+                    if (
+                        threshold is not None
+                        and row is not None
+                        and row.requested_generation
+                        == row.handled_generation
+                        >= running.assignment.claimed_request_generation
+                    ):
+                        # Entries this invocation consumed no longer count; the
+                        # remainder after its committed cursor may start the next one.
+                        await self._intents.request_pending_sources(
+                            connection, scope, state.binding.binding_name, threshold
+                        )
                 if row is None or row.handled_generation < running.assignment.claimed_request_generation:
                     raise _WorkerExecutionError(  # noqa: TRY301
                         ArtifactProcessingWorkerFailure(
@@ -1191,6 +1217,10 @@ class ArtifactProcessingSupervisors:
     def wake(self, binding_name: str | None = None) -> None:
         for supervisor in self.supervisors:
             supervisor.wake(binding_name)
+
+    def sources_published(self) -> None:
+        for supervisor in self.supervisors:
+            supervisor.sources_published()
 
     async def close(self) -> None:
         await asyncio.gather(*(item.close() for item in self.supervisors))

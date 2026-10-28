@@ -249,6 +249,7 @@ from powercontext.builtin.runtime.recall_sufficiency import (
     build_recall_candidates,
     recall_effort,
 )
+from powercontext.builtin.runtime.source_lifecycle import SourceLifecycleApplication
 from powercontext.builtin.runtime.statistics import RelationalScopedStatistics, overview_selection
 from powercontext.builtin.scope import ScopeApplication, ScopeDescriptor, ScopeSelection
 from powercontext.builtin.scope.subject_sources import SubjectSourceService
@@ -299,6 +300,7 @@ if TYPE_CHECKING:
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
     from powercontext.builtin.handoff_report.application import HandoffReportApplication
+    from powercontext.builtin.persistence.database import AsyncDatabase
     from powercontext.builtin.runtime.artifact_processing import ArtifactProcessingSupervisors
 
 
@@ -489,6 +491,7 @@ class ScopedSourceApplication:
                             span.set_attributes({_MEMORY_CAPTURE_SOURCE_COUNT: 1})
             except BaseValueConflictError as error:
                 raise SourceConflictError("identity", error.identity) from None
+            self._runtime._sources_published()
             return SourceReceipt(
                 source_ref=SourceRef(source_type=record.source_type, source_id=record.source_id),
                 sequence=record.position,
@@ -505,6 +508,7 @@ class ScopedSourceApplication:
                 )
                 if span is not None:
                     span.set_attributes({_MEMORY_CAPTURE_SOURCE_COUNT: 1})
+            self._runtime._sources_published()
             return SourceReceipt(source_ref=context.sources.catalog.as_ref(source), sequence=sequence)
 
 
@@ -532,11 +536,13 @@ class ScopedRecordApplication:
         /,
     ) -> SourceRecord:
         async with self._runtime._scope_operation(self.scope_id), self._runtime._locked(self.scope_id):
-            return await self._runtime._records().create_source(
+            record = await self._runtime._records().create_source(
                 self.scope_id,
                 source_type,
                 content,
             )
+        self._runtime._sources_published()
+        return record
 
     async def get_source(self, source_type: str, source_id: str, /) -> SourceRecord:
         async with self._runtime._scope_operation(self.scope_id):
@@ -564,7 +570,10 @@ class ScopedRecordApplication:
         /,
     ) -> ArtifactCreated:
         async with self._runtime._scope_operation(self.scope_id), self._runtime._locked(self.scope_id):
-            return await self._runtime._records().create_artifact(self.scope_id, family, write)
+            created = await self._runtime._records().create_artifact(self.scope_id, family, write)
+        # Record writes publish a lineage-only Source that also counts as pending input.
+        self._runtime._sources_published()
+        return created
 
     async def get_artifact(self, family: str, artifact_id: str, /) -> ArtifactRecord:
         async with self._runtime._scope_operation(self.scope_id):
@@ -647,13 +656,15 @@ class ScopedRecordApplication:
         /,
     ) -> ArtifactRecord:
         async with self._runtime._scope_operation(self.scope_id), self._runtime._locked(self.scope_id):
-            return await self._runtime._records().replace_artifact(
+            record = await self._runtime._records().replace_artifact(
                 self.scope_id,
                 family,
                 artifact_id,
                 expected_etag,
                 write,
             )
+        self._runtime._sources_published()
+        return record
 
 
 class RecordApplication:
@@ -3051,6 +3062,7 @@ class BuiltinRuntime:
         remote_ingestion: RemoteIngestion | None = None,
         dream_service: DreamService | None = None,
         generation_concurrency: int = 4,
+        source_lifecycle_database: AsyncDatabase | None = None,
     ) -> None:
         if source_window_limit < 1:
             raise _RuntimeConfigurationError("source_window_limit")
@@ -3140,6 +3152,7 @@ class BuiltinRuntime:
         self.skill = SkillApplication(self)
         self.remote_skills = RemoteSkillApplication(self)
         self.statistics = StatisticsApplication(self)
+        self.lifecycle = SourceLifecycleApplication(self, source_lifecycle_database)
         self.handoff_report: HandoffReportApplication | None = None
         self.artifact_processing_supervisor: ArtifactProcessingSupervisors | None = None
         self.processor = None if scope_ids is None else ScheduledSourceProcessor(self, scope_ids)
@@ -3456,6 +3469,22 @@ class BuiltinRuntime:
         if self._record_service is None:
             raise _RuntimeStateError("records")
         return self._record_service
+
+    def _sources_published(self) -> None:
+        """Let the Supervisor start work that committed Sources accepted by pending count."""
+
+        if self.artifact_processing_supervisor is None:
+            return
+        try:
+            self.artifact_processing_supervisor.sources_published()
+        except Exception as error:
+            log_safely(
+                logger,
+                logging.WARNING,
+                "Supervisor wake failed after Source publication",
+                exc_info=error,
+                extra={"event": "artifact_processing.source_wake_failed", "outcome": "accepted"},
+            )
 
     def _generation(self, scope_id: str) -> ReviewedGenerationService:
         if self._generation_service is None:
