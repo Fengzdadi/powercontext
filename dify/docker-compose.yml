@@ -1,0 +1,80 @@
+# 喵青天·鸡毛蒜皮法庭 —— Dify 应用依赖的配套服务（seekdb + court-api + PowerContext）。
+#
+# 先启动 Dify 社区版（Dify 源码 docker/ 目录下 docker compose up -d），再在本目录执行：
+#   cp .env.example .env      # 按需修改占位值
+#   docker compose up -d --build
+# court-api 与 powercontext 会加入 Dify 的 docker 网络（默认 docker_default），
+# Dify 的 HTTP 请求节点用服务名 http://court-api:8080 和 http://powercontext:8000 访问它们。
+name: jimao-court
+
+services:
+  seekdb:
+    image: oceanbase/seekdb:1.4.0-100000172026082615
+    environment:
+      ROOT_PASSWORD: ${SEEKDB_ROOT_PASSWORD:?copy .env.example to .env and set SEEKDB_ROOT_PASSWORD}
+      SEEKDB_DATABASE: court
+      MEMORY_LIMIT: ${SEEKDB_MEMORY_LIMIT:-2G}
+      CPU_COUNT: "2"
+      DATAFILE_SIZE: 1G
+      LOG_DISK_SIZE: 2G
+    volumes:
+      - seekdb-data:/var/lib/seekdb
+    ports:
+      # Only for inspecting the data with a MySQL client; Dify never talks to seekdb directly.
+      - "${BIND_ADDRESS:-127.0.0.1}:${SEEKDB_HOST_PORT:-22881}:2881"
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h127.0.0.1 -P2881 -uroot -p\"$$ROOT_PASSWORD\" -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+    networks: [court]
+
+  court-api:
+    build:
+      context: ./services/court-api
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        HF_ENDPOINT: ${HF_ENDPOINT:-https://huggingface.co}
+    image: jimao-court/court-api:1.0.0
+    environment:
+      SEEKDB_HOST: seekdb
+      SEEKDB_PORT: "2881"
+      SEEKDB_USER: root
+      SEEKDB_PASSWORD: ${SEEKDB_ROOT_PASSWORD:?copy .env.example to .env and set SEEKDB_ROOT_PASSWORD}
+      SEEKDB_DATABASE: court
+    depends_on:
+      seekdb:
+        condition: service_healthy
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${COURT_API_HOST_PORT:-18080}:8080"
+    restart: unless-stopped
+    networks: [court, dify]
+
+  powercontext:
+    build:
+      context: ./services/powercontext
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        POWERCONTEXT_VERSION: "1.4.1"
+    image: jimao-court/powercontext:1.4.1
+    environment:
+      # PowerContext keeps its memories in embedded seekdb (pylibseekdb) inside this volume.
+      POWERCONTEXT_SERVER_DATABASE_KIND: seekdb
+      POWERCONTEXT_SERVER_DATABASE_PATH: /data/seekdb
+    volumes:
+      - powercontext-data:/data
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${POWERCONTEXT_HOST_PORT:-18000}:8000"
+    restart: unless-stopped
+    networks: [court, dify]
+
+networks:
+  court: {}
+  dify:
+    name: ${DIFY_NETWORK:-docker_default}
+    external: true
+
+volumes:
+  seekdb-data:
+  powercontext-data:

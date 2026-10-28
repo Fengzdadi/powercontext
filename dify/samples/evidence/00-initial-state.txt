@@ -1,0 +1,25 @@
+# 初始状态（scripts/reset.sh 之后、开始任何对话之前）  2026-10-28 15:55:45
+# 命令：scripts/inspect.sh 阿强 "闹钟 周末 吵醒"
+
+== court-api 健康检查（seekdb 连接、向量模型、混合检索方式）
+{"status":"ok","seekdb":{"status":"ok","version":"5.7.25-OceanBase seekdb-v1.4.0.0","precedents":44,"statutes":33},"embedding":{"model":"BAAI/bge-small-zh-v1.5","dim":512,"ready":true,"error":null},"hybrid_search":"DBMS_HYBRID_SEARCH"}
+
+== seekdb：cases 表里由玩家诉讼产生的案件（SQL 直接查询）
+source	status	n
+seed	judged	44
+
+== seekdb：DBMS_HYBRID_SEARCH 混合检索「闹钟 周末 吵醒」（court-api /api/search）
+mode: hybrid
+  （2019）喵民初字第0003号 大刘诉闹钟周末照常响铃案 score=0.0328 matched_by=seekdb DBMS_HYBRID_SEARCH (ik 全文 + HNSW 向量, RRF 融合)
+  （2019）喵民初字第0001号 小林诉公鸡凌晨四点打鸣扰民案 score=0.032 matched_by=seekdb DBMS_HYBRID_SEARCH (ik 全文 + HNSW 向量, RRF 融合)
+  （2021）喵民初字第0030号 小吴诉周一每周准时到来案 score=0.032 matched_by=seekdb DBMS_HYBRID_SEARCH (ik 全文 + HNSW 向量, RRF 融合)
+  法典第6条 闹钟授权
+  法典第5条 睡眠神圣
+
+== PowerContext：原告「阿强」的记忆（/v1/atomic-memory/list）
+scope_id: scp_6vmqnxhz7y4khr02w69pvzzx9j
+共 0 条
+
+== PowerContext：立案时法官看到的 PreparedContext（/v1/context/prepare）
+status: empty
+（没有可召回的记忆）

@@ -1,0 +1,18 @@
+# court-api 日志中所有 seekdb 读写记录（docker logs jimao-court-court-api-1 | grep 'seekdb '）
+2026-10-28 19:53:34,851 INFO court.api court ready: seed added {'statutes': 33, 'precedents': 44}, seekdb {'version': '5.7.25-OceanBase seekdb-v1.4.0.0', 'precedents': 44, 'statutes': 33}
+2026-10-28 19:55:47,589 INFO court.api seekdb hybrid search q='闹钟 周末 吵醒' type=* -> precedents ['（2019）喵民初字第0003号', '（2019）喵民初字第0001号', '（2021）喵民初字第0030号'], statutes [6, 5]
+2026-10-28 19:56:22,892 INFO court.api seekdb write: filed （2026）喵民初字第0101号 阿强诉闹钟案 (type=appliance)
+2026-10-28 19:56:23,314 INFO court.api seekdb hybrid search q='闹钟 闹钟 周六 七点 睡眠 噪音 起诉 原告称周六早七点被告准时将其吵醒，违背其只想睡至中午的意愿。' type=appliance -> precedents ['（2019）喵民初字第0003号', '（2019）喵民初字第0001号', '（2025）喵民初字第0084号'], statutes [5, 6]
+2026-10-28 19:58:01,398 INFO court.api seekdb write: verdict （2026）喵民初字第0101号 outcome=defendant -> now 45 precedents
+2026-10-28 19:58:09,147 INFO court.api seekdb write: filed （2026）喵民初字第0102号 阿强诉阿杰案 (type=person)
+2026-10-28 19:58:09,378 INFO court.api seekdb hybrid search q='阿杰 室友 芒果布丁 冰箱 署名 盗窃 原告指控被告偷吃原告在冰箱内署名标记的芒果布丁。' type=person -> precedents ['（2019）喵民初字第0005号', '（2020）喵民初字第0021号', '（2026）喵民初字第0101号'], statutes [10, 15]
+2026-10-28 19:59:41,148 INFO court.api seekdb write: verdict （2026）喵民初字第0102号 outcome=plaintiff -> now 46 precedents
+2026-10-28 19:59:47,761 INFO court.api seekdb write: filed （2026）喵民初字第0103号 小美诉闹钟案 (type=appliance)
+2026-10-28 19:59:48,336 INFO court.api seekdb hybrid search q='闹钟 闹钟 周一 年假 噪音 睡眠 起诉 原告小美在请假休息的周一清晨，被告依旧无视其意愿，于七点准时发出刺耳铃声。' type=appliance -> precedents ['（2026）喵民初字第0101号', '（2019）喵民初字第0003号', '（2021）喵民初字第0030号'], statutes [5, 6]
+2026-10-28 20:01:30,579 INFO court.api seekdb write: verdict （2026）喵民初字第0103号 outcome=defendant -> now 47 precedents
+2026-10-28 20:01:34,079 INFO court.api seekdb hybrid search q='布丁' type=* -> precedents ['（2019）喵民初字第0005号', '（2026）喵民初字第0102号', '（2022）喵民初字第0043号'], statutes []
+2026-10-28 20:03:39,022 INFO court.api seekdb write: filed （2026）喵民初字第0104号 路人甲诉今天案 (type=time)
+2026-10-28 20:03:40,015 INFO court.api seekdb hybrid search q='今天 天气 暴雨 晴天 地铁 出行 起诉 原告出门前遇大晴天，刚出地铁即遭暴雨袭击。' type=time -> precedents ['（2021）喵民初字第0030号', '（2021）喵民初字第0027号', '（2021）喵民初字第0032号'], statutes [31, 24]
+2026-10-28 20:03:59,192 INFO court.api seekdb write: withdraw （2026）喵民初字第0104号 -> True
+2026-10-28 20:05:07,504 INFO court.api seekdb hybrid search q='布丁 室友 偷吃' type=* -> precedents ['（2019）喵民初字第0005号', '（2026）喵民初字第0102号', '（2024）喵民初字第0064号'], statutes [10, 9]
+2026-10-28 20:05:08,598 INFO court.api seekdb hybrid search q='闹钟 年假 周一' type=* -> precedents ['（2021）喵民初字第0030号', '（2019）喵民初字第0003号', '（2026）喵民初字第0103号'], statutes [6, 24]
