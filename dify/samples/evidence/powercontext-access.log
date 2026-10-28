@@ -1,0 +1,36 @@
+# PowerContext 访问日志摘要（docker logs jimao-court-powercontext-1 | grep transport.request.completed）
+# 前 3 行是 reset 后记录初始状态时 scripts/inspect.sh 的查询，最后 6 行是 S1–S4 跑完后 inspect.sh 的核对查询；
+# 中间 23 行都是 S1–S4 期间 Dify 工作流里的 PowerContext HTTP 节点发起的调用。
+# 时间(UTC)                操作                    结果     HTTP  耗时(ms)
+2026-10-28T21:04:13+0000  create_scope            success  201       25.1
+2026-10-28T21:04:13+0000  list_atomic_memories    success  200       14.5
+2026-10-28T21:04:13+0000  prepare_context         success  200      393.6
+2026-10-28T21:04:14+0000  create_scope            success  201        3.7
+2026-10-28T21:04:20+0000  prepare_context         success  200      121.1
+2026-10-28T21:05:06+0000  create_scope            success  201       29.7
+2026-10-28T21:05:34+0000  remember_memory         success  200      765.0
+2026-10-28T21:05:34+0000  remember_memory         success  200      765.1
+2026-10-28T21:05:35+0000  create_scope            success  201        5.2
+2026-10-28T21:05:40+0000  prepare_context         success  200      475.3
+2026-10-28T21:06:26+0000  create_scope            success  201       29.3
+2026-10-28T21:06:50+0000  remember_memory         success  200      358.7
+2026-10-28T21:06:50+0000  remember_memory         success  200      369.1
+2026-10-28T21:06:51+0000  create_scope            success  201       21.2
+2026-10-28T21:06:56+0000  prepare_context         success  200      313.9
+2026-10-28T21:07:37+0000  create_scope            success  201       25.8
+2026-10-28T21:08:02+0000  remember_memory         success  200      572.7
+2026-10-28T21:08:02+0000  remember_memory         success  200      577.0
+2026-10-28T21:08:02+0000  create_scope            success  201        5.5
+2026-10-28T21:08:02+0000  list_atomic_memories    success  200       54.8
+2026-10-28T21:08:02+0000  create_scope            success  201        4.7
+2026-10-28T21:08:03+0000  create_scope            success  201        4.1
+2026-10-28T21:08:03+0000  create_scope            success  201       18.0
+2026-10-28T21:08:03+0000  create_scope            success  201        4.1
+2026-10-28T21:08:35+0000  prepare_context         success  200      247.7
+2026-10-28T21:09:18+0000  create_scope            success  201       66.2
+2026-10-28T21:09:20+0000  create_scope            success  201        4.4
+2026-10-28T21:09:20+0000  list_atomic_memories    success  200       17.7
+2026-10-28T21:09:20+0000  prepare_context         success  200       73.8
+2026-10-28T21:09:20+0000  create_scope            success  201        4.7
+2026-10-28T21:09:20+0000  list_atomic_memories    success  200        9.2
+2026-10-28T21:09:20+0000  prepare_context         success  200       29.1

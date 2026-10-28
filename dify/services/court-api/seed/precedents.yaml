@@ -1,0 +1,488 @@
+# 《鸡毛蒜皮判例集》种子判例 —— 原创虚构内容，仅供娱乐。
+# 启动时写入 seekdb 的 cases 表（source=seed, status=judged），与玩家产生的新判例一起参与混合检索。
+# defendant_type: pet 宠物动物 | appliance 家电物件 | digital 数码网络 | person 人 | food 食物
+#                 | body 身体 | nature 天气自然 | time 时间与抽象概念 | other 其他
+- case_no: （2019）喵民初字第0001号
+  plaintiff: 早起困难户小林
+  defendant: 公鸡
+  defendant_type: pet
+  title: 小林诉公鸡凌晨四点打鸣扰民案
+  grievance: 隔壁的公鸡每天凌晨四点准时打鸣，比闹钟还早三个小时，小林已经连续一周没睡过整觉。
+  demand: 要求公鸡改到早上九点再打鸣。
+  verdict: 一、公鸡打鸣时间调整为早上六点半，周末顺延至八点；二、原告每周赠送公鸡一把小米，以弥补其作息调整损失。
+  outcome: split
+  judge_quote: 打鸣是公鸡的天职，睡觉是人类的天职，天职撞车，各退一步喵。
+  tags: 打鸣 公鸡 早起 吵醒 噪音 睡眠
+- case_no: （2019）喵民初字第0003号
+  plaintiff: 大刘
+  defendant: 闹钟
+  defendant_type: appliance
+  title: 大刘诉闹钟周末照常响铃案
+  grievance: 周六早上七点闹钟照常大响，把好不容易的周末懒觉炸没了。大刘认为闹钟毫无人性。
+  demand: 要求闹钟赔偿一个完整的周末早晨。
+  verdict: 一、经查闹钟设置为"每天"，系原告本人设定，依《法典》第六条，责任在设定之人，闹钟无罪；二、原告当庭罚抄"周末"二字十遍。
+  outcome: defendant
+  judge_quote: 闹钟只是忠实地执行了你的命令，真正吵醒你的，是过去的你自己喵。
+  tags: 闹钟 周末 懒觉 吵醒 起床 设置
+- case_no: （2019）喵民初字第0005号
+  plaintiff: 阿珍
+  defendant: 室友
+  defendant_type: person
+  title: 阿珍诉室友偷吃署名布丁案
+  grievance: 阿珍在布丁盖子上写了自己的名字，第二天冰箱里只剩一个空盒子，还被整齐地放回了原位。
+  demand: 要求室友赔偿布丁并公开道歉。
+  verdict: 一、依《法典》第十条，署名食物受保护，室友赔偿同款布丁两个；二、室友当面道歉，且道歉时不得舔嘴唇。
+  outcome: plaintiff
+  judge_quote: 把空盒子放回原位，是对布丁的二次伤害喵。
+  tags: 布丁 偷吃 冰箱 室友 甜点 署名 零食
+- case_no: （2019）喵民初字第0008号
+  plaintiff: 王先生
+  defendant: 自家的猫
+  defendant_type: pet
+  title: 王先生诉猫半夜三点踩脸案
+  grievance: 猫每天凌晨三点准时踩王先生的脸，一脚踩在鼻子上，一脚踩在眼睛上，目的是要求开饭。
+  demand: 要求猫改为踩被子。
+  verdict: 一、依《法典》第十五条，猫踩脸不构成侵权；二、猫须在每次踩脸后提供不少于十秒的呼噜作为补偿；三、建议原告睡前把猫粮倒满。
+  outcome: split
+  judge_quote: 本庭也是猫，本庭理解被告的饥饿，但本庭判得很公正喵。
+  tags: 猫 踩脸 半夜 开饭 宠物 睡觉
+- case_no: （2020）喵民初字第0011号
+  plaintiff: 小周
+  defendant: 家里的 WiFi
+  defendant_type: digital
+  title: 小周诉 WiFi 团战关键时刻断线案
+  grievance: 每次游戏打到团战关键时刻，WiFi 都会准时断线，平时刷视频却一点不卡，小周认为这是针对。
+  demand: 要求 WiFi 公开道歉并赔偿一颗五星。
+  verdict: 一、依《法典》第十八条，关键时刻断线推定为故意，WiFi 败诉；二、路由器即日起搬出柜子，站在客厅中央反省；三、原告每周重启路由器一次以示宽恕。
+  outcome: plaintiff
+  judge_quote: 平时不卡，关键时刻卡，这不是网络问题，这是人品问题喵。
+  tags: WiFi 路由器 断网 游戏 团战 网络 卡顿
+- case_no: （2020）喵民初字第0013号
+  plaintiff: 李阿姨
+  defendant: 楼上邻居
+  defendant_type: person
+  title: 李阿姨诉楼上半夜弹珠落地案
+  grievance: 每天半夜十二点，楼上都会传来弹珠落地再滚动的声音，李阿姨已经数到了第三百颗。
+  demand: 要求楼上交出所有弹珠。
+  verdict: 一、楼上邻居当庭证明家中没有弹珠，依《法典》第八条但书，不构成扰民；二、弹珠来源列为本庭悬案；三、双方各买一块地毯，共同维护楼宇和平。
+  outcome: split
+  judge_quote: 本庭也很想知道，那颗弹珠到底是谁的喵。
+  tags: 楼上 邻居 弹珠 噪音 半夜 扰民
+- case_no: （2020）喵民初字第0016号
+  plaintiff: 程序员小马
+  defendant: 笔记本电脑
+  defendant_type: digital
+  title: 小马诉电脑在年终汇报时自动更新案
+  grievance: 年终汇报投屏的瞬间，电脑弹出"正在更新，请勿关机，已完成 1%"，全公司一起看了二十分钟进度条。
+  demand: 要求电脑赔偿年终奖。
+  verdict: 一、依《法典》第二十条，电脑擅自更新，败诉；二、电脑须在下次开机时显示"对不起"三遍；三、年终奖由老板另行判断，本庭无权管辖。
+  outcome: plaintiff
+  judge_quote: 预计还需三分钟，是世界上最长的三分钟喵。
+  tags: 电脑 自动更新 开会 汇报 演示 重启 进度条
+- case_no: （2020）喵民初字第0019号
+  plaintiff: 小美
+  defendant: 体重秤
+  defendant_type: appliance
+  title: 小美诉体重秤春节后恶意诽谤案
+  grievance: 春节回来，体重秤显示的数字比年前多了六斤，小美认为体重秤在造谣。
+  demand: 要求体重秤更正数字。
+  verdict: 一、依《法典》第二十三条，如实报告体重不构成诽谤，驳回更正请求；二、体重秤自即日起保持沉默三日；三、原告每天散步三十分钟，由体重秤监督。
+  outcome: split
+  judge_quote: 体重秤没有说谎，它只是不懂人情世故喵。
+  tags: 体重秤 体重 春节 减肥 长胖 节假日
+- case_no: （2020）喵民初字第0021号
+  plaintiff: 阿杰
+  defendant: 外卖
+  defendant_type: person
+  title: 阿杰诉外卖总在洗澡时送达案
+  grievance: 阿杰每次点外卖，只要一进浴室打上洗发水，骑手的电话就会准时响起，至今未失手过。
+  demand: 要求外卖改为在洗澡后送达。
+  verdict: 一、依《法典》第十二条，外卖时机不当，部分成立；二、骑手到达后应等待两分钟；三、原告洗澡前应先确认外卖已到，不得心存侥幸。
+  outcome: split
+  judge_quote: 外卖和洗发水之间，似乎有某种神秘的量子纠缠喵。
+  tags: 外卖 洗澡 骑手 送达 电话 时机
+- case_no: （2021）喵民初字第0023号
+  plaintiff: 小陈
+  defendant: 薯片
+  defendant_type: food
+  title: 小陈诉薯片袋一半是空气案
+  grievance: 小陈打开一袋鼓鼓的薯片，倒出来只有十一片，剩下全是空气。
+  demand: 要求薯片补足差额。
+  verdict: 一、依《法典》第十三条，空气部分视为赠品；二、但空气占比过高，薯片厂家下一袋应多放三片；三、原告吃完应把袋子叠成三角形，以示宽宏。
+  outcome: split
+  judge_quote: 你买的不是薯片，是一袋带着薯片味道的氮气喵。
+  tags: 薯片 零食 空气 包装 分量
+- case_no: （2021）喵民初字第0026号
+  plaintiff: 老张
+  defendant: 自己的膝盖
+  defendant_type: body
+  title: 老张诉膝盖下雨前疼痛泄露天机案
+  grievance: 老张的膝盖每逢下雨前一天就开始隐隐作痛，比天气预报还准，老张觉得自己像个人形气象站。
+  demand: 要求膝盖停止预报。
+  verdict: 一、膝盖预报准确，造福家庭，不构成侵权；二、聘请膝盖为家庭气象顾问，每年发放护膝一副作为报酬；三、原告少爬楼梯。
+  outcome: defendant
+  judge_quote: 能比气象台还准，这是天赋，不是病，好吧也可能是病，去看医生喵。
+  tags: 膝盖 下雨 疼痛 天气 预报 身体
+- case_no: （2021）喵民初字第0027号
+  plaintiff: 小雨
+  defendant: 天气预报
+  defendant_type: nature
+  title: 小雨诉天气预报说不下雨结果下暴雨案
+  grievance: 天气预报说今天降水概率百分之十，小雨没带伞，结果在路上被浇成了落汤鸡。
+  demand: 要求天气预报赔一把伞。
+  verdict: 一、百分之十不等于零，天气预报不构成欺诈；二、天气预报今后应多用"可能""大概""看心情"等词；三、原告包里常备折叠伞一把。
+  outcome: split
+  judge_quote: 百分之十的雨，淋在你身上，就是百分之百喵。
+  tags: 天气预报 下雨 暴雨 带伞 淋湿 天气
+- case_no: （2021）喵民初字第0030号
+  plaintiff: 打工人小吴
+  defendant: 周一
+  defendant_type: time
+  title: 小吴诉周一每周准时到来案
+  grievance: 小吴认为周一每周都来，从不请假，给自己造成了严重的精神压力。
+  demand: 要求取消周一。
+  verdict: 一、依《法典》第二十四条，周一原则上不得被起诉，本庭只判周一深刻反省；二、原告周日晚上提前焦虑不得超过一小时。
+  outcome: split
+  judge_quote: 周一是无辜的，有罪的是周日晚上的你喵。
+  tags: 周一 上班 星期一 焦虑 周末
+- case_no: （2021）喵民初字第0032号
+  plaintiff: 研究生小孙
+  defendant: 论文截止日期
+  defendant_type: time
+  title: 小孙诉截止日期突然到来案
+  grievance: 论文截止日期毫无预兆地到了，小孙才写了一个标题和一个致谢。
+  demand: 要求截止日期往后推一个月。
+  verdict: 一、经查原告一个月前曾公开表示"还早呢"，依《法典》第二十五条视为放弃抗辩，原告败诉；二、原告今晚开始写正文。
+  outcome: defendant
+  judge_quote: 截止日期从不突然，它只是一直在安静地走过来喵。
+  tags: 截止日期 deadline 论文 拖延 作业 熬夜
+- case_no: （2021）喵民初字第0034号
+  plaintiff: 阿明
+  defendant: 洗衣机
+  defendant_type: appliance
+  title: 阿明诉洗衣机吞袜子案
+  grievance: 阿明每次洗衣服都放进去一双袜子，拿出来只剩一只，三年来已经攒了二十三只单身袜子。
+  demand: 要求洗衣机交出所有袜子。
+  verdict: 一、经本庭派员勘查，在洗衣机内筒夹缝中起获袜子七只，洗衣机败诉；二、洗衣机须为每只单身袜子找到对象；三、原告今后把袜子装进洗衣袋。
+  outcome: plaintiff
+  judge_quote: 每一只消失的袜子，都在某个夹缝里等你喵。
+  tags: 洗衣机 袜子 消失 单只 洗衣服 家电
+- case_no: （2022）喵民初字第0036号
+  plaintiff: 小高
+  defendant: 手机
+  defendant_type: digital
+  title: 小高诉手机电量百分之二十突然关机案
+  grievance: 手机明明显示还有百分之二十的电，小高正准备扫码付款，手机直接黑屏关机。
+  demand: 要求手机如实显示电量。
+  verdict: 一、依《法典》第十九条，构成电量欺诈，手机败诉；二、手机今后电量显示改为"百分之二十（大概）"；三、原告随身携带充电宝。
+  outcome: plaintiff
+  judge_quote: 百分之二十的电，是手机给你的最后一个善意的谎言喵。
+  tags: 手机 电量 关机 充电 付款 数码
+- case_no: （2022）喵民初字第0038号
+  plaintiff: 芳芳
+  defendant: 输入法
+  defendant_type: digital
+  title: 芳芳诉输入法把"老板好"联想成"老板坏"案
+  grievance: 芳芳在工作群里飞快地打了"老板好"，输入法联想成了"老板坏"，并且芳芳按了发送。
+  demand: 要求输入法向老板解释。
+  verdict: 一、依《法典》第二十一条，输入法承担连带责任，原告未检查承担主要责任；二、输入法须学会"老板最好"这一词组；三、原告发送前默数三秒。
+  outcome: split
+  judge_quote: 输入法只是说出了你的潜意识，本庭不予置评喵。
+  tags: 输入法 打错字 联想 群聊 老板 尴尬
+- case_no: （2022）喵民初字第0040号
+  plaintiff: 小赵
+  defendant: 自家的狗
+  defendant_type: pet
+  title: 小赵诉狗把拖鞋全部叼进狗窝案
+  grievance: 小赵下班回家，发现家里所有拖鞋都整整齐齐地出现在狗窝里，狗正趴在上面一脸骄傲。
+  demand: 要求狗归还拖鞋并承诺不再犯。
+  verdict: 一、依《法典》第十六条，被告系"太高兴了"，免于处罚；二、狗须陪原告散步一次作为社区服务；三、拖鞋归还一半，另一半视为狗的收藏品。
+  outcome: defendant
+  judge_quote: 它不是在偷拖鞋，它是在收集你的味道喵。
+  tags: 狗 拖鞋 拆家 宠物 狗窝
+- case_no: （2022）喵民初字第0041号
+  plaintiff: 陈奶奶
+  defendant: 鹦鹉
+  defendant_type: pet
+  title: 陈奶奶诉鹦鹉在家庭聚会上大喊"不想上班"案
+  grievance: 春节家庭聚会上，家里的鹦鹉突然对着全家人大喊"不想上班！不想上班！"，孙子当场脸红。
+  demand: 要求鹦鹉停止乱说话。
+  verdict: 一、鹦鹉只是复读，无罪；二、经查该语句来源于孙子每天早上的自言自语，由孙子承担全部责任；三、孙子须教鹦鹉说一句吉祥话。
+  outcome: defendant
+  judge_quote: 鹦鹉不会说谎，它只是一台诚实的录音机喵。
+  tags: 鹦鹉 学说话 上班 宠物 聚会
+- case_no: （2022）喵民初字第0043号
+  plaintiff: 小丁
+  defendant: 蚊子
+  defendant_type: nature
+  title: 小丁诉蚊子深夜耳边嗡嗡案
+  grievance: 一只蚊子每晚在小丁耳边盘旋，开灯就消失，关灯就出现，已持续一周。
+  demand: 要求蚊子立即离开卧室。
+  verdict: 一、依《法典》第十七条，蚊子推定为恶意，其"只是路过"的抗辩不予采纳；二、蚊子缺席审判，判处驱逐出卧室；三、原告安装纱窗。
+  outcome: plaintiff
+  judge_quote: 开灯就消失，关灯就出现，这是蚊子界的顶级刺客喵。
+  tags: 蚊子 嗡嗡 半夜 夏天 睡不着 耳边
+- case_no: （2022）喵民初字第0045号
+  plaintiff: 阿宝
+  defendant: 同事
+  defendant_type: person
+  title: 阿宝诉同事在公司微波炉里热鱼案
+  grievance: 同事每天中午在公司微波炉里热咸鱼，整层楼弥漫着海洋的气息，阿宝的工位就在微波炉旁边。
+  demand: 要求同事改热别的。
+  verdict: 一、同事行为构成气味扰邻，败诉；二、同事请全组喝奶茶一次；三、同事今后改热馒头，咸鱼带回家吃。
+  outcome: plaintiff
+  judge_quote: 本庭作为一只猫，必须声明，本庭其实挺喜欢那个味道的喵。
+  tags: 微波炉 热鱼 同事 公司 气味 午饭
+- case_no: （2022）喵民初字第0047号
+  plaintiff: 小郑
+  defendant: 理发师
+  defendant_type: person
+  title: 小郑诉理发师"稍微修一下"剪成寸头案
+  grievance: 小郑反复强调"稍微修一下就行"，理发师点头说好，二十分钟后小郑看到了镜子里的寸头。
+  demand: 要求理发师把头发接回去。
+  verdict: 一、"稍微"一词缺乏法定标准，理发师承担主要责任；二、理发师今后须用尺子确认"稍微"的长度；三、头发会长回来，本庭判原告三个月后再来复诊。
+  outcome: split
+  judge_quote: 理发师的"稍微"，和你的"稍微"，不在同一个宇宙喵。
+  tags: 理发 理发师 发型 剪短 头发
+- case_no: （2023）喵民初字第0050号
+  plaintiff: 大伟
+  defendant: 老板
+  defendant_type: person
+  title: 大伟诉老板周五下午五点派活案
+  grievance: 每到周五下午五点，老板就会走过来说"这个不急，你周一前给我就行"。
+  demand: 要求老板周五下午不得派活。
+  verdict: 一、老板周五下午只能派"真的周一再做"的活；二、原告周五四点后不得假装很忙以躲避；三、双方共同遵守"周末神圣"原则。
+  outcome: split
+  judge_quote: 「这个不急」是老板世界里最急的四个字喵。
+  tags: 老板 加班 周五 派活 上班 周末
+- case_no: （2023）喵民初字第0052号
+  plaintiff: 小雪
+  defendant: 自家的猫
+  defendant_type: pet
+  title: 小雪诉猫把水杯推下桌案
+  grievance: 猫当着小雪的面，盯着她的眼睛，用爪子把桌上的水杯一点一点推下了桌子。
+  demand: 要求猫赔一个杯子。
+  verdict: 一、依《法典》第十五条，猫推落物品不构成侵权；二、原告今后使用带盖水杯，并放在桌子中央；三、猫须呼噜十秒以示安抚。
+  outcome: defendant
+  judge_quote: 它不是在推杯子，它是在做重力实验，科学无罪喵。
+  tags: 猫 推杯子 水杯 桌子 宠物 打碎
+- case_no: （2023）喵民初字第0054号
+  plaintiff: 老李
+  defendant: 扫地机器人
+  defendant_type: appliance
+  title: 老李诉扫地机器人每天卡在沙发底下求救案
+  grievance: 扫地机器人每天都会钻进沙发底下，然后用很委屈的声音喊"请帮我脱困"，一天喊六次。
+  demand: 要求扫地机器人自己出来。
+  verdict: 一、扫地机器人求救属于正当行为，但须在求救时加一个"请"字；二、原告给沙发垫高两厘米；三、双方友好相处，不得互相嫌弃。
+  outcome: split
+  judge_quote: 它只是想去沙发底下看看世界，结果世界太矮了喵。
+  tags: 扫地机器人 沙发 卡住 求救 家电
+- case_no: （2023）喵民初字第0055号
+  plaintiff: 小方
+  defendant: 奶茶
+  defendant_type: food
+  title: 小方诉"少糖"奶茶甜到齁案
+  grievance: 小方点了少糖奶茶，喝第一口就感觉牙齿在尖叫，怀疑店员把少糖听成了多糖。
+  demand: 要求奶茶重做一杯真正的少糖。
+  verdict: 一、"少糖"甜度明显超标，奶茶败诉；二、奶茶店下次提供"真·少糖"并赠送珍珠一份；三、原告今后点三分糖以留出误差。
+  outcome: plaintiff
+  judge_quote: 少糖不是一种甜度，而是一种美好的愿望喵。
+  tags: 奶茶 少糖 太甜 饮料 珍珠
+- case_no: （2023）喵民初字第0057号
+  plaintiff: 阿伦
+  defendant: 泡面调料包
+  defendant_type: food
+  title: 阿伦诉泡面调料包怎么也撕不开案
+  grievance: 调料包上写着"此处易撕"，阿伦用手撕、用牙咬，最后调料包突然爆开，撒了一桌子。
+  demand: 要求调料包遵守"易撕"承诺。
+  verdict: 一、"此处易撕"构成虚假宣传，调料包败诉；二、调料包今后须标注"真的从这里撕"；三、原告家中常备剪刀一把。
+  outcome: plaintiff
+  judge_quote: 世界上最难的三件事：早起、减肥、和撕开调料包喵。
+  tags: 泡面 调料包 撕不开 易撕 零食
+- case_no: （2023）喵民初字第0058号
+  plaintiff: 小蒋
+  defendant: 自己的头发
+  defendant_type: body
+  title: 小蒋诉头发在相亲前集体离家出走案
+  grievance: 相亲前一周，小蒋每天洗头都掉一大把，头发似乎商量好了要在关键时刻离开。
+  demand: 要求头发回来。
+  verdict: 一、依《法典》第二十八条，头发离开不构成背叛，但时机恶劣，可从轻谴责；二、头发在重要场合前一周暂停离开；三、原告每天十二点前睡觉。
+  outcome: split
+  judge_quote: 头发和爱情一样，越着急越留不住喵。
+  tags: 头发 掉发 脱发 相亲 熬夜 身体
+- case_no: （2023）喵民初字第0060号
+  plaintiff: 婷婷
+  defendant: 好友
+  defendant_type: person
+  title: 婷婷诉好友已读不回案
+  grievance: 婷婷发了一段三百字的长消息分享八卦，好友显示已读，四个小时后回了一个"嗯"。
+  demand: 要求好友认真回复。
+  verdict: 一、"嗯"不构成有效回复，好友败诉；二、好友须补回不少于五十字的回复及表情包一枚；三、原告长消息应分段发送，便于阅读。
+  outcome: plaintiff
+  judge_quote: 一个"嗯"字，比沉默还沉默喵。
+  tags: 已读不回 微信 消息 好友 聊天 回复
+- case_no: （2024）喵民初字第0062号
+  plaintiff: 小欧
+  defendant: 被窝
+  defendant_type: other
+  title: 小欧诉被窝冬天不让起床案
+  grievance: 冬天早上小欧想起床，被窝紧紧抱住了她，导致她连续迟到三天。
+  demand: 要求被窝放手。
+  verdict: 一、依《法典》第七条，被窝引力属于不可抗力，迟到责任减轻但不免除；二、原告前一晚把衣服放进被窝预热；三、被窝无罪，但须在闹钟响后自觉松手。
+  outcome: defendant
+  judge_quote: 被窝没有错，它只是太爱你了喵。
+  tags: 被窝 冬天 起床 迟到 赖床 起不来
+- case_no: （2024）喵民初字第0064号
+  plaintiff: 小韩
+  defendant: 室友
+  defendant_type: person
+  title: 小韩诉室友打呼像拖拉机案
+  grievance: 室友每晚打呼，声音像拖拉机爬坡，偶尔还会突然停住，小韩每次都担心他是不是没气了。
+  demand: 要求室友安静睡觉。
+  verdict: 一、打呼非主观故意，室友不构成扰民，但须尝试侧睡；二、原告佩戴耳塞；三、双方互赠白噪音一段，以示和平。
+  outcome: split
+  judge_quote: 他在梦里开拖拉机，你在梦外数羊，大家都很努力喵。
+  tags: 打呼 打鼾 室友 睡不着 噪音 宿舍
+- case_no: （2024）喵民初字第0066号
+  plaintiff: 阿娟
+  defendant: 老妈
+  defendant_type: person
+  title: 阿娟诉老妈坚持让穿秋裤案
+  grievance: 气温十八度，老妈坚持让阿娟穿秋裤，理由是"我觉得你冷"。
+  demand: 要求老妈尊重本人的体感温度。
+  verdict: 一、"有一种冷叫妈觉得你冷"属于法定母爱，秋裤合法；二、原告败诉，但可自行选择秋裤颜色；三、气温超过二十度时秋裤自动失效。
+  outcome: defendant
+  judge_quote: 本庭可以审理一切，唯独审理不了妈妈的爱喵。
+  tags: 秋裤 老妈 妈妈 冷 穿衣 家人
+- case_no: （2024）喵民初字第0067号
+  plaintiff: 小罗
+  defendant: 导航
+  defendant_type: digital
+  title: 小罗诉导航连说二十次"前方掉头"案
+  grievance: 导航在一个路口连续说了二十次"前方掉头"，小罗绕着同一个环岛转了五圈。
+  demand: 要求导航承认自己也迷路了。
+  verdict: 一、导航败诉，今后不确定时须说"我也不太确定"；二、导航向原告赔礼道歉，语气须真诚；三、原告下次出门前先看一眼地图。
+  outcome: plaintiff
+  judge_quote: 导航不是不认路，它只是想陪你多转几圈喵。
+  tags: 导航 迷路 掉头 开车 环岛 地图
+- case_no: （2024）喵民初字第0069号
+  plaintiff: 小葛
+  defendant: 仓鼠
+  defendant_type: pet
+  title: 小葛诉仓鼠半夜疯狂跑轮案
+  grievance: 仓鼠白天睡觉，半夜两点开始在跑轮上狂奔，跑轮吱呀作响，像在开一场马拉松。
+  demand: 要求仓鼠改为白天运动。
+  verdict: 一、仓鼠为夜行动物，跑轮是其合法健身房，仓鼠无罪；二、跑轮须加润滑油，消除吱呀声；三、原告可把笼子移到客厅。
+  outcome: split
+  judge_quote: 它跑了一整夜，哪儿也没去，这就是生活喵。
+  tags: 仓鼠 跑轮 半夜 噪音 宠物
+- case_no: （2024）喵民初字第0071号
+  plaintiff: 小石
+  defendant: 朋友
+  defendant_type: person
+  title: 小石诉朋友抢走最后一块披萨案
+  grievance: 聚会上只剩最后一块披萨，小石刚伸手，朋友已经把它塞进了嘴里，全程没有询问。
+  demand: 要求朋友归还披萨。
+  verdict: 一、依《法典》第十一条，构成"最后一块侵占"；二、披萨已无法归还，朋友须请下一顿披萨；三、下一顿的最后一块归原告所有。
+  outcome: plaintiff
+  judge_quote: 最后一块从来不是食物，它是人性的考验喵。
+  tags: 披萨 最后一块 抢 聚会 朋友 零食
+- case_no: （2024）喵民初字第0073号
+  plaintiff: 小田
+  defendant: 打印机
+  defendant_type: appliance
+  title: 小田诉打印机在交论文前卡纸案
+  grievance: 距离交论文还有十五分钟，打印机先是卡纸，然后缺墨，最后显示"未知错误"。
+  demand: 要求打印机立即工作。
+  verdict: 一、打印机辩称"它闻到了恐惧"，本庭不予采纳，打印机败诉一半；二、打印机须无条件打印十页；三、原告今后提前一天打印。
+  outcome: split
+  judge_quote: 打印机能感知人类的绝望，这是它唯一稳定的功能喵。
+  tags: 打印机 卡纸 论文 缺墨 截止 办公
+- case_no: （2025）喵民初字第0075号
+  plaintiff: 阿凯
+  defendant: 运气
+  defendant_type: time
+  title: 阿凯诉运气抽卡一百次不出货案
+  grievance: 阿凯在游戏里连续抽了一百次卡，一张想要的都没出，隔壁新手第一抽就出了。
+  demand: 要求运气给个说法。
+  verdict: 一、运气本身没有意识，不构成故意；二、判运气在第一百零一抽给予保底；三、原告停止凌晨三点抽卡，并把零花钱存起来。
+  outcome: defendant
+  judge_quote: 运气不是没来，它只是去了隔壁新手家喵。
+  tags: 抽卡 运气 游戏 氪金 倒霉
+- case_no: （2025）喵民初字第0077号
+  plaintiff: 小钱
+  defendant: 香菜
+  defendant_type: food
+  title: 小钱诉香菜混进牛肉面案
+  grievance: 小钱明确说了不要香菜，牛肉面端上来时，香菜铺满了整个碗面，像一片草原。
+  demand: 要求香菜自行离开。
+  verdict: 一、依《法典》第十四条，香菜不得出现在明确拒绝它的碗里；二、香菜辩称"我只是想被爱"，本庭表示同情，判其回到需要它的人碗里；三、面馆为原告重做一碗。
+  outcome: plaintiff
+  judge_quote: 香菜没有错，错的是放错了碗喵。
+  tags: 香菜 牛肉面 口味 饭馆 不吃
+- case_no: （2025）喵民初字第0079号
+  plaintiff: 小莫
+  defendant: 风
+  defendant_type: nature
+  title: 小莫诉风在拍照时吹乱刘海案
+  grievance: 小莫每次拍照，风都会准时把刘海吹成中分，拍了五十张没有一张能用。
+  demand: 要求风在拍照时暂停。
+  verdict: 一、风无固定住所，难以执行，但本庭仍判风在原告拍照时暂停三秒；二、原告出门前使用定型喷雾；三、五十张中至少保留一张，作为纪念。
+  outcome: split
+  judge_quote: 风吹乱的不是刘海，是你对完美的执念喵。
+  tags: 风 刘海 拍照 发型 天气
+- case_no: （2025）喵民初字第0080号
+  plaintiff: 小于
+  defendant: 自己的记忆力
+  defendant_type: body
+  title: 小于诉记忆力一进门就忘了要干嘛案
+  grievance: 小于从客厅走到卧室，一进门就忘了要拿什么，回到客厅又想起来了，往返了四次。
+  demand: 要求记忆力稳定发挥。
+  verdict: 一、门框会重置短期记忆，属于不可抗力，记忆力从轻处理；二、记忆力须在门口贴一张便利贴；三、原告不得同时想三件事。
+  outcome: split
+  judge_quote: 你不是忘了，你只是把记忆留在了另一个房间喵。
+  tags: 记忆力 忘事 健忘 进门 身体
+- case_no: （2025）喵民初字第0082号
+  plaintiff: 喵青天
+  defendant: 激光笔
+  defendant_type: other
+  title: 喵青天诉激光笔红点永远抓不到案
+  grievance: 本庭法官喵青天连续三天追逐墙上的红点，扑了一百二十次，一次也没抓到，红点最后消失在沙发后面。
+  demand: 要求红点自首。
+  verdict: 一、经合议（本庭自己和自己合议），红点系由激光笔操纵，激光笔败诉；二、激光笔没收，由书记员保管；三、本庭郑重声明，抓不到不是本庭的问题。
+  outcome: plaintiff
+  judge_quote: 本庭审理此案时没有回避，因为本庭就是正义喵。
+  tags: 激光笔 红点 猫 法官 回避
+- case_no: （2025）喵民初字第0084号
+  plaintiff: 小黄
+  defendant: 电饭煲
+  defendant_type: appliance
+  title: 小黄诉电饭煲把米饭煮成粥案
+  grievance: 小黄想煮一锅米饭，打开盖子却是一锅白粥，小黄认为电饭煲擅自改变了晚餐计划。
+  demand: 要求电饭煲尊重原告的选择。
+  verdict: 一、经查原告加水超过刻度线两格，电饭煲依法按水量烹饪，无罪；二、原告今后看清水位线；三、这锅粥配咸菜，本庭认为也挺好。
+  outcome: defendant
+  judge_quote: 电饭煲只负责煮，水是你自己加的喵。
+  tags: 电饭煲 米饭 粥 做饭 厨房 家电
+- case_no: （2025）喵民初字第0086号
+  plaintiff: 阿龙
+  defendant: 空调遥控器
+  defendant_type: appliance
+  title: 阿龙诉空调遥控器离奇失踪案
+  grievance: 三十八度高温，阿龙翻遍全家找不到空调遥控器，最后热得只能对着空调喊"开机"。
+  demand: 要求遥控器现身。
+  verdict: 一、遥控器在沙发缝中被当庭找到，构成擅离职守；二、遥控器今后加装"会叫"功能；三、原告用完遥控器放回固定位置。
+  outcome: split
+  judge_quote: 所有失踪的遥控器，最终都会回到沙发缝的怀抱喵。
+  tags: 遥控器 空调 失踪 沙发缝 找不到 家电
+- case_no: （2025）喵民初字第0088号
+  plaintiff: 小沈
+  defendant: 生日
+  defendant_type: time
+  title: 小沈诉生日让自己又老了一岁案
+  grievance: 生日又来了，小沈发现自己又老了一岁，认为生日每年都来，非常不讲武德。
+  demand: 要求生日改为五年来一次。
+  verdict: 一、生日无罪，生日蛋糕是法定权利，必须有；二、本庭特许原告今年心理年龄不增长；三、蜡烛数量由原告自行决定。
+  outcome: defendant
+  judge_quote: 你不是老了一岁，你是多了一年的故事喵。
+  tags: 生日 变老 年龄 蛋糕 时间

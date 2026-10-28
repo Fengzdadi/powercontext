@@ -1,0 +1,75 @@
+# S5 · 降级：PowerContext 停止时应用照常应答  2026-10-28 17:09:21
+# 1. docker compose stop powercontext
+# 2. python3 scripts/play.py --player 阿强 "查案底" "本院公告"
+# 3. docker compose start powercontext && scripts/wait.sh
+
+$ docker compose ps
+court-api  running  Up 6 minutes (healthy)
+seekdb  running  Up 6 minutes (healthy)
+
+$ python3 scripts/play.py --player 阿强 "查案底" "本院公告"
+
+>>> [阿强] 查案底
+    [succeeded]     0.0s  开始：原告报到
+    [succeeded]    0.03s  指令分流
+    [exception]   11.26s  PowerContext：打开原告档案  !! Unknown error
+    [succeeded]    0.13s  取档案号
+    [succeeded]     0.0s  按指令分流
+    [succeeded]    0.14s  档案查询条件
+    [exception]    6.98s  PowerContext：读取小本本  !! Unknown error
+    [succeeded]    0.15s  整理案底
+    [succeeded]     0.0s  回复：查案底
+--- 18.9s, conversation 6ae87412-965a-4cfb-8cb7-4a9ce8cbf9eb, error=None
+
+🐾 档案室（PowerContext）暂时联系不上，喵青天的小本本找不到了。
+
+>>> [阿强] 本院公告
+    [succeeded]     0.0s  开始：原告报到
+    [succeeded]    0.17s  指令分流
+    [exception]     7.0s  PowerContext：打开原告档案  !! Unknown error
+    [succeeded]    0.05s  取档案号
+    [succeeded]     0.0s  按指令分流
+    [succeeded]    0.05s  seekdb：本院公告统计
+    [succeeded]    0.04s  整理公告
+    [succeeded]     0.0s  回复：本院公告
+--- 7.6s, conversation 6ae87412-965a-4cfb-8cb7-4a9ce8cbf9eb, error=None
+
+📊 **鸡毛蒜皮法庭 · 本院公告**（数据来自 seekdb 实时统计）
+- 《鸡毛蒜皮判例集》共收录 **47** 件判例，其中 **3** 件由玩家诉讼产生；《法典》共 33 条；尚在审理中的案件 0 件
+- 原告胜诉率 30%（原告胜 14 / 被告胜 13 / 各打五十大板 20）
+- 最常被告：闹钟（3 次）、室友（2 次）、自家的猫（2 次）、仓鼠（1 次）、体重秤（1 次）
+- 本院常客：阿强（2 案）、小美（1 案）
+- 最新宣判：（2026）喵民初字第0103号《小美诉闹钟闹觉案》—— 被告胜诉
+- 最新宣判：（2026）喵民初字第0102号《阿强诉阿杰偷吃布丁案》—— 各打五十大板
+- 最新宣判：（2026）喵民初字第0101号《阿强诉闹钟周末吵醒案》—— 被告胜诉
+
+$ docker compose start powercontext && scripts/wait.sh
+ Container jimao-court-powercontext-1 Started 
+等待 seekdb  ok
+等待 court-api  ok
+等待 powercontext .. ok
+全部就绪。
+
+# PowerContext 恢复后再查一次：数据卷里的记忆都还在
+$ python3 scripts/play.py --player 阿强 "查案底"
+
+>>> [阿强] 查案底
+    [succeeded]     0.0s  开始：原告报到
+    [succeeded]    0.03s  指令分流
+    [succeeded]    0.01s  PowerContext：打开原告档案
+    [succeeded]    0.02s  取档案号
+    [succeeded]     0.0s  按指令分流
+    [succeeded]    0.02s  档案查询条件
+    [succeeded]    0.01s  PowerContext：读取小本本
+    [succeeded]    0.02s  整理案底
+    [succeeded]     0.0s  回复：查案底
+--- 0.2s, conversation 71927bc7-8b9a-428c-ab1c-df5092bd07df, error=None
+
+🐾 **喵青天的小本本 · 原告「阿强」**（PowerContext 记忆，共 4 条）
+
+- 【案底】2026-10-28 喵青天审理《阿强诉阿杰偷吃布丁案》，案号（2026）喵民初字第0102号。判决：一、被告赔布丁两个并道歉时禁舔唇；二、原告抄写不许偷吃五遍；三、共商冰箱新规，嘴馋者缴冻干小鱼干罚金。（各打五十大板） 原告须：抄写不许偷吃五遍作为梦境进食补偿——下次到庭时须向本庭汇报执行情况。
+- 【案底】2026-10-28 喵青天审理《阿强诉闹钟周末吵醒案》，案号（2026）喵民初字第0101号。判决：一、驳回原告全部诉讼请求，闹钟无罪；二、被告有权播放十秒怪叫唤醒灵魂；三、原告抄写“早起”二十遍并缴纳冻干小鱼干。（被告胜诉） 原告须：抄写“早起”二十遍，若再按灭不超过三次需缴纳冻干小鱼干——下次到庭时须向本庭汇报执行情况。
+- 【法官印象】喵青天对阿强的印象：阿强眼神清澈，但昨晚梦里已吞半箱布丁。
+- 【法官印象】喵青天对阿强的印象：一只试图用金枪鱼味猫条收买法官的懒虫喵。 【藐视法庭】阿强在《阿强诉闹钟周末吵醒案》中：原告以零食贿赂法庭，已被没收并记入案底。
+
+这些记录跨会话保存：换个对话、隔几天再来，喵青天都记得。
