@@ -44,6 +44,9 @@ code = [
     "tree-sitter-python==0.25.0",
     "tree-sitter-typescript==0.23.2",
 ]
+pdf = [
+    "pypdf[crypto]>=6.19,<7",
+]
 builtin = [
     "aiosqlite>=0.22,<1",
     "apscheduler>=3.11,<4",
@@ -128,6 +131,7 @@ notebooks = [
 ]
 dev = [
     "powercontext[code]",
+    "powercontext[pdf]",
     "datamodel-code-generator==0.64.0",
     "powercontext[cli,server]",
     "powercontext-langchain",
