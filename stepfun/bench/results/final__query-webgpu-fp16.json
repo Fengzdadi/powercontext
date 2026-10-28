@@ -1,0 +1,258 @@
+{
+  "label": "final__query-webgpu-fp16",
+  "config": {
+    "suite": "query",
+    "backend": "webgpu",
+    "dtype": "fp16",
+    "source": "hf",
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": true,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": "bench_query",
+    "label": "final__query-webgpu-fp16"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T20:00:23.713Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.08,
+    "clientMs": 19.605000019073486
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "webgpu",
+    "dtype": "fp16",
+    "fallbackReason": null,
+    "webgpu": {
+      "ok": true,
+      "shaderF16": true,
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "limits": {
+        "maxBufferSize": 4294967292,
+        "maxStorageBufferBindingSize": 4294967292
+      }
+    },
+    "threads": null,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 252420563,
+    "timings": {
+      "detectMs": 140.19,
+      "tokenizerMs": 940.64,
+      "modelFetchMs": 563.77,
+      "sessionCreateMs": 1516.29,
+      "modelLoadMs": 3020.7,
+      "firstInferMs": 126.19,
+      "secondInferMs": 16.98,
+      "totalMs": 3304.6
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_fp16.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 3790.27
+  },
+  "variants": [
+    {
+      "name": "SEARCH single call",
+      "impl": "search",
+      "useCache": false,
+      "e2eMs": {
+        "n": 360,
+        "median": 22.17,
+        "p90": 33.56,
+        "mean": 25.73,
+        "min": 14.75,
+        "max": 119.8
+      },
+      "seekdbMs": {
+        "n": 360,
+        "median": 7.56,
+        "p90": 12.94,
+        "mean": 8.91,
+        "min": 3.54,
+        "max": 65.76
+      },
+      "queryEmbedMs": {
+        "n": 360,
+        "median": 10.86,
+        "p90": 17.9,
+        "mean": 13.69,
+        "min": 8.46,
+        "max": 86.68
+      }
+    },
+    {
+      "name": "SDK hybridSearch",
+      "impl": "sdk",
+      "useCache": false,
+      "e2eMs": {
+        "n": 360,
+        "median": 51.55,
+        "p90": 91.41,
+        "mean": 59.56,
+        "min": 21.86,
+        "max": 321.25
+      },
+      "seekdbMs": {
+        "n": 360,
+        "median": 27.94,
+        "p90": 56.99,
+        "mean": 33.06,
+        "min": 8.53,
+        "max": 129.13
+      },
+      "queryEmbedMs": {
+        "n": 360,
+        "median": 15.98,
+        "p90": 21.14,
+        "mean": 19.68,
+        "min": 9.68,
+        "max": 295.82
+      }
+    },
+    {
+      "name": "SEARCH + query cache",
+      "impl": "search",
+      "useCache": true,
+      "e2eMs": {
+        "n": 360,
+        "median": 21.02,
+        "p90": 39.73,
+        "mean": 23.77,
+        "min": 9.37,
+        "max": 67.15
+      },
+      "seekdbMs": {
+        "n": 360,
+        "median": 15.41,
+        "p90": 29.66,
+        "mean": 17.61,
+        "min": 6.29,
+        "max": 54.09
+      },
+      "queryEmbedMs": {
+        "n": 360,
+        "median": 0.29,
+        "p90": 0.4,
+        "mean": 0.36,
+        "min": 0.19,
+        "max": 13.55
+      }
+    }
+  ],
+  "fusion": [
+    {
+      "fusion": "rrf",
+      "all": {
+        "n": 90,
+        "recall": 0.9424,
+        "ndcg": 0.6701,
+        "mrr": 0.6159
+      },
+      "zh": {
+        "n": 60,
+        "recall": 0.9403,
+        "ndcg": 0.6288,
+        "mrr": 0.5462
+      },
+      "en": {
+        "n": 30,
+        "recall": 0.9467,
+        "ndcg": 0.7527,
+        "mrr": 0.7553
+      }
+    },
+    {
+      "fusion": "weighted",
+      "all": {
+        "n": 90,
+        "recall": 0.9067,
+        "ndcg": 0.5738,
+        "mrr": 0.4797
+      },
+      "zh": {
+        "n": 60,
+        "recall": 0.8956,
+        "ndcg": 0.5249,
+        "mrr": 0.4188
+      },
+      "en": {
+        "n": 30,
+        "recall": 0.9289,
+        "ndcg": 0.6715,
+        "mrr": 0.6014
+      }
+    }
+  ],
+  "bucket": [
+    {
+      "bucket": false,
+      "queryEmbedMs": {
+        "n": 360,
+        "median": 12.3,
+        "p90": 15.44,
+        "mean": 12.21,
+        "min": 7.59,
+        "max": 42.12
+      },
+      "firstPassMs": {
+        "n": 90,
+        "median": 15.25,
+        "p90": 19.59,
+        "mean": 16.42,
+        "min": 12.38,
+        "max": 65.12
+      }
+    },
+    {
+      "bucket": true,
+      "queryEmbedMs": {
+        "n": 360,
+        "median": 10.52,
+        "p90": 14.4,
+        "mean": 11.44,
+        "min": 8.03,
+        "max": 55.17
+      },
+      "firstPassMs": {
+        "n": 90,
+        "median": 8.41,
+        "p90": 11.07,
+        "mean": 9.08,
+        "min": 7.76,
+        "max": 16
+      }
+    }
+  ],
+  "ok": true,
+  "finishedAt": "2026-10-28T20:01:35.771Z"
+}

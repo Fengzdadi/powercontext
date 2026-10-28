@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>端侧知识库 · seekdb × 阶跃星辰</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>端侧知识库</strong>
+        <span class="sub">浏览器本地向量化 · seekdb 混合检索</span>
+      </div>
+      <div class="badges">
+        <span id="backend-badge" class="badge pending" title="当前推理后端">推理后端：检测中…</span>
+        <span id="model-badge" class="badge pending">模型：未加载</span>
+        <span id="db-badge" class="badge pending">seekdb：连接中…</span>
+      </div>
+    </header>
+
+    <div id="fallback-banner" class="banner warn" hidden></div>
+    <div id="error-banner" class="banner error" hidden></div>
+
+    <main class="layout">
+      <aside class="side">
+        <section class="card">
+          <h2>知识库</h2>
+          <div class="row">
+            <select id="kb-select" aria-label="当前知识库"></select>
+            <button id="kb-delete" class="ghost danger" title="删除当前知识库">删除</button>
+          </div>
+          <form id="kb-create-form" class="row">
+            <input id="kb-new-name" placeholder="新知识库名：a-z 0-9 _" pattern="[a-z][a-z0-9_]{0,47}" required />
+            <button type="submit">新建</button>
+          </form>
+          <dl id="kb-stats" class="stats"></dl>
+        </section>
+
+        <section class="card">
+          <h2>导入文档</h2>
+          <label id="dropzone" class="dropzone">
+            <input id="file-input" type="file" multiple accept=".txt,.md,.markdown,.json,.jsonl,.ndjson" hidden />
+            <span>拖入或点击选择 <b>.txt / .md / .jsonl</b> 文件</span>
+            <small>同名且内容未变的文档会被跳过；内容变化的文档会替换旧分块</small>
+          </label>
+          <details class="paste">
+            <summary>粘贴文本</summary>
+            <input id="paste-title" placeholder="标题（可选）" />
+            <textarea id="paste-text" rows="5" placeholder="在此粘贴文档内容"></textarea>
+            <button id="paste-import">导入粘贴内容</button>
+          </details>
+          <div class="samples">
+            <span>样例：</span>
+            <button data-sample="demo" class="ghost">示例文档（9 篇）</button>
+            <button data-sample="eval-a" class="ghost" title="MIRACL zh/en 评测语料的前一半">评测语料 A</button>
+            <button data-sample="eval-b" class="ghost" title="评测语料的后一半，用于演示增量导入">评测语料 B</button>
+          </div>
+          <div id="import-progress" class="progress" hidden>
+            <div class="phase" id="import-phase"></div>
+            <progress id="import-bar" max="1" value="0"></progress>
+          </div>
+          <div id="import-summary" class="summary"></div>
+        </section>
+
+        <section class="card">
+          <h2>文档 <span id="doc-count" class="muted"></span></h2>
+          <input id="doc-filter" placeholder="按标题或文件名筛选" />
+          <ul id="doc-list" class="doc-list"></ul>
+        </section>
+      </aside>
+
+      <section class="main">
+        <form id="search-form" class="card search">
+          <div class="search-row">
+            <input id="q" placeholder="输入问题，例如：WebGPU 不可用时怎么办？" autocomplete="off" />
+            <button type="submit" id="search-btn" disabled>等待模型…</button>
+          </div>
+          <div class="search-opts">
+            <label>方式
+              <select id="mode">
+                <option value="hybrid">混合检索（seekdb 内融合）</option>
+                <option value="vector">仅向量</option>
+                <option value="fulltext">仅全文</option>
+              </select>
+            </label>
+            <label>融合
+              <select id="fusion">
+                <option value="rrf">RRF</option>
+                <option value="weighted">加权求和</option>
+              </select>
+            </label>
+            <label>Top-K
+              <select id="topk">
+                <option>5</option>
+                <option selected>10</option>
+                <option>20</option>
+              </select>
+            </label>
+          </div>
+          <div class="examples" id="examples"></div>
+        </form>
+
+        <div id="timing" class="timing" hidden></div>
+        <ol id="results" class="results"></ol>
+        <details class="card params" id="params-box" hidden>
+          <summary>本次 seekdb 检索请求（DBMS_HYBRID_SEARCH.SEARCH 参数）</summary>
+          <pre id="params"></pre>
+        </details>
+
+        <details class="card settings">
+          <summary>设置</summary>
+          <div class="grid">
+            <label>推理后端
+              <select id="set-backend">
+                <option value="auto">自动（优先 WebGPU，失败降级 WASM）</option>
+                <option value="webgpu">WebGPU</option>
+                <option value="wasm">WASM</option>
+              </select>
+            </label>
+            <label>精度
+              <select id="set-dtype">
+                <option value="auto">自动（WebGPU→FP16，WASM→INT8）</option>
+                <option value="fp32">FP32（量化前基线）</option>
+                <option value="fp16">FP16</option>
+                <option value="int8">INT8</option>
+              </select>
+            </label>
+            <label>模型文件
+              <select id="set-source">
+                <option value="hf">Xenova 预构建（固定 revision，默认）</option>
+                <option value="local">本地量化（npm run quantize 产物）</option>
+              </select>
+            </label>
+            <label>向量化批大小
+              <select id="set-batch">
+                <option>4</option>
+                <option>8</option>
+                <option selected>16</option>
+                <option>32</option>
+              </select>
+            </label>
+            <label>索引刷新
+              <select id="set-refresh">
+                <option value="probe">探测可见性（默认）</option>
+                <option value="explicit">显式 dbms_index_manager.refresh()</option>
+              </select>
+            </label>
+            <label>检索调用
+              <select id="set-impl">
+                <option value="search">DBMS_HYBRID_SEARCH.SEARCH 单次调用</option>
+                <option value="sdk">seekdb-js Collection.hybridSearch()</option>
+              </select>
+            </label>
+          </div>
+          <button id="apply-settings">应用并重新加载模型</button>
+          <p class="muted">也可以用 URL 参数，例如 <code>?backend=wasm</code>、<code>?dtype=fp32</code>、<code>?source=local</code>。</p>
+        </details>
+
+        <section class="card">
+          <h2>导入记录</h2>
+          <table class="history">
+            <thead><tr><th>时间</th><th>新增/变更/跳过</th><th>分块</th><th>后端</th><th>刷新</th></tr></thead>
+            <tbody id="history"></tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+
+    <footer class="foot">
+      文档与查询的向量都在本机浏览器中计算（Transformers.js + ONNX Runtime Web，<span id="foot-model"></span>）；向量、原文与元数据存储在 seekdb，混合检索由 seekdb 完成。
+    </footer>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

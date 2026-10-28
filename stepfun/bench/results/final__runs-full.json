@@ -1,0 +1,662 @@
+{
+  "host": {
+    "os": "Darwin 25.4.0 arm64",
+    "cpu": "Apple M5 Pro",
+    "cores": 18,
+    "memGB": 48
+  },
+  "runs": [
+    {
+      "label": "final__fallback-auto-gpu",
+      "ok": true,
+      "wallSec": 6.837,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "shared",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        185.5,
+        211.9,
+        191
+      ],
+      "loadavgAfter": [
+        179.1,
+        210.1,
+        190.5
+      ]
+    },
+    {
+      "label": "final__fallback-auto-nogpu",
+      "ok": true,
+      "wallSec": 5.839,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "shared",
+      "adapter": null,
+      "loadavgBefore": [
+        173,
+        207.8,
+        189.9
+      ],
+      "loadavgAfter": [
+        167.3,
+        206,
+        189.4
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp16-1-cold",
+      "ok": true,
+      "wallSec": 30.913,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        153.9,
+        200.5,
+        187.8
+      ],
+      "loadavgAfter": [
+        148.7,
+        194.8,
+        186.2
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp16-1-warm",
+      "ok": true,
+      "wallSec": 5.309,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        148.7,
+        194.8,
+        186.2
+      ],
+      "loadavgAfter": [
+        142.4,
+        192.7,
+        185.5
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp16-2-cold",
+      "ok": true,
+      "wallSec": 37.607,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        135.8,
+        190.5,
+        184.8
+      ],
+      "loadavgAfter": [
+        138.7,
+        184,
+        182.6
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp16-2-warm",
+      "ok": true,
+      "wallSec": 6.376,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        138.7,
+        184,
+        182.6
+      ],
+      "loadavgAfter": [
+        140.7,
+        183.7,
+        182.5
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp16-3-cold",
+      "ok": true,
+      "wallSec": 31.997,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        140.1,
+        182.2,
+        182
+      ],
+      "loadavgAfter": [
+        126.1,
+        174.2,
+        179.1
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp16-3-warm",
+      "ok": true,
+      "wallSec": 2.101,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        126.1,
+        174.2,
+        179.1
+      ],
+      "loadavgAfter": [
+        133.3,
+        174.9,
+        179.3
+      ]
+    },
+    {
+      "label": "final__load-cold-wasm-int8-1-cold",
+      "ok": true,
+      "wallSec": 36.078,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "fresh",
+      "adapter": null,
+      "loadavgBefore": [
+        128.4,
+        173.2,
+        178.7
+      ],
+      "loadavgAfter": [
+        133.4,
+        168.2,
+        176.5
+      ]
+    },
+    {
+      "label": "final__load-cold-wasm-int8-1-warm",
+      "ok": true,
+      "wallSec": 5.863,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "fresh",
+      "adapter": null,
+      "loadavgBefore": [
+        133.4,
+        168.2,
+        176.5
+      ],
+      "loadavgAfter": [
+        139.2,
+        168.8,
+        176.7
+      ]
+    },
+    {
+      "label": "final__load-cold-wasm-int8-2-cold",
+      "ok": true,
+      "wallSec": 42.517,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "fresh",
+      "adapter": null,
+      "loadavgBefore": [
+        145.6,
+        168.3,
+        176.3
+      ],
+      "loadavgAfter": [
+        133.1,
+        163.1,
+        174.1
+      ]
+    },
+    {
+      "label": "final__load-cold-wasm-int8-2-warm",
+      "ok": true,
+      "wallSec": 5.578,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "fresh",
+      "adapter": null,
+      "loadavgBefore": [
+        133.1,
+        163.1,
+        174.1
+      ],
+      "loadavgAfter": [
+        137.3,
+        163.4,
+        174.1
+      ]
+    },
+    {
+      "label": "final__load-cold-wasm-int8-3-cold",
+      "ok": true,
+      "wallSec": 25.288,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "fresh",
+      "adapter": null,
+      "loadavgBefore": [
+        181.2,
+        171.9,
+        176.8
+      ],
+      "loadavgAfter": [
+        152.9,
+        166.1,
+        174.6
+      ]
+    },
+    {
+      "label": "final__load-cold-wasm-int8-3-warm",
+      "ok": true,
+      "wallSec": 2.877,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "fresh",
+      "adapter": null,
+      "loadavgBefore": [
+        152.9,
+        166.1,
+        174.6
+      ],
+      "loadavgAfter": [
+        152.9,
+        166.1,
+        174.6
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp32-1-cold",
+      "ok": true,
+      "wallSec": 37.456,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        154.1,
+        166.1,
+        174.5
+      ],
+      "loadavgAfter": [
+        121,
+        156,
+        170.5
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp32-1-warm",
+      "ok": true,
+      "wallSec": 5.389,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        121,
+        156,
+        170.5
+      ],
+      "loadavgAfter": [
+        112,
+        153.6,
+        169.5
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp32-2-cold",
+      "ok": true,
+      "wallSec": 33.244,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        112,
+        153.6,
+        169.5
+      ],
+      "loadavgAfter": [
+        103.8,
+        147.4,
+        166.6
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp32-2-warm",
+      "ok": true,
+      "wallSec": 5.256,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        103.8,
+        147.4,
+        166.6
+      ],
+      "loadavgAfter": [
+        103.7,
+        146.6,
+        166.3
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp32-3-cold",
+      "ok": true,
+      "wallSec": 32.97,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        110,
+        147.2,
+        166.4
+      ],
+      "loadavgAfter": [
+        99.9,
+        141.6,
+        163.7
+      ]
+    },
+    {
+      "label": "final__load-cold-webgpu-fp32-3-warm",
+      "ok": true,
+      "wallSec": 4.104,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "fresh",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        99.9,
+        141.6,
+        163.7
+      ],
+      "loadavgAfter": [
+        94.9,
+        139.9,
+        163
+      ]
+    },
+    {
+      "label": "final__batch-webgpu-fp16",
+      "ok": true,
+      "wallSec": 75.726,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "shared",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        94.9,
+        139.9,
+        163
+      ],
+      "loadavgAfter": [
+        172.8,
+        153,
+        165.7
+      ]
+    },
+    {
+      "label": "final__batch-wasm-int8",
+      "ok": true,
+      "wallSec": 219.467,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "shared",
+      "adapter": null,
+      "loadavgBefore": [
+        168.9,
+        152.5,
+        165.5
+      ],
+      "loadavgAfter": [
+        355,
+        249.8,
+        204.5
+      ]
+    },
+    {
+      "label": "final__batch-wasm-int8-1thread",
+      "ok": true,
+      "wallSec": 110.943,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "shared",
+      "adapter": null,
+      "loadavgBefore": [
+        325.4,
+        250.1,
+        205.6
+      ],
+      "loadavgAfter": [
+        177.2,
+        220.6,
+        199.8
+      ]
+    },
+    {
+      "label": "final__quality-webgpu-fp32",
+      "ok": true,
+      "wallSec": 58.998,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "shared",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        173.3,
+        219.1,
+        199.4
+      ],
+      "loadavgAfter": [
+        143,
+        200.8,
+        193.8
+      ]
+    },
+    {
+      "label": "final__quality-webgpu-fp16",
+      "ok": true,
+      "wallSec": 34.943,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "shared",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        143.6,
+        195.8,
+        192.2
+      ],
+      "loadavgAfter": [
+        124,
+        185.5,
+        188.6
+      ]
+    },
+    {
+      "label": "final__quality-webgpu-int8",
+      "ok": true,
+      "wallSec": 135.54,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--enable-unsafe-webgpu",
+        "--enable-features=Vulkan",
+        "--ignore-gpu-blocklist"
+      ],
+      "profile": "shared",
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3"
+      },
+      "loadavgBefore": [
+        124,
+        185.5,
+        188.6
+      ],
+      "loadavgAfter": [
+        69.5,
+        141.8,
+        170.6
+      ]
+    },
+    {
+      "label": "final__quality-wasm-fp32",
+      "ok": true,
+      "wallSec": 94.492,
+      "chrome": "156.0.8078.73",
+      "chromeArgs": [
+        "--disable-gpu"
+      ],
+      "profile": "shared",
+      "adapter": null,
+      "loadavgBefore": [
+        71.2,
+        140.9,
+        170.1
+      ],
+      "loadavgAfter": [
+        76.8,
+        124.3,
+        160.7
+      ]
+    }
+  ]
+}

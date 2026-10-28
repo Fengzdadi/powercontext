@@ -1,0 +1,301 @@
+{
+  "label": "final__batch-wasm-int8",
+  "config": {
+    "suite": "batch",
+    "backend": "auto",
+    "dtype": "int8",
+    "source": "hf",
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": true,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": null,
+    "label": "final__batch-wasm-int8"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T19:30:56.707Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.17,
+    "clientMs": 23.444999933242798
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "wasm",
+    "dtype": "int8",
+    "fallbackReason": "requestAdapter() 返回 null（无可用 GPU 适配器）",
+    "webgpu": {
+      "ok": false,
+      "reason": "requestAdapter() 返回 null（无可用 GPU 适配器）"
+    },
+    "threads": 8,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 135138424,
+    "timings": {
+      "detectMs": 3.82,
+      "tokenizerMs": 1181.84,
+      "modelFetchMs": 1014.72,
+      "sessionCreateMs": 1208.11,
+      "modelLoadMs": 3404.66,
+      "firstInferMs": 106.44,
+      "secondInferMs": 42.01,
+      "totalMs": 3557.49
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_int8.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 4454.57
+  },
+  "batch": [
+    {
+      "batchSize": 1,
+      "sortByLength": false,
+      "texts": 128,
+      "wallMs": 9026.67,
+      "chunksPerSec": 14.18,
+      "tokensPerSec": 2372.64,
+      "padRatio": 1,
+      "runs": [
+        {
+          "wallMs": 10542.41000008583,
+          "chunksPerSec": 12.141436350792457,
+          "tokensPerSec": 2031.5089244134535,
+          "padRatio": 1,
+          "inferMs": 10235.08
+        },
+        {
+          "wallMs": 8897.049999952316,
+          "chunksPerSec": 14.386791127473266,
+          "tokensPerSec": 2407.202387321054,
+          "padRatio": 1,
+          "inferMs": 8629.15
+        },
+        {
+          "wallMs": 9026.665000200272,
+          "chunksPerSec": 14.180209412574866,
+          "tokensPerSec": 2372.637070227468,
+          "padRatio": 1,
+          "inferMs": 8756.24
+        }
+      ]
+    },
+    {
+      "batchSize": 8,
+      "sortByLength": false,
+      "texts": 128,
+      "wallMs": 11734.7,
+      "chunksPerSec": 10.91,
+      "tokensPerSec": 1825.1,
+      "padRatio": 1.57,
+      "runs": [
+        {
+          "wallMs": 12382.109999895096,
+          "chunksPerSec": 10.33749498276824,
+          "tokensPerSec": 1729.672890983964,
+          "padRatio": 1.568847177475837,
+          "inferMs": 12172.15
+        },
+        {
+          "wallMs": 11291.505000114441,
+          "chunksPerSec": 11.335955658586052,
+          "tokensPerSec": 1896.7356432807617,
+          "padRatio": 1.568847177475837,
+          "inferMs": 11070.02
+        },
+        {
+          "wallMs": 11734.704999923706,
+          "chunksPerSec": 10.907815748315121,
+          "tokensPerSec": 1825.0991397005075,
+          "padRatio": 1.568847177475837,
+          "inferMs": 11520.22
+        }
+      ]
+    },
+    {
+      "batchSize": 8,
+      "sortByLength": true,
+      "texts": 128,
+      "wallMs": 8419.09,
+      "chunksPerSec": 15.2,
+      "tokensPerSec": 2543.86,
+      "padRatio": 1.04,
+      "runs": [
+        {
+          "wallMs": 7926.039999961853,
+          "chunksPerSec": 16.149300281176483,
+          "tokensPerSec": 2702.1059697027868,
+          "padRatio": 1.0447775131904562,
+          "inferMs": 7577.89
+        },
+        {
+          "wallMs": 8832.52999997139,
+          "chunksPerSec": 14.491883978929549,
+          "tokensPerSec": 2424.7865560682358,
+          "padRatio": 1.0447775131904562,
+          "inferMs": 8430.26
+        },
+        {
+          "wallMs": 8419.085000038147,
+          "chunksPerSec": 15.203552404972754,
+          "tokensPerSec": 2543.8631395101675,
+          "padRatio": 1.0447775131904562,
+          "inferMs": 8004.13
+        }
+      ]
+    },
+    {
+      "batchSize": 16,
+      "sortByLength": false,
+      "texts": 128,
+      "wallMs": 12310.7,
+      "chunksPerSec": 10.4,
+      "tokensPerSec": 1739.71,
+      "padRatio": 1.65,
+      "runs": [
+        {
+          "wallMs": 11994.200000047684,
+          "chunksPerSec": 10.671824715236625,
+          "tokensPerSec": 1785.6130462986155,
+          "padRatio": 1.6525190269412149,
+          "inferMs": 11771.92
+        },
+        {
+          "wallMs": 12310.700000047684,
+          "chunksPerSec": 10.39745912088705,
+          "tokensPerSec": 1739.7061093127966,
+          "padRatio": 1.6525190269412149,
+          "inferMs": 12133.69
+        },
+        {
+          "wallMs": 12913.049999952316,
+          "chunksPerSec": 9.912452906205168,
+          "tokensPerSec": 1658.554717907782,
+          "padRatio": 1.6525190269412149,
+          "inferMs": 12752.99
+        }
+      ]
+    },
+    {
+      "batchSize": 16,
+      "sortByLength": true,
+      "texts": 128,
+      "wallMs": 9098.08,
+      "chunksPerSec": 14.07,
+      "tokensPerSec": 2354.01,
+      "padRatio": 1.09,
+      "runs": [
+        {
+          "wallMs": 9496.83999991417,
+          "chunksPerSec": 13.47816747477654,
+          "tokensPerSec": 2255.1711938069466,
+          "padRatio": 1.093710603726012,
+          "inferMs": 8899.12
+        },
+        {
+          "wallMs": 8815.740000009537,
+          "chunksPerSec": 14.519484467538916,
+          "tokensPerSec": 2429.4046784475076,
+          "padRatio": 1.093710603726012,
+          "inferMs": 8288.41
+        },
+        {
+          "wallMs": 9098.080000162125,
+          "chunksPerSec": 14.068902449496935,
+          "tokensPerSec": 2354.013154381843,
+          "padRatio": 1.093710603726012,
+          "inferMs": 8675.78
+        }
+      ]
+    },
+    {
+      "batchSize": 32,
+      "sortByLength": true,
+      "texts": 128,
+      "wallMs": 9444.67,
+      "chunksPerSec": 13.55,
+      "tokensPerSec": 2267.63,
+      "padRatio": 1.19,
+      "runs": [
+        {
+          "wallMs": 9444.669999837875,
+          "chunksPerSec": 13.552617508308623,
+          "tokensPerSec": 2267.6281966831702,
+          "padRatio": 1.1923238548816362,
+          "inferMs": 8927.93
+        },
+        {
+          "wallMs": 11294.789999961853,
+          "chunksPerSec": 11.332658686034208,
+          "tokensPerSec": 1896.1839928030831,
+          "padRatio": 1.1923238548816362,
+          "inferMs": 10827.07
+        },
+        {
+          "wallMs": 8713.009999990463,
+          "chunksPerSec": 14.690675208698268,
+          "tokensPerSec": 2458.0483667553967,
+          "padRatio": 1.1923238548816362,
+          "inferMs": 8307.87
+        }
+      ]
+    },
+    {
+      "batchSize": 64,
+      "sortByLength": true,
+      "texts": 128,
+      "wallMs": 10171.13,
+      "chunksPerSec": 12.58,
+      "tokensPerSec": 2105.67,
+      "padRatio": 1.4,
+      "runs": [
+        {
+          "wallMs": 10171.129999876022,
+          "chunksPerSec": 12.58463907172165,
+          "tokensPerSec": 2105.665742180176,
+          "padRatio": 1.3985151982070319,
+          "inferMs": 9706.45
+        },
+        {
+          "wallMs": 9923.354999780655,
+          "chunksPerSec": 12.898863338339634,
+          "tokensPerSec": 2158.2418446657807,
+          "padRatio": 1.3985151982070319,
+          "inferMs": 9535.94
+        },
+        {
+          "wallMs": 10229.144999980927,
+          "chunksPerSec": 12.513264793903954,
+          "tokensPerSec": 2093.723375711258,
+          "padRatio": 1.3985151982070319,
+          "inferMs": 9805.48
+        }
+      ]
+    }
+  ],
+  "ok": true,
+  "finishedAt": "2026-10-28T19:34:34.772Z"
+}

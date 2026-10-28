@@ -1,0 +1,101 @@
+{
+  "model": "Xenova/multilingual-e5-small@761b726dd34fb83930e26aab4e9ac3899aa1fa78 (ONNX export of intfloat/multilingual-e5-small)",
+  "recipe": {
+    "int8": "onnxruntime.quantization.quantize_dynamic(weight_type=QInt8, per_channel=False, reduce_range=False, op_types_to_quantize=[MatMul, Gather], extra_options={EnableSubgraph: True, MatMulConstBOnly: True})",
+    "fp16": "onnxconverter_common.float16.convert_float_to_float16(keep_io_types=True)"
+  },
+  "build_seconds": {
+    "int8": 44.81,
+    "fp16": 78.21
+  },
+  "sizes": {
+    "fp32": {
+      "path": "models/Xenova/multilingual-e5-small/onnx/model.onnx",
+      "bytes": 470268533,
+      "sha256": "4aa845c27760e06e9a686b9d8b5d440eae4b6612cd09e5b522b716d3941f77ff",
+      "ratio": 1.0,
+      "reduction_pct": 0.0
+    },
+    "fp16 (prebuilt)": {
+      "path": "models/Xenova/multilingual-e5-small/onnx/model_fp16.onnx",
+      "bytes": 235336732,
+      "sha256": "0e0fe349c99ea21c6f3aa273af21f7fb753c1e1174ef1647032029c2be3251c3",
+      "ratio": 1.998,
+      "reduction_pct": 50.0
+    },
+    "int8 (prebuilt)": {
+      "path": "models/Xenova/multilingual-e5-small/onnx/model_int8.onnx",
+      "bytes": 118054593,
+      "sha256": "4d24e2bc01a447951524466ef533e52944bf48509e6552810bcee1a2711cb02c",
+      "ratio": 3.983,
+      "reduction_pct": 74.9
+    },
+    "fp16 (this script)": {
+      "path": "models/local/multilingual-e5-small/onnx/model_fp16.onnx",
+      "bytes": 235336922,
+      "sha256": "236056a15007136f1bbf189b705a8d76f63ceff4f69c688acc7901adc1f758cf",
+      "ratio": 1.998,
+      "reduction_pct": 50.0
+    },
+    "int8 (this script)": {
+      "path": "models/local/multilingual-e5-small/onnx/model_int8.onnx",
+      "bytes": 118101148,
+      "sha256": "d87ea68070d3040822a62ddda1c37ec4d14d449433199be5a1b764255f782055",
+      "ratio": 3.982,
+      "reduction_pct": 74.9
+    }
+  },
+  "fidelity": {
+    "fp32": {
+      "texts": 250,
+      "cos_mean": 1.0,
+      "cos_min": 1.0,
+      "cos_p5": 1.0,
+      "cpu_seconds": 99.25
+    },
+    "fp16 (prebuilt)": {
+      "texts": 250,
+      "cos_mean": 1.0,
+      "cos_min": 1.0,
+      "cos_p5": 1.0,
+      "cpu_seconds": 235.31
+    },
+    "int8 (prebuilt)": {
+      "texts": 250,
+      "cos_mean": 0.989868,
+      "cos_min": 0.980044,
+      "cos_p5": 0.984816,
+      "cpu_seconds": 50.29
+    },
+    "fp16 (this script)": {
+      "texts": 250,
+      "cos_mean": 1.0,
+      "cos_min": 1.0,
+      "cos_p5": 1.0,
+      "cpu_seconds": 315.7
+    },
+    "int8 (this script)": {
+      "texts": 250,
+      "cos_mean": 0.989868,
+      "cos_min": 0.980044,
+      "cos_p5": 0.984816,
+      "cpu_seconds": 101.37
+    },
+    "int8 (this script) vs int8 (prebuilt)": {
+      "cos_mean": 1.0,
+      "cos_min": 1.0
+    },
+    "fp16 (this script) vs fp16 (prebuilt)": {
+      "cos_mean": 1.0,
+      "cos_min": 1.0
+    }
+  },
+  "fidelity_texts": "eval/data: all queries ('query: ' prefix) + evenly spaced passages ('passage: ' prefix)",
+  "versions": {
+    "python": "3.12.2",
+    "onnx": "1.23.2",
+    "onnxruntime": "1.31.1",
+    "numpy": "2.3.4"
+  },
+  "at": "2026-10-28T15:02:33-0400"
+}

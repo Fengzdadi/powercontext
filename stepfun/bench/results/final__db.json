@@ -1,0 +1,189 @@
+{
+  "stamp": "final",
+  "kb": "bench_query",
+  "at": "2026-10-28T20:03:20.754Z",
+  "env": {
+    "node": "v22.22.3",
+    "os": "Darwin 25.4.0 arm64",
+    "cpu": "Apple M5 Pro",
+    "cores": 18,
+    "memGB": 48,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "seekdbContainer": "oceanbase/seekdb:latest (image sha256:4db4961869d554313520d6081fca29265ba6da6db7313311bd8acbed771a956b) CPU_COUNT=4 MEMORY_LIMIT=4G"
+  },
+  "loadavgBefore": [
+    95.5,
+    104.45,
+    116.21
+  ],
+  "source": {
+    "table": "c$v2$226ea387d30a11f1bc6f72f5d52861d0",
+    "chunks": 994,
+    "dim": 384,
+    "queries": 90
+  },
+  "search": {
+    "k": 10,
+    "window": 50,
+    "latencyMs": {
+      "hybrid · SEARCH · _source pruned": {
+        "n": 450,
+        "median": 9.34,
+        "p90": 18.21,
+        "mean": 11.67,
+        "min": 3.57
+      },
+      "hybrid · SEARCH · all columns": {
+        "n": 450,
+        "median": 11.45,
+        "p90": 21.48,
+        "mean": 14.77,
+        "min": 4.29
+      },
+      "hybrid · SDK hybridSearch()": {
+        "n": 450,
+        "median": 16.13,
+        "p90": 35.21,
+        "mean": 21.32,
+        "min": 7.32
+      },
+      "vector only · SEARCH": {
+        "n": 450,
+        "median": 4.71,
+        "p90": 11.37,
+        "mean": 6.7,
+        "min": 1.9
+      },
+      "full-text only · SEARCH": {
+        "n": 450,
+        "median": 4.86,
+        "p90": 11.21,
+        "mean": 6.57,
+        "min": 1.72
+      }
+    },
+    "avgResponseBytes": {
+      "hybrid · SEARCH · _source pruned": 8944,
+      "hybrid · SEARCH · all columns": 44158,
+      "hybrid · SDK hybridSearch()": 7605,
+      "vector only · SEARCH": 8186,
+      "full-text only · SEARCH": 7523
+    },
+    "sdkVsSearchTop10Overlap": 1
+  },
+  "writes": {
+    "1 rows/INSERT": {
+      "rows": 128,
+      "ms": 3542.93,
+      "rowsPerSec": 36.13
+    },
+    "8 rows/INSERT": {
+      "rows": 512,
+      "ms": 2259.89,
+      "rowsPerSec": 226.56
+    },
+    "64 rows/INSERT": {
+      "rows": 512,
+      "ms": 2289.88,
+      "rowsPerSec": 223.59
+    },
+    "256 rows/INSERT": {
+      "rows": 512,
+      "ms": 1024.96,
+      "rowsPerSec": 499.53
+    }
+  },
+  "upsertVsAdd": {
+    "rows": 64,
+    "addMs": {
+      "n": 3,
+      "median": 129.81,
+      "p90": 152.32,
+      "mean": 124.76,
+      "min": 92.17
+    },
+    "upsertMs": {
+      "n": 3,
+      "median": 882.12,
+      "p90": 2367.1,
+      "mean": 1328.78,
+      "min": 737.12
+    }
+  },
+  "visibility": {
+    "rowsPerWrite": 64,
+    "probeMs": {
+      "n": 8,
+      "median": 68.8,
+      "p90": 225.15,
+      "mean": 90.97,
+      "min": 27.23
+    },
+    "probeRounds": {
+      "n": 8,
+      "median": 5,
+      "p90": 15,
+      "mean": 6.5,
+      "min": 3
+    },
+    "explicitRefreshMs": {
+      "n": 8,
+      "median": 609.43,
+      "p90": 814.33,
+      "mean": 624.5,
+      "min": 503.25
+    },
+    "explicitRefreshVisible": true,
+    "vectorVisibleRightAfterInsert": "0/8",
+    "fulltextVisibleRightAfterInsert": "16/16"
+  },
+  "syncMode": {
+    "ASYNC": {
+      "rows": 512,
+      "rounds": 3,
+      "insertMs": {
+        "n": 3,
+        "median": 1026.86,
+        "p90": 1461.63,
+        "mean": 1109.98,
+        "min": 841.46
+      },
+      "untilVisibleMs": {
+        "n": 3,
+        "median": 1294.97,
+        "p90": 1569.25,
+        "mean": 1313.51,
+        "min": 1076.3
+      },
+      "rowsPerSec": 498.61,
+      "lastRowVisibleRightAfterInsert": "0/3",
+      "allVisible": true
+    },
+    "IMMEDIATE": {
+      "rows": 512,
+      "rounds": 3,
+      "insertMs": {
+        "n": 3,
+        "median": 857.92,
+        "p90": 1946.17,
+        "mean": 1200.5,
+        "min": 797.4
+      },
+      "untilVisibleMs": {
+        "n": 3,
+        "median": 862.67,
+        "p90": 1949.33,
+        "mean": 1204.37,
+        "min": 801.12
+      },
+      "rowsPerSec": 596.79,
+      "lastRowVisibleRightAfterInsert": "3/3",
+      "allVisible": true
+    }
+  },
+  "loadavgAfter": [
+    103.44,
+    105.27,
+    115.65
+  ]
+}

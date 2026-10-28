@@ -1,0 +1,74 @@
+{
+  "model": "Xenova/multilingual-e5-small@761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+  "upstream": "intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "fp32Bytes": 470268533,
+  "sharedFiles": [
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json"
+  ],
+  "sharedBytes": 17083831,
+  "rows": [
+    {
+      "source": "huggingface",
+      "dtype": "fp32",
+      "file": "models/Xenova/multilingual-e5-small/onnx/model.onnx",
+      "bytes": 470268533,
+      "mib": 448.5,
+      "ratio": 1,
+      "reductionPct": 0,
+      "downloadBytes": 487352364,
+      "downloadRatio": 1,
+      "sha256": "4aa845c27760e06e9a686b9d8b5d440eae4b6612cd09e5b522b716d3941f77ff"
+    },
+    {
+      "source": "huggingface",
+      "dtype": "fp16",
+      "file": "models/Xenova/multilingual-e5-small/onnx/model_fp16.onnx",
+      "bytes": 235336732,
+      "mib": 224.4,
+      "ratio": 1.998,
+      "reductionPct": 50,
+      "downloadBytes": 252420563,
+      "downloadRatio": 1.931,
+      "sha256": "0e0fe349c99ea21c6f3aa273af21f7fb753c1e1174ef1647032029c2be3251c3"
+    },
+    {
+      "source": "huggingface",
+      "dtype": "int8",
+      "file": "models/Xenova/multilingual-e5-small/onnx/model_int8.onnx",
+      "bytes": 118054593,
+      "mib": 112.6,
+      "ratio": 3.983,
+      "reductionPct": 74.9,
+      "downloadBytes": 135138424,
+      "downloadRatio": 3.606,
+      "sha256": "4d24e2bc01a447951524466ef533e52944bf48509e6552810bcee1a2711cb02c"
+    },
+    {
+      "source": "local",
+      "dtype": "fp16",
+      "file": "models/local/multilingual-e5-small/onnx/model_fp16.onnx",
+      "bytes": 235336922,
+      "mib": 224.4,
+      "ratio": 1.998,
+      "reductionPct": 50,
+      "downloadBytes": 252420753,
+      "downloadRatio": 1.931,
+      "sha256": "236056a15007136f1bbf189b705a8d76f63ceff4f69c688acc7901adc1f758cf"
+    },
+    {
+      "source": "local",
+      "dtype": "int8",
+      "file": "models/local/multilingual-e5-small/onnx/model_int8.onnx",
+      "bytes": 118101148,
+      "mib": 112.6,
+      "ratio": 3.982,
+      "reductionPct": 74.9,
+      "downloadBytes": 135184979,
+      "downloadRatio": 3.605,
+      "sha256": "d87ea68070d3040822a62ddda1c37ec4d14d449433199be5a1b764255f782055"
+    }
+  ],
+  "at": "2026-10-28T19:19:32.560Z"
+}

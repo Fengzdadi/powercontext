@@ -1,0 +1,76 @@
+{
+  "label": "final__fallback-auto-nogpu",
+  "config": {
+    "suite": "load",
+    "backend": "auto",
+    "dtype": "auto",
+    "source": "hf",
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": true,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": null,
+    "label": "final__fallback-auto-nogpu"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T19:21:42.460Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.15,
+    "clientMs": 16.085000038146973
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "wasm",
+    "dtype": "int8",
+    "fallbackReason": "requestAdapter() 返回 null（无可用 GPU 适配器）",
+    "webgpu": {
+      "ok": false,
+      "reason": "requestAdapter() 返回 null（无可用 GPU 适配器）"
+    },
+    "threads": 8,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 135138424,
+    "timings": {
+      "detectMs": 6.53,
+      "tokenizerMs": 1148.46,
+      "modelFetchMs": 816.63,
+      "sessionCreateMs": 1241.76,
+      "modelLoadMs": 3206.86,
+      "firstInferMs": 124.56,
+      "secondInferMs": 64.68,
+      "totalMs": 3403.13
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_int8.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 4699.33
+  },
+  "firstQueryEmbedMs": 78.06,
+  "ok": true,
+  "finishedAt": "2026-10-28T19:21:47.256Z"
+}

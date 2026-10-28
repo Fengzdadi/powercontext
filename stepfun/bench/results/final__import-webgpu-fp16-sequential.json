@@ -1,0 +1,282 @@
+{
+  "label": "final__import-webgpu-fp16-sequential",
+  "config": {
+    "suite": "import",
+    "backend": "webgpu",
+    "dtype": "fp16",
+    "source": "hf",
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": false,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": null,
+    "label": "final__import-webgpu-fp16-sequential"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T19:56:50.139Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.17,
+    "clientMs": 21.555000066757202
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "webgpu",
+    "dtype": "fp16",
+    "fallbackReason": null,
+    "webgpu": {
+      "ok": true,
+      "shaderF16": true,
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "limits": {
+        "maxBufferSize": 4294967292,
+        "maxStorageBufferBindingSize": 4294967292
+      }
+    },
+    "threads": null,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 252420563,
+    "timings": {
+      "detectMs": 36.09,
+      "tokenizerMs": 1099.77,
+      "modelFetchMs": 773.37,
+      "sessionCreateMs": 1651.32,
+      "modelLoadMs": 3524.46,
+      "firstInferMs": 168.15,
+      "secondInferMs": 22.63,
+      "totalMs": 3751.83
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_fp16.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 4215.41
+  },
+  "steps": [
+    {
+      "name": "first half (probe refresh)",
+      "counts": {
+        "new": 454,
+        "changed": 0,
+        "unchanged": 0
+      },
+      "chunks": 495,
+      "timings": {
+        "hashMs": 7.22,
+        "planMs": 93.96,
+        "chunkMs": 3.68,
+        "embedMs": 4245.64,
+        "embedAndWriteMs": 5933.43,
+        "writeTailMs": 1687.79,
+        "writeDbMs": 1573.16,
+        "writeRequests": 8,
+        "commitMs": 200.7,
+        "totalMs": 6239.76
+      },
+      "commit": {
+        "retireMs": 10.7,
+        "registryMs": 65.28,
+        "refreshMs": 91.34,
+        "refreshMode": "probe",
+        "probes": 8
+      },
+      "version": 1,
+      "kbDocs": 454,
+      "kbChunks": 495,
+      "newDocVisible": true
+    },
+    {
+      "name": "second half (explicit refresh)",
+      "counts": {
+        "new": 454,
+        "changed": 0,
+        "unchanged": 0
+      },
+      "chunks": 499,
+      "timings": {
+        "hashMs": 3.57,
+        "planMs": 23.66,
+        "chunkMs": 2.9,
+        "embedMs": 1394.07,
+        "embedAndWriteMs": 2893.33,
+        "writeTailMs": 1499.26,
+        "writeDbMs": 1380.49,
+        "writeRequests": 8,
+        "commitMs": 1032.07,
+        "totalMs": 3956.5
+      },
+      "commit": {
+        "retireMs": 18.83,
+        "registryMs": 525.19,
+        "refreshMs": 329.28,
+        "refreshMode": "explicit",
+        "probes": 8
+      },
+      "version": 2,
+      "kbDocs": 908,
+      "kbChunks": 994,
+      "newDocVisible": true
+    },
+    {
+      "name": "re-import all, unchanged",
+      "counts": {
+        "new": 0,
+        "changed": 0,
+        "unchanged": 908
+      },
+      "chunks": 0,
+      "timings": {
+        "hashMs": 6.54,
+        "planMs": 81.37,
+        "chunkMs": 0.06,
+        "embedMs": 0,
+        "embedAndWriteMs": 0,
+        "writeTailMs": 0,
+        "writeDbMs": 0,
+        "writeRequests": 0,
+        "commitMs": 176.07,
+        "totalMs": 264.04
+      },
+      "commit": {
+        "refreshMode": "none"
+      },
+      "version": 2,
+      "kbDocs": 908,
+      "kbChunks": 994,
+      "newDocVisible": null
+    },
+    {
+      "name": "10 edited docs (probe)",
+      "counts": {
+        "new": 0,
+        "changed": 10,
+        "unchanged": 0
+      },
+      "chunks": 10,
+      "timings": {
+        "hashMs": 0.12,
+        "planMs": 60.03,
+        "chunkMs": 0.05,
+        "embedMs": 50.01,
+        "embedAndWriteMs": 251.21,
+        "writeTailMs": 201.2,
+        "writeDbMs": 197.2,
+        "writeRequests": 1,
+        "commitMs": 720.97,
+        "totalMs": 1032.39
+      },
+      "commit": {
+        "retireMs": 108,
+        "registryMs": 359.66,
+        "refreshMs": 121.53,
+        "refreshMode": "probe",
+        "probes": 1
+      },
+      "version": 3,
+      "kbDocs": 908,
+      "kbChunks": 994,
+      "newDocVisible": true
+    },
+    {
+      "name": "1 new doc (probe)",
+      "counts": {
+        "new": 1,
+        "changed": 0,
+        "unchanged": 0
+      },
+      "chunks": 1,
+      "timings": {
+        "hashMs": 0.06,
+        "planMs": 19,
+        "chunkMs": 0.06,
+        "embedMs": 11.13,
+        "embedAndWriteMs": 49.83,
+        "writeTailMs": 38.7,
+        "writeDbMs": 36,
+        "writeRequests": 1,
+        "commitMs": 291.51,
+        "totalMs": 360.46
+      },
+      "commit": {
+        "retireMs": 4.17,
+        "registryMs": 8.29,
+        "refreshMs": 118.81,
+        "refreshMode": "probe",
+        "probes": 1
+      },
+      "version": 4,
+      "kbDocs": 909,
+      "kbChunks": 995,
+      "newDocVisible": true
+    },
+    {
+      "name": "1 new doc (explicit)",
+      "counts": {
+        "new": 1,
+        "changed": 0,
+        "unchanged": 0
+      },
+      "chunks": 1,
+      "timings": {
+        "hashMs": 0.58,
+        "planMs": 44.56,
+        "chunkMs": 0.03,
+        "embedMs": 22.67,
+        "embedAndWriteMs": 94.03,
+        "writeTailMs": 71.37,
+        "writeDbMs": 55.95,
+        "writeRequests": 1,
+        "commitMs": 1022.08,
+        "totalMs": 1161.29
+      },
+      "commit": {
+        "retireMs": 8.26,
+        "registryMs": 60.5,
+        "refreshMs": 708.66,
+        "refreshMode": "explicit",
+        "probes": 1
+      },
+      "version": 5,
+      "kbDocs": 910,
+      "kbChunks": 996,
+      "newDocVisible": true
+    },
+    {
+      "name": "delete doc",
+      "version": 6,
+      "kbDocs": 909,
+      "deletedStillReturned": false
+    }
+  ],
+  "finalDocs": 909,
+  "ok": true,
+  "finishedAt": "2026-10-28T19:57:09.465Z"
+}

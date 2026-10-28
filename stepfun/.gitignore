@@ -1,0 +1,6 @@
+node_modules/
+models/
+.data/
+bench/results/tmp/
+*.log
+!eval/data/build.log
