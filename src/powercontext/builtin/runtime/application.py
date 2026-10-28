@@ -166,6 +166,7 @@ from powercontext.builtin.runtime._scope_cache import (
     ScopeCacheObserver,
     ScopeEvictor,
 )
+from powercontext.builtin.runtime.context_pack import ContextPack, ContextPackDelta, ContextPackError
 from powercontext.builtin.runtime.decision_model import DecisionModel
 from powercontext.builtin.runtime.errors import InvalidRuntimeRequestError, TopicMemoryProcessingUnavailableError
 from powercontext.builtin.runtime.models import (
@@ -846,6 +847,29 @@ class ScopedContextApplication:
             if authorize_scopes is not None:
                 await authorize_scopes((self.scope_id, *scope.context_references))
             return await self._prepare(request, scope)
+
+    async def prepare_incremental(
+        self,
+        request: PrepareContextRequest,
+        base_pack: ContextPack | bytes | None = None,
+        *,
+        authorize_scopes: Callable[[tuple[str, ...]], Awaitable[None]] | None = None,
+    ) -> ContextPack | ContextPackDelta:
+        """Prepare context as a full pack, or as a delta against the receiver's previous pack.
+
+        The target is exactly what :meth:`prepare` returns for ``request``; an empty context is the
+        empty pack. ``base_pack`` may also be the serialized pack, which is verified before use.
+        """
+
+        if isinstance(base_pack, (bytes, bytearray, memoryview)):
+            base_pack = ContextPack.from_bytes(bytes(base_pack))
+        elif base_pack is not None and not isinstance(base_pack, ContextPack):
+            raise ContextPackError("base")
+        context = await self.prepare(request, authorize_scopes=authorize_scopes)
+        target = ContextPack.from_content(context.content)
+        if base_pack is None:
+            return target
+        return ContextPackDelta.between(base_pack, target)
 
     async def _prepare(self, request: PrepareContextRequest, scope: ScopeDescriptor, /) -> PreparedContext:
         build, effort = await self._prepare_build(request, scope)
