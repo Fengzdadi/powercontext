@@ -234,6 +234,7 @@ class PrepareContextRequest(_PreparedContextModel):
     max_bytes: Annotated[int, Field(ge=512, le=32768)] = 8000
     assembly: ContextAssembly | None = None
     include_code: bool = Field(default=False, strict=True)
+    evidence_selection: bool = Field(default=False, strict=True)
 
     @model_validator(mode="before")
     @classmethod
@@ -241,6 +242,12 @@ class PrepareContextRequest(_PreparedContextModel):
         if isinstance(value, Mapping) and "assembly" in value and value["assembly"] is None:
             raise ValueError("assembly must be omitted or contain an object")  # noqa: TRY003
         return value
+
+    @model_validator(mode="after")
+    def validate_evidence_selection(self) -> PrepareContextRequest:
+        if self.evidence_selection and (self.assembly is not None or self.include_code):
+            raise ValueError("evidence_selection cannot be combined with assembly or include_code")  # noqa: TRY003
+        return self
 
     @field_validator("query")
     @classmethod
