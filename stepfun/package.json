@@ -1,0 +1,30 @@
+{
+  "name": "stepfun-edge-kb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini knowledge base: in-browser embedding (Transformers.js, WebGPU with WASM fallback) + seekdb hybrid search",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:start": "bash scripts/seekdb-docker.sh start",
+    "db:stop": "bash scripts/seekdb-docker.sh stop",
+    "db:status": "bash scripts/seekdb-docker.sh status",
+    "fetch-model": "node scripts/fetch-model.mjs",
+    "quantize": "bash scripts/quantize.sh",
+    "model-size": "node scripts/model-size.mjs",
+    "start": "node server/index.mjs",
+    "test": "node --test server/*.test.mjs",
+    "bench": "node bench/run-bench.mjs",
+    "bench:db": "node bench/db-bench.mjs",
+    "report": "node bench/report.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.2",
+    "seekdb": "1.4.0"
+  },
+  "devDependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

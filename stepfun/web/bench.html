@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bench</title>
+    <style>
+      body { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 16px; background: #fff; color: #111; }
+      #render { display: none; }
+      pre { white-space: pre-wrap; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <h3>Edge KB benchmark</h3>
+    <p>Parameters: suite, backend, dtype, threads, batch, sort, bucket, pipelined, refresh, impl, repeats, k, kb, keep, label, save.</p>
+    <pre id="log"></pre>
+    <ol id="render"></ol>
+    <script type="module" src="./bench.js"></script>
+  </body>
+</html>

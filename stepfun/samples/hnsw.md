@@ -1,0 +1,3 @@
+HNSW (Hierarchical Navigable Small World) is a graph-based index for approximate nearest neighbour search. Vectors are inserted into a multi-layer proximity graph: upper layers are sparse and allow long jumps, lower layers are dense and refine the search locally.
+
+Two parameters control quality and cost. M sets how many neighbours each node keeps, and ef_construction sets the size of the candidate list while building. At query time, ef_search controls how many candidates are explored; larger values improve recall at the cost of latency. HNSW offers high recall with logarithmic-like query time, which is why many vector databases use it as the default index.

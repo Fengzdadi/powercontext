@@ -1,0 +1,13 @@
+{
+  "files": [
+    { "file": "seekdb-intro.md", "title": "seekdb 简介" },
+    { "file": "hybrid-search-rrf.md", "title": "混合检索与 RRF 融合" },
+    { "file": "webgpu-wasm.md", "title": "WebGPU 与 WASM 推理后端" },
+    { "file": "quantization.md", "title": "模型量化：FP16 与 INT8" },
+    { "file": "stepfun-intro.md", "title": "阶跃星辰简介" },
+    { "file": "transformers-js.md", "title": "Transformers.js" },
+    { "file": "hnsw.md", "title": "HNSW vector index" },
+    { "file": "west-lake.md", "title": "杭州西湖" },
+    { "file": "pour-over-coffee.md", "title": "Pour-over coffee" }
+  ]
+}

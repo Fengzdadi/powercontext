@@ -1,0 +1,86 @@
+{
+  "label": "final__fallback-auto-gpu",
+  "config": {
+    "suite": "load",
+    "backend": "auto",
+    "dtype": "auto",
+    "source": "hf",
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": true,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": null,
+    "label": "final__fallback-auto-gpu"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T19:21:28.617Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.57,
+    "clientMs": 38.295000076293945
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "webgpu",
+    "dtype": "fp16",
+    "fallbackReason": null,
+    "webgpu": {
+      "ok": true,
+      "shaderF16": true,
+      "adapter": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "limits": {
+        "maxBufferSize": 4294967292,
+        "maxStorageBufferBindingSize": 4294967292
+      }
+    },
+    "threads": null,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 252420563,
+    "timings": {
+      "detectMs": 221.52,
+      "tokenizerMs": 1030.34,
+      "modelFetchMs": 971.52,
+      "sessionCreateMs": 1891.28,
+      "modelLoadMs": 3893.14,
+      "firstInferMs": 353.43,
+      "secondInferMs": 22.6,
+      "totalMs": 4491.42
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_fp16.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 5547.35
+  },
+  "firstQueryEmbedMs": 213.32,
+  "ok": true,
+  "finishedAt": "2026-10-28T19:21:34.420Z"
+}

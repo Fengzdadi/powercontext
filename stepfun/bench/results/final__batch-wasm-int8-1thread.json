@@ -1,0 +1,110 @@
+{
+  "label": "final__batch-wasm-int8-1thread",
+  "config": {
+    "suite": "batch",
+    "backend": "auto",
+    "dtype": "int8",
+    "source": "hf",
+    "threads": 1,
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": true,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": null,
+    "label": "final__batch-wasm-int8-1thread"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T19:34:56.998Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.13,
+    "clientMs": 17.170000076293945
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "wasm",
+    "dtype": "int8",
+    "fallbackReason": "requestAdapter() 返回 null（无可用 GPU 适配器）",
+    "webgpu": {
+      "ok": false,
+      "reason": "requestAdapter() 返回 null（无可用 GPU 适配器）"
+    },
+    "threads": 1,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 135138424,
+    "timings": {
+      "detectMs": 4.09,
+      "tokenizerMs": 774.45,
+      "modelFetchMs": 410.5,
+      "sessionCreateMs": 1262.43,
+      "modelLoadMs": 2447.38,
+      "firstInferMs": 80.4,
+      "secondInferMs": 32.29,
+      "totalMs": 2564.54
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_int8.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 3740.93
+  },
+  "batch": [
+    {
+      "batchSize": 16,
+      "sortByLength": true,
+      "texts": 64,
+      "wallMs": 35039.22,
+      "chunksPerSec": 1.83,
+      "tokensPerSec": 289.45,
+      "padRatio": 1.15,
+      "runs": [
+        {
+          "wallMs": 39191.26999998093,
+          "chunksPerSec": 1.633016740718817,
+          "tokensPerSec": 258.782121630785,
+          "padRatio": 1.1453362255965294,
+          "inferMs": 38878.69
+        },
+        {
+          "wallMs": 32009.224999904633,
+          "chunksPerSec": 1.9994236036702133,
+          "tokensPerSec": 316.8461591941141,
+          "padRatio": 1.1453362255965294,
+          "inferMs": 31535.27
+        },
+        {
+          "wallMs": 35039.22499990463,
+          "chunksPerSec": 1.82652441656955,
+          "tokensPerSec": 289.4470411382559,
+          "padRatio": 1.1453362255965294,
+          "inferMs": 34640.65
+        }
+      ]
+    }
+  ],
+  "ok": true,
+  "finishedAt": "2026-10-28T19:36:47.043Z"
+}

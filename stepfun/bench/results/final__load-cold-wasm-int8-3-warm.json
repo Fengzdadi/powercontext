@@ -1,0 +1,76 @@
+{
+  "label": "final__load-cold-wasm-int8-3-warm",
+  "config": {
+    "suite": "load",
+    "backend": "wasm",
+    "dtype": "int8",
+    "source": "hf",
+    "repeats": 5,
+    "batchSize": 16,
+    "sortByLength": true,
+    "pipelined": true,
+    "refresh": "probe",
+    "impl": "search",
+    "topK": 10,
+    "keep": false,
+    "kb": null,
+    "label": "final__load-cold-wasm-int8-3-warm"
+  },
+  "env": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "brands": [
+      "Not:A-Brand 8",
+      "Chromium 156",
+      "Google Chrome 156"
+    ],
+    "platform": "macOS",
+    "hardwareConcurrency": 18,
+    "deviceMemory": 32,
+    "crossOriginIsolated": true
+  },
+  "startedAt": "2026-10-28T19:27:18.111Z",
+  "health": {
+    "ok": true,
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "mode": "server",
+    "database": "stepfun_kb",
+    "serverMs": 0.08,
+    "clientMs": 5.680000066757202
+  },
+  "init": {
+    "id": 1,
+    "type": "ready",
+    "backend": "wasm",
+    "dtype": "int8",
+    "fallbackReason": "已手动指定 WASM",
+    "webgpu": {
+      "ok": false,
+      "reason": "已手动指定 WASM"
+    },
+    "threads": 8,
+    "crossOriginIsolated": true,
+    "cacheHit": true,
+    "bytes": 135138424,
+    "timings": {
+      "detectMs": 0.07,
+      "tokenizerMs": 886.5,
+      "modelFetchMs": 276.33,
+      "sessionCreateMs": 958.62,
+      "modelLoadMs": 2121.44,
+      "firstInferMs": 60.49,
+      "secondInferMs": 17.57,
+      "totalMs": 2199.79
+    },
+    "model": {
+      "repo": "Xenova/multilingual-e5-small",
+      "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+      "file": "onnx/model_int8.onnx",
+      "dim": 384,
+      "source": "huggingface"
+    },
+    "wallMs": 2476.16
+  },
+  "firstQueryEmbedMs": 33.86,
+  "ok": true,
+  "finishedAt": "2026-10-28T19:27:20.627Z"
+}

@@ -1,0 +1,371 @@
+{
+  "at": "2026-10-28T20:10:58.546Z",
+  "results": [
+    {
+      "env": "gpu",
+      "ok": true,
+      "log": [
+        {
+          "step": "backend selected",
+          "badge": "推理后端：WebGPU · FP16",
+          "adapter": "GPU: apple metal-3; shader-f16: true",
+          "banner": "",
+          "model": "模型：multilingual-e5-small · 252 MB · 加载 4.90 s",
+          "modelLoad": "下载/读取 2.21 s，创建会话 1.57 s，预热推理 217 ms；文件 Xenova/multilingual-e5-small/onnx/model_fp16.onnx",
+          "db": "seekdb：v1.4.0.0 · 本地 server",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36"
+        },
+        {
+          "step": "other kb import",
+          "summary": "示例文档 导入完成，知识库版本 v1，新内容已可检索。 文档（新增/变更/跳过）9 / 0 / 0分块（已向量化）9本地向量化109 ms · 82.24 块/秒写入 seekdb（与向量化流水线重叠）420 ms · 1 次请求索引刷新（probe）71 ms总耗时697 ms"
+        },
+        {
+          "step": "kb created",
+          "stats": "文档0 分块0 版本v0（每次导入/删除 +1） 向量Xenova/multilingual-e5-small · 384 维"
+        },
+        {
+          "step": "demo import",
+          "summary": "示例文档 导入完成，知识库版本 v1，新内容已可检索。 文档（新增/变更/跳过）9 / 0 / 0分块（已向量化）9本地向量化82 ms · 110.29 块/秒写入 seekdb（与向量化流水线重叠）219 ms · 1 次请求索引刷新（probe）11 ms总耗时394 ms"
+        },
+        {
+          "step": "search zh",
+          "titles": [
+            "混合检索与 RRF 融合",
+            "seekdb 简介",
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "阶跃星辰简介",
+            "杭州西湖",
+            "HNSW vector index",
+            "Transformers.js",
+            "Pour-over coffee"
+          ],
+          "keys": [
+            "samples/hybrid-search-rrf.md",
+            "samples/seekdb-intro.md",
+            "samples/quantization.md",
+            "samples/webgpu-wasm.md",
+            "samples/stepfun-intro.md",
+            "samples/west-lake.md",
+            "samples/hnsw.md",
+            "samples/transformers-js.md",
+            "samples/pour-over-coffee.md"
+          ],
+          "timing": "查询向量化 23 msseekdb 检索 109 ms服务与网络 3.5 ms渲染 13 ms端到端 148 ms知识库 v1"
+        },
+        {
+          "step": "search en",
+          "titles": [
+            "HNSW vector index",
+            "Transformers.js",
+            "seekdb 简介",
+            "Pour-over coffee",
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "混合检索与 RRF 融合",
+            "阶跃星辰简介",
+            "杭州西湖"
+          ],
+          "keys": [
+            "samples/hnsw.md",
+            "samples/transformers-js.md",
+            "samples/seekdb-intro.md",
+            "samples/pour-over-coffee.md",
+            "samples/quantization.md",
+            "samples/webgpu-wasm.md",
+            "samples/hybrid-search-rrf.md",
+            "samples/stepfun-intro.md",
+            "samples/west-lake.md"
+          ],
+          "timing": "查询向量化 34 msseekdb 检索 4.6 ms服务与网络 7.7 ms渲染 20 ms端到端 67 ms知识库 v1"
+        },
+        {
+          "step": "search fulltext",
+          "titles": [
+            "杭州西湖"
+          ],
+          "keys": [
+            "samples/west-lake.md"
+          ],
+          "timing": "seekdb 检索 5.4 ms服务与网络 6.7 ms渲染 16 ms端到端 28 ms知识库 v1"
+        },
+        {
+          "step": "search weighted",
+          "titles": [
+            "混合检索与 RRF 融合",
+            "seekdb 简介",
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "阶跃星辰简介",
+            "杭州西湖",
+            "HNSW vector index",
+            "Transformers.js",
+            "Pour-over coffee"
+          ],
+          "keys": [
+            "samples/hybrid-search-rrf.md",
+            "samples/seekdb-intro.md",
+            "samples/quantization.md",
+            "samples/webgpu-wasm.md",
+            "samples/stepfun-intro.md",
+            "samples/west-lake.md",
+            "samples/hnsw.md",
+            "samples/transformers-js.md",
+            "samples/pour-over-coffee.md"
+          ],
+          "timing": "查询向量化 13 ms（缓存命中）seekdb 检索 10 ms服务与网络 3.7 ms渲染 3.4 ms端到端 30 ms知识库 v1",
+          "chips": [
+            "全文 0.243",
+            "向量 0.660",
+            "0.9024"
+          ]
+        },
+        {
+          "step": "paste import",
+          "summary": "粘贴文本 导入完成，知识库版本 v2，新内容已可检索。 文档（新增/变更/跳过）1 / 0 / 0分块（已向量化）1本地向量化19 ms · 53.04 块/秒写入 seekdb（与向量化流水线重叠）17 ms · 1 次请求索引刷新（probe）126 ms总耗时421 ms"
+        },
+        {
+          "step": "search new doc",
+          "titles": [
+            "端侧增量测试",
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "阶跃星辰简介",
+            "seekdb 简介",
+            "混合检索与 RRF 融合",
+            "Pour-over coffee",
+            "杭州西湖",
+            "Transformers.js",
+            "HNSW vector index"
+          ],
+          "keys": [
+            "paste/端侧增量测试",
+            "samples/quantization.md",
+            "samples/webgpu-wasm.md",
+            "samples/stepfun-intro.md",
+            "samples/seekdb-intro.md",
+            "samples/hybrid-search-rrf.md",
+            "samples/pour-over-coffee.md",
+            "samples/west-lake.md",
+            "samples/transformers-js.md",
+            "samples/hnsw.md"
+          ],
+          "timing": "查询向量化 19 msseekdb 检索 4.3 ms服务与网络 3.0 ms渲染 4.7 ms端到端 32 ms知识库 v2"
+        },
+        {
+          "step": "demo re-import",
+          "summary": "示例文档 导入完成，知识库版本 v2，新内容已可检索。 文档（新增/变更/跳过）0 / 0 / 9分块（已向量化）0本地向量化0.0 ms写入 seekdb（与向量化流水线重叠）0.0 ms · 0 次请求索引刷新（none）–总耗时59 ms"
+        },
+        {
+          "step": "other kb search",
+          "kb": "e2e_gpu_other",
+          "titles": [
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "阶跃星辰简介"
+          ],
+          "kbVersion": "v1"
+        },
+        {
+          "step": "search after delete",
+          "titles": [
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "阶跃星辰简介"
+          ]
+        },
+        {
+          "step": "kb stats",
+          "stats": "文档9 分块9 版本v3（每次导入/删除 +1） 向量Xenova/multilingual-e5-small · 384 维",
+          "history": "10/29/2026, 4:10:43 AM0/0/90 webgpu fp16– 10/29/2026, 4:10:42 AM1/0/01 webgpu fp16126 ms probe10/29/2026, 4:10:41 AM9/0/09 webgpu fp1611 ms probe"
+        },
+        {
+          "step": "PASS"
+        }
+      ]
+    },
+    {
+      "env": "nogpu",
+      "ok": true,
+      "log": [
+        {
+          "step": "backend selected",
+          "badge": "推理后端：WASM · INT8 · 8 线程（自动降级）",
+          "adapter": "requestAdapter() 返回 null（无可用 GPU 适配器）",
+          "banner": "当前环境无法使用 WebGPU，已自动降级到 WASM 后端（requestAdapter() 返回 null（无可用 GPU 适配器））。导入、向量化与检索流程不受影响；批量向量化会比 GPU 慢。",
+          "model": "模型：multilingual-e5-small · 135 MB · 加载 3.39 s",
+          "modelLoad": "下载/读取 1.49 s，创建会话 907 ms，预热推理 51 ms；文件 Xenova/multilingual-e5-small/onnx/model_int8.onnx",
+          "db": "seekdb：v1.4.0.0 · 本地 server",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36"
+        },
+        {
+          "step": "other kb import",
+          "summary": "示例文档 导入完成，知识库版本 v1，新内容已可检索。 文档（新增/变更/跳过）9 / 0 / 0分块（已向量化）9本地向量化758 ms · 11.87 块/秒写入 seekdb（与向量化流水线重叠）362 ms · 1 次请求索引刷新（probe）17 ms总耗时1.24 s"
+        },
+        {
+          "step": "kb created",
+          "stats": "文档0 分块0 版本v0（每次导入/删除 +1） 向量Xenova/multilingual-e5-small · 384 维"
+        },
+        {
+          "step": "demo import",
+          "summary": "示例文档 导入完成，知识库版本 v1，新内容已可检索。 文档（新增/变更/跳过）9 / 0 / 0分块（已向量化）9本地向量化829 ms · 10.85 块/秒写入 seekdb（与向量化流水线重叠）345 ms · 1 次请求索引刷新（probe）195 ms总耗时1.47 s"
+        },
+        {
+          "step": "search zh",
+          "titles": [
+            "混合检索与 RRF 融合",
+            "seekdb 简介",
+            "模型量化：FP16 与 INT8",
+            "阶跃星辰简介",
+            "杭州西湖",
+            "WebGPU 与 WASM 推理后端",
+            "HNSW vector index",
+            "Transformers.js",
+            "Pour-over coffee"
+          ],
+          "keys": [
+            "samples/hybrid-search-rrf.md",
+            "samples/seekdb-intro.md",
+            "samples/quantization.md",
+            "samples/stepfun-intro.md",
+            "samples/west-lake.md",
+            "samples/webgpu-wasm.md",
+            "samples/hnsw.md",
+            "samples/transformers-js.md",
+            "samples/pour-over-coffee.md"
+          ],
+          "timing": "查询向量化 9.7 msseekdb 检索 15 ms服务与网络 11 ms渲染 19 ms端到端 55 ms知识库 v1"
+        },
+        {
+          "step": "search en",
+          "titles": [
+            "HNSW vector index",
+            "Transformers.js",
+            "seekdb 简介",
+            "Pour-over coffee",
+            "WebGPU 与 WASM 推理后端",
+            "模型量化：FP16 与 INT8",
+            "混合检索与 RRF 融合",
+            "阶跃星辰简介",
+            "杭州西湖"
+          ],
+          "keys": [
+            "samples/hnsw.md",
+            "samples/transformers-js.md",
+            "samples/seekdb-intro.md",
+            "samples/pour-over-coffee.md",
+            "samples/webgpu-wasm.md",
+            "samples/quantization.md",
+            "samples/hybrid-search-rrf.md",
+            "samples/stepfun-intro.md",
+            "samples/west-lake.md"
+          ],
+          "timing": "查询向量化 15 msseekdb 检索 3.0 ms服务与网络 4.8 ms渲染 6.9 ms端到端 30 ms知识库 v1"
+        },
+        {
+          "step": "search fulltext",
+          "titles": [
+            "杭州西湖"
+          ],
+          "keys": [
+            "samples/west-lake.md"
+          ],
+          "timing": "seekdb 检索 4.0 ms服务与网络 9.8 ms渲染 16 ms端到端 30 ms知识库 v1"
+        },
+        {
+          "step": "search weighted",
+          "titles": [
+            "混合检索与 RRF 融合",
+            "seekdb 简介",
+            "模型量化：FP16 与 INT8",
+            "阶跃星辰简介",
+            "WebGPU 与 WASM 推理后端",
+            "杭州西湖",
+            "HNSW vector index",
+            "Transformers.js",
+            "Pour-over coffee"
+          ],
+          "keys": [
+            "samples/hybrid-search-rrf.md",
+            "samples/seekdb-intro.md",
+            "samples/quantization.md",
+            "samples/stepfun-intro.md",
+            "samples/webgpu-wasm.md",
+            "samples/west-lake.md",
+            "samples/hnsw.md",
+            "samples/transformers-js.md",
+            "samples/pour-over-coffee.md"
+          ],
+          "timing": "查询向量化 10.0 ms（缓存命中）seekdb 检索 7.2 ms服务与网络 9.7 ms渲染 2.7 ms端到端 30 ms知识库 v1",
+          "chips": [
+            "全文 0.243",
+            "向量 0.662",
+            "0.9049"
+          ]
+        },
+        {
+          "step": "paste import",
+          "summary": "粘贴文本 导入完成，知识库版本 v2，新内容已可检索。 文档（新增/变更/跳过）1 / 0 / 0分块（已向量化）1本地向量化27 ms · 36.76 块/秒写入 seekdb（与向量化流水线重叠）31 ms · 1 次请求索引刷新（probe）263 ms总耗时641 ms"
+        },
+        {
+          "step": "search new doc",
+          "titles": [
+            "端侧增量测试",
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "混合检索与 RRF 融合",
+            "seekdb 简介",
+            "阶跃星辰简介",
+            "Pour-over coffee",
+            "杭州西湖",
+            "Transformers.js",
+            "HNSW vector index"
+          ],
+          "keys": [
+            "paste/端侧增量测试",
+            "samples/quantization.md",
+            "samples/webgpu-wasm.md",
+            "samples/hybrid-search-rrf.md",
+            "samples/seekdb-intro.md",
+            "samples/stepfun-intro.md",
+            "samples/pour-over-coffee.md",
+            "samples/west-lake.md",
+            "samples/transformers-js.md",
+            "samples/hnsw.md"
+          ],
+          "timing": "查询向量化 14 msseekdb 检索 3.5 ms服务与网络 2.8 ms渲染 13 ms端到端 33 ms知识库 v2"
+        },
+        {
+          "step": "demo re-import",
+          "summary": "示例文档 导入完成，知识库版本 v2，新内容已可检索。 文档（新增/变更/跳过）0 / 0 / 9分块（已向量化）0本地向量化0.0 ms写入 seekdb（与向量化流水线重叠）0.0 ms · 0 次请求索引刷新（none）–总耗时220 ms"
+        },
+        {
+          "step": "other kb search",
+          "kb": "e2e_nogpu_other",
+          "titles": [
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "混合检索与 RRF 融合"
+          ],
+          "kbVersion": "v1"
+        },
+        {
+          "step": "search after delete",
+          "titles": [
+            "模型量化：FP16 与 INT8",
+            "WebGPU 与 WASM 推理后端",
+            "混合检索与 RRF 融合"
+          ]
+        },
+        {
+          "step": "kb stats",
+          "stats": "文档9 分块9 版本v3（每次导入/删除 +1） 向量Xenova/multilingual-e5-small · 384 维",
+          "history": "10/29/2026, 4:10:55 AM0/0/90 wasm int8– 10/29/2026, 4:10:55 AM1/0/01 wasm int8263 ms probe10/29/2026, 4:10:53 AM9/0/09 wasm int8195 ms probe"
+        },
+        {
+          "step": "PASS"
+        }
+      ]
+    }
+  ]
+}
