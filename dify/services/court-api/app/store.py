@@ -344,7 +344,7 @@ class CourtStore:
             cur.execute("SELECT outcome, COUNT(*) AS n FROM cases WHERE status = 'judged' GROUP BY outcome")
             outcomes = {r["outcome"]: r["n"] for r in cur.fetchall()}
             cur.execute("SELECT plaintiff, COUNT(*) AS n FROM cases WHERE source = 'player' "
-                        "GROUP BY plaintiff ORDER BY n DESC, plaintiff LIMIT 3")
+                        "AND status IN ('judged', 'filed') GROUP BY plaintiff ORDER BY n DESC, plaintiff LIMIT 3")
             top_plaintiffs = cur.fetchall()
             cur.execute("SELECT case_no, title, outcome, judge_quote FROM cases WHERE source = 'player' "
                         "AND status = 'judged' ORDER BY judged_at DESC LIMIT 3")

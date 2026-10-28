@@ -1,4 +1,4 @@
-# 初始状态（scripts/reset.sh 之后、开始任何对话之前）  2026-10-28 15:55:45
+# 初始状态（scripts/reset.sh 之后、开始任何对话之前）  2026-10-28 17:04:13
 # 命令：scripts/inspect.sh 阿强 "闹钟 周末 吵醒"
 
 == court-api 健康检查（seekdb 连接、向量模型、混合检索方式）
@@ -17,7 +17,7 @@ mode: hybrid
   法典第5条 睡眠神圣
 
 == PowerContext：原告「阿强」的记忆（/v1/atomic-memory/list）
-scope_id: scp_6vmqnxhz7y4khr02w69pvzzx9j
+scope_id: scp_1erbeyz588vm5efj0z19r8skn5
 共 0 条
 
 == PowerContext：立案时法官看到的 PreparedContext（/v1/context/prepare）

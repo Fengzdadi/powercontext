@@ -692,30 +692,42 @@ workflow:
       type: custom
       width: 244
     - data:
-        code: "import re\nimport unicodedata\n\n\ndef main(query: str, stage: str,\
-          \ player: str) -> dict:\n    text = unicodedata.normalize(\"NFC\", query\
-          \ or \"\").strip()\n    name = re.sub(r\"\\s+\", \"\", unicodedata.normalize(\"\
-          NFC\", player or \"\"))[:20] or \"无名氏\"\n    compact = re.sub(r\"[\\s，。！？!?,.、~～]+\"\
-          , \"\", text)\n    route, search_query = \"\", \"\"\n    m = re.match(r\"\
-          ^(查判例|判例检索|检索判例|搜判例|查案例)[：:\\s]*(.*)$\", text, re.S)\n    if compact in\
-          \ (\"帮助\", \"help\", \"怎么玩\", \"玩法\", \"说明\", \"菜单\", \"你好\", \"您好\", \"\
-          hi\", \"hello\", \"在吗\", \"喵\"):\n        route = \"help\"\n    elif compact\
-          \ in (\"本院公告\", \"公告\", \"统计\", \"排行榜\", \"本院统计\", \"法院公告\"):\n        route\
-          \ = \"stats\"\n    elif m:\n        route, search_query = \"search\", m.group(2).strip()[:100]\
-          \ or \"鸡毛蒜皮\"\n    elif compact in (\"查案底\", \"我的案底\", \"案底\", \"查档案\",\
-          \ \"我的档案\", \"小本本\"):\n        route = \"record\"\n    elif stage == \"\
-          awaiting\" and compact in (\"撤诉\", \"我撤诉\", \"不告了\", \"算了\"):\n        route\
-          \ = \"withdraw\"\n    elif stage == \"awaiting\":\n        route = \"verdict\"\
-          \n    else:\n        route = \"file\"\n    return {\n        \"route\":\
-          \ route,\n        \"player\": name,\n        \"text\": text[:600] or \"\
-          （原告沉默不语）\",\n        \"search_query\": search_query,\n        \"scope_body\"\
-          : __import__(\"json\").dumps({\n            \"title\": f\"鸡毛蒜皮法庭·原告 {name}\"\
-          ,\n            \"summary\": f\"喵青天法庭为原告「{name}」建立的案底档案\",\n            \"\
-          idempotency_key\": f\"jimao-court:player:{name}\",\n        }, ensure_ascii=False),\n\
-          \    }\n"
+        code: "import re\nimport unicodedata\n\nGIFTS = (\"猫条\", \"鱼干\", \"罐头\", \"\
+          纸箱\", \"激光笔\", \"逗猫棒\", \"猫薄荷\", \"零食\", \"红包\", \"贿赂\", \"行贿\", \"慰问\"\
+          , \"孝敬\",\n         \"收下\", \"送您\", \"送你\", \"给您带\", \"给你带\", \"请您吃\", \"\
+          请你吃\")\n\n\ndef main(query: str, stage: str, player: str) -> dict:\n   \
+          \ text = unicodedata.normalize(\"NFC\", query or \"\").strip()\n    name\
+          \ = re.sub(r\"\\s+\", \"\", unicodedata.normalize(\"NFC\", player or \"\"\
+          ))[:20] or \"无名氏\"\n    compact = re.sub(r\"[\\s，。！？!?,.、~～]+\", \"\", text)\n\
+          \    route, search_query = \"\", \"\"\n    m = re.match(r\"^(查判例|判例检索|检索判例|搜判例|查案例)[：:\\\
+          s]*(.*)$\", text, re.S)\n    if compact in (\"帮助\", \"help\", \"怎么玩\", \"\
+          玩法\", \"说明\", \"菜单\", \"你好\", \"您好\", \"hi\", \"hello\", \"在吗\", \"喵\"):\n\
+          \        route = \"help\"\n    elif compact in (\"本院公告\", \"公告\", \"统计\"\
+          , \"排行榜\", \"本院统计\", \"法院公告\"):\n        route = \"stats\"\n    elif m:\n\
+          \        route, search_query = \"search\", m.group(2).strip()[:100] or \"\
+          鸡毛蒜皮\"\n    elif compact in (\"查案底\", \"我的案底\", \"案底\", \"查档案\", \"我的档案\"\
+          , \"小本本\"):\n        route = \"record\"\n    elif stage == \"awaiting\"\
+          \ and compact in (\"撤诉\", \"我撤诉\", \"不告了\", \"算了\"):\n        route = \"\
+          withdraw\"\n    elif stage == \"awaiting\":\n        route = \"verdict\"\
+          \n    else:\n        route = \"file\"\n    gift = any(w in text for w in\
+          \ GIFTS)\n    return {\n        \"route\": route,\n        \"player\": name,\n\
+          \        \"text\": text[:600] or \"（原告沉默不语）\",\n        \"search_query\"\
+          : search_query,\n        \"gift_mentioned\": \"yes\" if gift else \"no\"\
+          ,\n        \"gift_hint\": (\"原告这一轮提到了礼物或零食：真送了就先被诱惑一秒，再没收并宣布记入案底；只是说没带、没送，就不算行贿\"\
+          \n                      if gift else \"原告这一轮什么也没送，不要说他行贿、投喂或送礼\"),\n   \
+          \     \"scope_body\": __import__(\"json\").dumps({\n            \"title\"\
+          : f\"鸡毛蒜皮法庭·原告 {name}\",\n            \"summary\": f\"喵青天法庭为原告「{name}」建立的案底档案\"\
+          ,\n            \"idempotency_key\": f\"jimao-court:player:{name}\",\n  \
+          \      }, ensure_ascii=False),\n    }\n"
         code_language: python3
         desc: 识别指令与庭审阶段：帮助 / 公告 / 查判例 / 查案底 / 撤诉 / 宣判 / 立案
         outputs:
+          gift_hint:
+            children: null
+            type: string
+          gift_mentioned:
+            children: null
+            type: string
           player:
             children: null
             type: string
@@ -787,7 +799,7 @@ workflow:
         method: post
         params: ''
         retry_config:
-          max_retries: 2
+          max_retries: 1
           retry_enabled: true
           retry_interval: 800
         selected: false
@@ -797,7 +809,7 @@ workflow:
           max_connect_timeout: 0
           max_read_timeout: 0
           max_write_timeout: 0
-          read: 30
+          read: 10
           write: 10
         title: PowerContext：打开原告档案
         type: http-request
@@ -1286,7 +1298,7 @@ workflow:
         method: post
         params: ''
         retry_config:
-          max_retries: 2
+          max_retries: 1
           retry_enabled: true
           retry_interval: 800
         selected: false
@@ -1296,7 +1308,7 @@ workflow:
           max_connect_timeout: 0
           max_read_timeout: 0
           max_write_timeout: 0
-          read: 30
+          read: 10
           write: 10
         title: PowerContext：读取小本本
         type: http-request
@@ -1620,7 +1632,7 @@ workflow:
 
             ### 🧐 法庭点评
 
-            （点评原告的陈述是有理有据、强词夺理还是离题万里。如果原告试图贿赂法官（猫条、小鱼干、罐头……）、辱骂法官或捣乱，先被诱惑或气到一秒，再严正拒绝、没收物品，并宣布"记入案底"）
+            （点评原告的陈述是有理有据、强词夺理还是离题万里。如果原告试图贿赂法官（猫条、小鱼干、罐头……）、辱骂法官或捣乱，先被诱惑或气到一秒，再严正拒绝、没收物品，并宣布"记入案底"。{{#route.gift_hint#}}）
 
             ### 🗣️ 被告最后陈述
 
@@ -1756,12 +1768,13 @@ workflow:
           \        return {}\n\n\ndef _field(brief: str, name: str) -> str:\n    m\
           \ = re.search(name + r\"：(.*)\", brief or \"\")\n    return m.group(1).strip()\
           \ if m else \"\"\n\n\ndef main(archive_text: str, verdict_text: str, case_no:\
-          \ str, case_brief: str, player: str, scope_id: str) -> dict:\n    data =\
-          \ _json(archive_text)\n    defendant = re.sub(r\"（.*?）$\", \"\", _field(case_brief,\
-          \ \"被告\")) or \"被告\"\n    outcome = str(data.get(\"outcome\") or \"split\"\
-          ).strip().lower()\n    outcome = outcome if outcome in OUTCOMES else \"\
-          split\"\n    cause = re.sub(r\"[《》\\s]\", \"\", str(data.get(\"cause\")\
-          \ or \"\")).removesuffix(\"案\")[:10]\n    title = f\"{player}诉{defendant}{cause}案\"\
+          \ str, case_brief: str, player: str, scope_id: str,\n         gift_mentioned:\
+          \ str) -> dict:\n    data = _json(archive_text)\n    defendant = re.sub(r\"\
+          （.*?）$\", \"\", _field(case_brief, \"被告\")) or \"被告\"\n    outcome = str(data.get(\"\
+          outcome\") or \"split\").strip().lower()\n    outcome = outcome if outcome\
+          \ in OUTCOMES else \"split\"\n    cause = re.sub(r\"[《》\\s]\", \"\", str(data.get(\"\
+          cause\") or \"\")).removesuffix(\"案\")\n    cause = cause.removeprefix(f\"\
+          {player}诉\").removeprefix(defendant)[:10]\n    title = f\"{player}诉{defendant}{cause}案\"\
           \n    verdict = str(data.get(\"verdict\") or \"\").strip()[:300]\n    if\
           \ not verdict:\n        m = re.search(r\"判决如下[^\\n]*\\n(.*?)(?:\\n#+|\\\
           Z)\", verdict_text or \"\", re.S)\n        verdict = re.sub(r\"\\s+\", \"\
@@ -1774,11 +1787,14 @@ workflow:
           impression\") or \"一位有故事的原告\").strip().rstrip(\"。.！!\")[:60]\n    misconduct\
           \ = str(data.get(\"misconduct\") or \"\").strip().rstrip(\"。.\")[:80]\n\
           \    if misconduct in (\"无\", \"没有\", \"none\", \"None\", \"null\", \"空\"\
-          ):\n        misconduct = \"\"\n    today = datetime.now().strftime(\"%Y-%m-%d\"\
-          )\n    case_memory = f\"【案底】{today} 喵青天审理《{title}》，案号{case_no}。判决：{verdict}（{OUTCOMES[outcome]}）\"\
+          ):\n        misconduct = \"\"\n    # A bribe the plaintiff never mentioned\
+          \ is the judge's imagination, not contempt.\n    if gift_mentioned != \"\
+          yes\" and re.search(r\"贿|投喂|送礼|收买|猫条|鱼干|罐头|零食\", misconduct):\n        misconduct\
+          \ = \"\"\n    today = datetime.now().strftime(\"%Y-%m-%d\")\n    case_memory\
+          \ = f\"【案底】{today} 喵青天审理《{title}》，案号{case_no}。判决：{verdict}（{OUTCOMES[outcome]}）\"\
           \n    if duty:\n        case_memory += f\" 原告须：{duty}——下次到庭时须向本庭汇报执行情况。\"\
           \n    impression_memory = f\"【法官印象】喵青天对{player}的印象：{impression}。\"\n   \
-          \ if misconduct:\n        impression_memory += f\" 【藐视法庭】{player}在{title}中{misconduct}\"\
+          \ if misconduct:\n        impression_memory += f\" 【藐视法庭】{player}在《{title}》中：{misconduct}\"\
           \ + (\n            \"。\" if any(w in misconduct for w in (\"案底\", \"档案\"\
           , \"记入\")) else \"，已记入案底。\")\n    return {\n        \"verdict_body\": json.dumps({\"\
           case_no\": case_no, \"title\": title, \"verdict\": verdict, \"outcome\"\
@@ -1841,6 +1857,10 @@ workflow:
           - scope
           - scope_id
           variable: scope_id
+        - value_selector:
+          - route
+          - gift_mentioned
+          variable: gift_mentioned
       height: 100
       id: archive
       position:
@@ -1936,7 +1956,7 @@ workflow:
         method: post
         params: ''
         retry_config:
-          max_retries: 2
+          max_retries: 1
           retry_enabled: true
           retry_interval: 800
         selected: false
@@ -1946,7 +1966,7 @@ workflow:
           max_connect_timeout: 0
           max_read_timeout: 0
           max_write_timeout: 0
-          read: 30
+          read: 10
           write: 10
         title: PowerContext：记下案底
         type: http-request
@@ -1991,7 +2011,7 @@ workflow:
         method: post
         params: ''
         retry_config:
-          max_retries: 2
+          max_retries: 1
           retry_enabled: true
           retry_interval: 800
         selected: false
@@ -2001,7 +2021,7 @@ workflow:
           max_connect_timeout: 0
           max_read_timeout: 0
           max_write_timeout: 0
-          read: 30
+          read: 10
           write: 10
         title: PowerContext：记下印象
         type: http-request
@@ -2444,7 +2464,7 @@ workflow:
         method: post
         params: ''
         retry_config:
-          max_retries: 2
+          max_retries: 1
           retry_enabled: true
           retry_interval: 800
         selected: false
@@ -2454,7 +2474,7 @@ workflow:
           max_connect_timeout: 0
           max_read_timeout: 0
           max_write_timeout: 0
-          read: 30
+          read: 10
           write: 10
         title: PowerContext：调取历史档案
         type: http-request
@@ -2498,15 +2518,18 @@ workflow:
           \ = \"（本庭第一次见到这位原告，没有任何档案。）\"\n    else:\n        memory_text = \"（PowerContext\
           \ 档案室暂时联系不上，本庭今天只能凭印象审案。）\"\n    precedents_text = found.get(\"precedents_text\"\
           ) or \"（seekdb 判例库暂时联系不上，本庭只能凭良心判。）\"\n    statutes_text = found.get(\"\
-          statutes_text\") or \"（法典暂时找不到了。）\"\n    if memories:\n        open_hint\
-          \ = (\"敲惊堂木，宣读案号和案由；然后用一两句话点出历史档案里记着的具体往事（旧案、判决执行情况、\"\n               \
-          \      \"行贿或捣乱前科、你对他的印象），挑最好笑的说，只说档案里写着的事\")\n    else:\n        open_hint\
-          \ = (\"敲惊堂木，宣读案号和案由；这位原告是第一次来本庭，热情欢迎这位新面孔，调侃一下他的案由。\"\n                \
-          \     \"他在本庭没有任何过去，不要提“上次”“又来了”之类的话\")\n    ask_hint = \"就本案向原告提一个刁钻又好笑的问题，或要求原告出示一份离谱的证据，等原告下一轮回答\"\
-          \n    if any(\"原告须\" in m for m in memories):\n        ask_hint += \"；可以顺带追问档案里记着的、他上次被判要做的事执行得怎么样\"\
-          \n    label = LABELS.get(defendant_type, \"其他\")\n    brief = (f\"案号：{case_no}\\\
-          n原告：{player}\\n被告：{defendant}（{label}）\\n\"\n             f\"案情：{grievance}\\\
-          n诉求：{demand}\")\n    if filed:\n        docket = f\"\U0001F4DC **立案登记**：{case_no}《{filed.get('title',\
+          statutes_text\") or \"（法典暂时找不到了。）\"\n    has_duty = any(\"原告须\" in m for\
+          \ m in memories)\n    if memories:\n        open_hint = (\"敲惊堂木，宣读案号和案由；然后用一两句话点出历史档案里记着的具体往事（旧案和判决、\"\
+          \n                     \"行贿或捣乱前科、你对他的印象），挑最好笑的说，只说档案里写着的事\")\n        if\
+          \ has_duty:\n            open_hint += \"；他上次被判要做的事留到「法官发问」再追问\"\n    else:\n\
+          \        open_hint = (\"敲惊堂木，宣读案号和案由；这位原告是第一次来本庭，热情欢迎这位新面孔，调侃一下他的案由。\"\n\
+          \                     \"他在本庭没有任何过去，不要提“上次”“又来了”之类的话\")\n    ask_hint = \"\
+          就本案向原告提一个刁钻又好笑的问题，或要求原告出示一份离谱的证据，等原告下一轮回答\"\n    if has_duty:\n        ask_hint\
+          \ += \"；可以顺带追问档案里记着的、他上次被判要做的事执行得怎么样\"\n    elif not memories:\n       \
+          \ ask_hint += \"；档案里没有他的旧案，不要说“上次”“之前”，也不要把判例里别人的判决安到他头上\"\n    label =\
+          \ LABELS.get(defendant_type, \"其他\")\n    brief = (f\"案号：{case_no}\\n原告：{player}\\\
+          n被告：{defendant}（{label}）\\n\"\n             f\"案情：{grievance}\\n诉求：{demand}\"\
+          )\n    if filed:\n        docket = f\"\U0001F4DC **立案登记**：{case_no}《{filed.get('title',\
           \ player + '诉' + defendant + '案')}》\"\n    else:\n        docket = \"\U0001F4DC\
           \ **立案登记**：书记员（court-api）没来上班，本案暂不编号。\"\n    recall_note = (f\"\U0001F43E\
           \ 档案室（PowerContext）调出了你的 {len(memories)} 条记录\" if memories\n           \
@@ -2718,7 +2741,7 @@ workflow:
             {{#prep_hearing.statutes_text#}}
 
 
-            现在主持第一幕「开庭」，用 Markdown 按下面四个小标题输出，总共不超过 350 字，不要做出判决：
+            现在主持第一幕「开庭」，用 Markdown 按下面四个小标题输出，总共不超过 350 字，四段内容不要重复同一句话，不要做出判决：
 
             ### 🔨 升堂
 
@@ -2726,7 +2749,7 @@ workflow:
 
             ### 🗣️ 被告陈述
 
-            （用被告的口吻和性格为自己辩护，可以反咬原告一口，2～4 句）
+            （用被告的口吻和性格为自己辩护，可以反咬原告一口，2～4 句；不要复述法官的话）
 
             ### 📚 本庭援引
 
