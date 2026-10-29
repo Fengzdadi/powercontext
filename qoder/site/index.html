@@ -179,6 +179,7 @@ window.imgFallback = function (img) {
         <div class="screenshot">
           <img src="images/f5-usage-log.png" alt="使用记录页面截图" data-filename="images/f5-usage-log.png" onerror="imgFallback(this)">
         </div>
+        <p class="shot-note">截图里是开发测试数据，不是真实使用量。</p>
       </div>
       <div class="text">
         <h3>使用记录</h3>
@@ -313,9 +314,9 @@ window.imgFallback = function (img) {
 <section id="video">
   <div class="wrap">
     <h2 class="sec-title">演示视频</h2>
-    <p class="sec-sub">从导入资料到看雷达、做一道题的完整流程演示。</p>
+    <p class="sec-sub">约 70 秒走完一遍完整流程（样例课程、开发环境录制）：首页 → 导入资料 → 问笔记 → 覆盖雷达 → 复习教练出两道题 → 我的记忆 → 使用记录，每一步底部有一行说明。</p>
     <div class="video-box">
-      <video id="demo-video" hidden controls preload="metadata">
+      <video id="demo-video" hidden controls preload="metadata" poster="media/demo-poster.jpg">
         <source src="media/demo.mp4" type="video/mp4">
       </video>
       <div class="video-pending" id="video-pending">

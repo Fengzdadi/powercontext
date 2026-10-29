@@ -124,6 +124,7 @@ a.btn.ghost:hover { background: var(--primary-soft); }
   font-size: 24px; color: #b9c3d4;
 }
 .screenshot .ph .fname { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.shot-note { margin: 8px 0 0; font-size: 13px; color: var(--ink-faint); }
 
 /* ---------- architecture ---------- */
 .arch-diagram { margin: 0 0 26px; }
