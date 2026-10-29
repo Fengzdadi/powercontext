@@ -275,6 +275,18 @@ text/plain）、`GET /api/coach/status`、`POST /api/quiz/next`、`POST /api/qui
 `scripts/e2e_verify.py` 的"复习教练"步骤（新学习者 → 答错 → 答对 → 结束 → 新会话开场白，
 并逐项核对 PowerContext 读写与掌握度 revision 历史）。
 
+## Qoder 开发记录
+
+本项目的需求拆解、技术设计、编码和调试由 Qoder CLI（`qoderclicn` 1.1.80，Qoder CN）完成，产品负责人负责写需求、提供样例数据、审阅和验收。
+
+- **Qoder 账号 UID**：`01a184e5-b79a-7087-aa96-d00a66126283`
+- [`dev-records/`](dev-records/README.md)：
+  - 每个会话发给 Qoder 的指令；
+  - 完整原始记录和可读版本；
+  - 关键环节的 Qoder 界面截图（需求拆解、编码、调试、验收）；
+  - 每个会话的 Credits 用量。
+- [`docs/DEVLOG.md`](docs/DEVLOG.md)：Qoder 在每个会话结束时自己写的开发日志。
+
 ## 许可证
 
 - **代码**：[Apache-2.0](LICENSE)（`qoder/LICENSE` 为 Apache 官方原文，sha256 `cfc7749b…23d30`）。
