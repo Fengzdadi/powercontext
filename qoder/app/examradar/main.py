@@ -11,12 +11,14 @@ from fastapi.responses import FileResponse
 
 from .config import get_settings
 from .seekdb import ensure_tables
-from .routes import health, documents, search, coverage, usage
+from .learning_store import ensure_learning_tables
+from .routes import health, documents, search, coverage, usage, sessions, quiz, memory
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_tables()
+    ensure_learning_tables()
     yield
 
 
@@ -35,6 +37,9 @@ app.include_router(documents.router)
 app.include_router(search.router)
 app.include_router(coverage.router)
 app.include_router(usage.router)
+app.include_router(sessions.router)
+app.include_router(quiz.router)
+app.include_router(memory.router)
 
 _static_dir = Path(__file__).resolve().parent.parent / "static"
 
@@ -62,6 +67,16 @@ def radar_page():
 @app.get("/usage.html")
 def usage_page():
     return FileResponse(_static_dir / "usage.html")
+
+
+@app.get("/coach.html")
+def coach_page():
+    return FileResponse(_static_dir / "coach.html")
+
+
+@app.get("/memory.html")
+def memory_page():
+    return FileResponse(_static_dir / "memory.html")
 
 
 if _static_dir.is_dir():

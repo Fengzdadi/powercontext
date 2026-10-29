@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     seekdb_test_database: str = "examradar_test"
 
     powercontext_url: str = "http://127.0.0.1:18801"
+    powercontext_timeout_seconds: float = 8.0
+
+    # 学习会话：无事件超过该分钟数视为已结束（时长按最后一个事件计）
+    session_idle_minutes: int = 30
+
+    # Ollama：同一模型每次调用使用相同的 num_ctx，避免反复重载模型
+    llm_num_ctx: int = 8192
+    llm_max_context_bytes: int = 6000
+    pc_context_max_bytes: int = 2000
 
     app_host: str = "127.0.0.1"
     app_port: int = 18800
