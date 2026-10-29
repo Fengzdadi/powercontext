@@ -6,7 +6,7 @@ Usage:
 
 --copy  copies ~/.qoder-cn/projects/<this project>/<SESSION_ID>.jsonl and its
         <SESSION_ID>/subagents/ folder (sub-agent transcripts) to dev-records/qoder-native/.
-Always: replaces the values of secret-looking variables in qoder/.env
+Always: replaces the values of secret-looking variables in qoder/.env and qoder/.env.ci
 (…PASSWORD, …API_KEY, …TOKEN, …SECRET) with ***REDACTED*** in every file under
 dev-records/sessions, dev-records/transcripts and dev-records/qoder-native,
 and prints how many replacements it made per file. It never prints the values.
@@ -32,18 +32,19 @@ def qoder_project_dir() -> Path:
 
 
 def secrets_from_env() -> list[str]:
-    env = PROJECT / ".env"
+    # .env.ci holds the random password of the throwaway compose stack Qoder tests against.
     values = []
-    if not env.exists():
-        return values
-    for line in env.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+    for env in (PROJECT / ".env", PROJECT / ".env.ci"):
+        if not env.exists():
             continue
-        key, _, value = line.partition("=")
-        value = value.strip().strip('"').strip("'")
-        if SECRET_KEY.search(key.strip()) and value not in PLACEHOLDERS and len(value) >= 6:
-            values.append(value)
+        for line in env.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            value = value.strip().strip('"').strip("'")
+            if SECRET_KEY.search(key.strip()) and value not in PLACEHOLDERS and len(value) >= 6:
+                values.append(value)
     return values
 
 

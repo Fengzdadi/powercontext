@@ -1,4 +1,4 @@
-会话 06（里程碑 M3）：复习教练 + PowerContext 学习者记忆 + 学习会话。
+会话 07（里程碑 M3）：复习教练 + PowerContext 学习者记忆 + 学习会话。
 
 先读 `docs/DEVLOG.md` 了解当前状态，以及 `docs/reference/powercontext-1.4.1-notes.md`（PowerContext 接口细节，都是实测过的）。环境同前：seekdb 127.0.0.1:10800、PowerContext http://127.0.0.1:18801（1.4.1，嵌入式 seekdb 存储，未配置 embedding，记忆检索走全文），密码在 `qoder/.env`；不要启停任何容器。本机有 Ollama：`http://127.0.0.1:11434/v1`，模型 `qwen3.5:9b`（OpenAI 兼容接口，无需 key，推理模型请关闭 thinking），只用于测试"有大模型"这条路径。
 
