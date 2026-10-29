@@ -3,11 +3,13 @@ services:
     image: oceanbase/seekdb:1.4.0-100000172026082615
     environment:
       ROOT_PASSWORD: ${SEEKDB_PASSWORD}
+    # 端口只绑 127.0.0.1：seekdb 用 root 直连、无鉴权，不能暴露到局域网
     ports:
-      - "${SEEKDB_HOST_PORT:-10800}:2881"
+      - "127.0.0.1:${SEEKDB_HOST_PORT:-10800}:2881"
     volumes:
       - seekdb-data:/data/seekdb
     healthcheck:
+      # seekdb 官方镜像自带 mysqladmin（1.4.0 镜像内含 MySQL 客户端工具）
       test: ["CMD", "mysqladmin", "ping", "-h127.0.0.1", "-P2881", "-uroot", "-p${SEEKDB_PASSWORD}"]
       interval: 10s
       timeout: 5s
@@ -17,22 +19,27 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile.powercontext
+    # PowerContext 用的是嵌入式 seekdb（POWERCONTEXT_SERVER_DATABASE_PATH 指向
+    # pc-data 卷内的存储），不依赖上面的 seekdb 服务，所以没有 depends_on。
+    # 原因：1.4.1 的服务端模式（DATABASE_KIND=oceanbase）连 seekdb 服务端不可用，
+    # 启动报 "OceanBase maintenance requires a MySQL user tenant."，见
+    # docs/reference/powercontext-1.4.1-notes.md。
     environment:
       POWERCONTEXT_SERVER_DATABASE_KIND: seekdb
       POWERCONTEXT_SERVER_DATABASE_PATH: /data/seekdb
       POWERCONTEXT_SERVER_HTTP_HOST: "0.0.0.0"
       POWERCONTEXT_SERVER_ALLOW_UNAUTHENTICATED_NON_LOOPBACK: "true"
+    # 未开鉴权，端口只绑回环地址
     ports:
-      - "${POWERCONTEXT_HOST_PORT:-18801}:8000"
+      - "127.0.0.1:${POWERCONTEXT_HOST_PORT:-18801}:8000"
     volumes:
       - pc-data:/data/seekdb
-    depends_on:
-      seekdb:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
+      # python:3.12-slim 里没有 curl，用 python 标准库请求 /health/ready。
+      # 嵌入式 seekdb 首次初始化要 1–3 分钟，start_period 放宽到 180s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=5)"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 20
       start_period: 180s
 
@@ -40,6 +47,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.app
+      args:
+        # 向量模型下载源；国内网络可在 .env 里设 HF_ENDPOINT=https://hf-mirror.com
+        HF_ENDPOINT: ${HF_ENDPOINT:-}
+        # 预下载进镜像的模型，与运行时 EMBEDDING_MODEL 用同一个变量：
+        # 换模型必须重新构建镜像（运行时 HF_HUB_OFFLINE=1，不联网下载）
+        EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-zh-v1.5}
     environment:
       SEEKDB_HOST: seekdb
       SEEKDB_PORT: "2881"
@@ -53,13 +66,22 @@ services:
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-zh-v1.5}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-512}
+      # HF_HUB_OFFLINE=1 也在镜像 ENV 里设置：模型已在构建时下载进镜像，
+      # 运行时禁止任何 huggingface.co 访问
     ports:
-      - "${APP_PORT:-18800}:18800"
+      - "127.0.0.1:${APP_PORT:-18800}:18800"
     depends_on:
       seekdb:
         condition: service_healthy
       powercontext:
         condition: service_healthy
+    healthcheck:
+      # 首次调用 /api/health 会加载 ONNX 模型（镜像内已预下载），需要几十秒
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18800/api/health', timeout=15)"]
+      interval: 15s
+      timeout: 15s
+      retries: 20
+      start_period: 60s
 
 volumes:
   seekdb-data:
