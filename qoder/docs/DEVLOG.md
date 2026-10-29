@@ -507,3 +507,79 @@
 - 5 张功能截图和 `media/demo.mp4` 待提供（占位机制已就位，放入文件即显示）。
 - 会话 05b 重新导出后只需替换 `site/data/sample-coverage.json`，网站代码不用改（排序与渲染均自适应该文件结构）。
 - 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。
+
+## 会话 09c — 网站第二轮审阅问题修复（2026-10-29）
+
+产品负责人第二轮逐段审阅（1440px / 375px）提出 4 类问题，本会话逐条修复。会话 09b 之后 `site/data/` 已由产品负责人更新：`sample-coverage.json` 换成会话 05b 之后的导出（盲区按分数排序、判定理由新措辞），`qoder-sessions.json` 用 `scripts/build_site_data.py` 从最新 CREDITS 生成（17 行）；本会话不改 `site/data/`、不重新生成 CREDITS。规则同前：只改 `site/`（data/ 除外）与 DEVLOG；只用 18808 端口；结束关掉预览服务器；不发布。本会话模型 GLM-5.3。
+
+### A. 修复内容
+
+1. **会话表**（`index.html` + `style.css` + `main.js`）：
+   - 桌面：`table-layout: fixed` 下为除标题外的五列显式定宽（# 48px、模型 142px、轮数 62px、耗时 92px、Credits 92px），剩余宽度全部给"会话内容"，其余列全部单行。
+   - 手机（≤700px，与盲区清单同断点）：表格隐藏，`#sessions-cards` 每个会话一张卡片（编号、会话内容、模型、轮数、耗时、Credits），卡片下方一张合计卡；与盲区卡片同一套样式模式。
+   - 反引号：新增 `inlineCode()`——先 `esc()` 转义 HTML，再把成对反引号替换为 `<code>…</code>`（不引入新库）；表格与卡片两套视图共用。
+2. **复习教练介绍**按实际实现改写为三条：配置大模型时出选择题和简答题；没配置大模型时，从这个知识点找到考点词的笔记段落里挖空出填空题；资料里没有的知识点（判定为缺失）用往年原题自测，自评"会 / 模糊 / 不会"。其余条目（标明出处、Leitner）不变。
+3. **页脚**ECharts 5.6.1 → 5.6.0。`echarts.min.js` 里 `version:"5.6.1"` 是内嵌 zrender 的版本号，echarts 本体是 `version="5.6.0"`（浏览器里 `echarts.version` 实测 5.6.0）。
+4. **cmd-links 空隙**：根因是 `.cmd-links a { margin-right: 18px }`——两个链接中间隔着正文"和"字，README 链接的右边距正好落在"README"和"和"之间（375px 量测：README 右缘 193、VALIDATION 左缘 232，间隙 39px，其中 18px 是该边距）。删掉该边距后间隙 4px，链接间距由正文空格承担。
+
+### B. 遇到的问题和解决办法
+
+1. **`.sessions-cards { display: none }` 盖掉了媒体查询**：基础规则写在 700px 媒体查询之后，同优先级下后者胜出，导致窄屏表格隐藏了、卡片却显示不出来（clientWidth 全为 0）。把会话表的移动规则移到基础规则之后解决。
+2. **权重比对的假失败**：JSON 里 `exam_weight` 是 25.0 / 10.0 / 5.0 浮点，页面 JS 字符串拼接显示 "25"，检查脚本用 Python `str()` 得 "25.0"。按 JS 数字转字符串规则（整数值去掉小数点）比对后通过。
+3. **手机盲区逐行核对误报**：最初只取 `.bc-head` 的文本（不含覆盖度等统计块），改为取整张卡片的 innerText。
+
+### C. 验收量测结果（`.cache/scratch/check_09c.py`，桌面 1440×900 与手机 375×812，全部 DOM / ECharts 接口量测）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 会话表桌面：非"会话内容"列单行 | 17 行 × 5 列，用 `Range.selectNodeContents` 量文本高度，0 个超过 24px 的单元格 |
+| 会话表桌面："会话内容"列宽度 | 583px / 表格 1020px = 57.2%（≥ 45%） |
+| 会话表手机：卡片化 | 17 张卡片（`.sessions-table-wrap` computed display = none）；卡片内会话内容文字宽度全部 301px（≥ 280px）；卡片及卡内数字元素 `scrollWidth ≤ clientWidth`，0 处裁切 |
+| 会话表合计 | 桌面合计行 17 / 1143 / 3974.82；手机合计卡"合计 17 条记录 · 1143 轮 · 3974.82 Credits"；均与 `qoder-sessions.json` 的 totals 一致 |
+| 反引号渲染 | 页面 innerText 反引号 0 个；`--allowed-tools`、`usage.credits`、`duration_ms`、`get_latest()`、`scripts/e2e_verify.py`、`docs/VALIDATION.md`、`site/data/` 共 8 条标题渲染出 `<code>` 元素（表格 + 卡片两视图共 16 个） |
+| echarts 版本 | 两宽度下 `echarts.version` = "5.6.0"，页脚"ECharts 5.6.0（Apache-2.0）"，一致 |
+| 盲区清单 | 第一名 t04 函数依赖与范式（3NF、BCNF）· 缺失 · 0.0000 · 25 分 · 盲区 25.00；10 个知识点的判定、覆盖度、分值、盲区分值、判定理由逐行与 `sample-coverage.json` 原样一致（两宽度各核对一遍，含逐行展开）；手机 10 张卡片 |
+| cmd-links 间隙 | README 与"和"之间 4px（两宽度） |
+| 09b 检查项复验 | 横向溢出 0（两宽度）；雷达 SVG 轴标签越界 0（桌面 17 个、手机 24 个标签全部在容器内）；视频占位两态正常（缺失 → display none + 占位可见，模拟存在 → 播放器可见）；使用效果三种数据注入各自只显示对应一块、真实 collecting 文件 0 个数字块；无外部请求（30 条全部指向 127.0.0.1:18808）；控制台仅 14 条预期 404（5 张待补截图 + demo.mp4 探测）；`site/` 体积 1164 KB（< 3MB） |
+| 隐私 grep | 邮箱 0；`/Users/` 0；password / secret / api_key / sk- 0；token 仅 marked.min.js 22 处 + echarts.min.js 1 处（库自身词法分析术语，同 09b） |
+| 截图 | `.cache/scratch/site-09c-desktop.png`、`site-09c-mobile.png`，已用 Read 查看：本会话环境读取截图得到的仍是与页面完全不符的描述（桌面被描述成"开发者文档门户"、手机被描述成招聘页面），目视核对无法进行（同会话 09 / 09b 现象），以上 DOM / ECharts 量测代替 |
+
+### D. 改动的文件
+
+`site/index.html`（复习教练三条文案、`#sessions-cards` 容器、页脚版本号）、`site/assets/style.css`（会话表列宽、移动卡片样式及其媒体查询、去掉 `.cmd-links a` 的 margin-right）、`site/assets/main.js`（`inlineCode()`、会话卡片与合计卡渲染、E 节的 `wrapAxisLabel()` 重写）、`docs/DEVLOG.md`（本节）。检查脚本 `.cache/scratch/check_09c.py`（复制自 `check_09b.py` 扩展）与 `.cache/scratch/check_09c_radar.py`（E 节轴标签量测）。
+
+### E. 追加修复：雷达轴标签折行拆开英文缩写（同日第二轮反馈）
+
+**问题**：375px 下旧算法按"每行最多 8 个字"硬折行，拆到了缩写中间（"WAL 与 AR / IES"、"隔离级别与 MV / CC"、"（3NF、BCN / F）"）。
+
+**修法**（`main.js` 的 `wrapAxisLabel` 重写，规则同会话 05b 的应用内雷达图）：标签先切成不可拆的 token——连续的 ASCII 字母数字（WAL、ARIES、MVCC、2PC、3NF、BCNF、ACID、B+树里的 B）作为一个整体；只在"："后、"（"前、"与"后、空格处换行；行宽按 CJK=1、ASCII=0.55、空格=0.3 估算（宽屏预算 11、窄屏 8）；某 token 放不下时回退到行内最近一个软断点（"与"后或空格处）换行，没有合法断点才允许溢行。本次量测所有行都在容器内，无需缩小半径或字号（该分支保留：真溢出时以容器量测为准再调）。
+
+**换行结果**（两宽度逐个知识点核对，`/` 为换行）：
+
+| 知识点 | 桌面 1440 | 手机 375 |
+| --- | --- | --- |
+| 函数依赖与范式（3NF、BCNF） | 函数依赖与范式 / （3NF、BCNF） | 函数依赖与范式 / （3NF、BCNF） |
+| 隔离级别与 MVCC | 单行 | 单行 |
+| SQL 查询与视图 | 单行 | 单行 |
+| 关系模型与关系代数 | 单行 | 关系模型与 / 关系代数 |
+| 查询处理与优化 | 单行 | 单行 |
+| 分布式事务与两阶段提交（2PC） | 分布式事务与两阶段提交 / （2PC） | 分布式事务与 / 两阶段提交 / （2PC） |
+| 索引：B+树与哈希索引 | 索引： / B+树与哈希索引 | 索引： / B+树与哈希索引 |
+| 事务的 ACID 特性 | 单行 | 单行 |
+| 并发控制：两阶段锁与死锁 | 并发控制： / 两阶段锁与死锁 | 并发控制： / 两阶段锁与死锁 |
+| 故障恢复：WAL 与 ARIES | 故障恢复： / WAL 与 ARIES | 故障恢复： / WAL 与 ARIES |
+
+**量测结果**（`.cache/scratch/check_09c_radar.py`，从 `echarts.getInstanceByDom` 取各标签的换行名，再按行文本匹配 SVG text/tspan 元素量 rect）：
+
+| 验收项 | 结果 |
+| --- | --- |
+| 每行都在图表容器内 | 桌面与手机越界均为 0；09b 的"全部 SVG 文本在容器内"复验同过（桌面 17 个、手机 19 个文本元素，0 越界——折行更合理后多行文本元素从 24 降到 19） |
+| 与图例不相交 | 0 处相交（图例文本矩形左右各扩 26px 计色块）；最近的轴标签底线与图例顶线相距桌面 33px、手机 73px |
+| 换行点不拆 ASCII 词 | 逐对检查相邻两行的末字符/首字符，"两个都是 ASCII 字母或数字"的断点 0 个；WAL、ARIES、MVCC、2PC、3NF、BCNF、ACID 均完整出现在单行内 |
+| 回归 | `check_09c.py` 全项复跑通过（横向溢出、会话表、盲区逐行核对、echarts 版本、cmd-links、视频、使用效果、网络、控制台均不变） |
+| 截图 | `.cache/scratch/site-09c2-desktop.png`、`site-09c2-mobile.png`，已用 Read 查看：得到的仍是与页面完全不符的描述（桌面被描述成"ExamMaster 技术文档"、手机被描述成 Pandora 帮助中心），目视核对无法进行（同前三次现象），以上 DOM / ECharts 量测代替 |
+
+### F. 未做（留给产品负责人/后续会话）
+
+- 5 张功能截图和 `media/demo.mp4` 待提供（占位机制已就位，放入文件即显示）。
+- 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。

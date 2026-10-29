@@ -149,7 +149,9 @@ window.imgFallback = function (img) {
         <h3>复习教练</h3>
         <p>只从你自己的资料里出题，优先针对薄弱、缺失和到期复习的知识点。</p>
         <ul>
-          <li>出题、判分都标明出自哪份资料哪一页；配置大模型时生成选择 / 填空 / 简答题，未配置时从笔记原句挖空，功能完整；</li>
+          <li>出题、判分都标明出自哪份资料哪一页；</li>
+          <li>配置大模型时出选择题和简答题；没配置大模型时，从这个知识点找到考点词的笔记段落里挖空，出填空题；</li>
+          <li>资料里没有的知识点（判定为缺失）用往年原题自测，学习者自评“会 / 模糊 / 不会”；</li>
           <li>Leitner 间隔复习：5 个盒子、间隔 1 / 2 / 4 / 7 / 14 天，答对升级、答错回 1 号盒。</li>
         </ul>
       </div>
@@ -345,6 +347,7 @@ window.imgFallback = function (img) {
         </tfoot>
       </table>
     </div>
+    <div id="sessions-cards" class="sessions-cards"></div>
 
     <div class="split-note">
       <div class="split-card">
@@ -403,7 +406,7 @@ window.imgFallback = function (img) {
       </div>
       <div>
         <h4>第三方组件</h4>
-        <p>ECharts 5.6.1（Apache-2.0）</p>
+        <p>ECharts 5.6.0（Apache-2.0）</p>
         <p>marked.js v15.0.12（MIT）</p>
         <p>均从本地文件加载，本站无外部 CDN 请求。</p>
       </div>

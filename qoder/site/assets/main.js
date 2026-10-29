@@ -35,6 +35,11 @@
     }
   }
 
+  /* paired backticks -> inline code; escape HTML first so the code span itself stays safe */
+  function inlineCode(s) {
+    return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+
   function levelBadge(level) {
     return level && LEVEL_LABEL[level]
       ? '<span class="badge ' + level + '">' + LEVEL_LABEL[level] + "</span>"
@@ -113,14 +118,48 @@
     return names;
   }
 
+  /* axis labels wrap only at ：、与、（ and spaces — ASCII words (WAL / MVCC /
+     3NF …) are never split. ： and （ are hard breaks; a line that would still
+     overflow backtracks to the last soft break (after 与 or a space). */
   function wrapAxisLabel(name, maxLine) {
     var s = String(name == null ? "" : name);
     if (!s) return "";
-    var out = s.replace(/：/g, "：\n").replace(/（/g, "\n（");
-    return out.split("\n").map(function (line) {
-      if (line.length <= maxLine) return line;
-      return line.match(new RegExp(".{1," + maxLine + "}", "g")).join("\n");
-    }).join("\n");
+    var tokens = s.match(/[A-Za-z0-9]+|[^A-Za-z0-9]/g) || [];
+    var widthOf = function (t) {
+      var w = 0;
+      for (var i = 0; i < t.length; i++)
+        w += t.charAt(i) === " " ? 0.3 : (t.charCodeAt(i) < 128 ? 0.55 : 1);
+      return w;
+    };
+    var lines = [];
+    var cur = "";
+    var curW = 0;
+    var mark = -1; /* index in cur where a soft break is allowed */
+    var prevTok = "";
+    tokens.forEach(function (tok) {
+      if (tok === " ") {
+        if (cur !== "") { cur += " "; curW += 0.3; mark = cur.length - 1; }
+        return;
+      }
+      var w = widthOf(tok);
+      if (cur !== "" && (tok === "（" || prevTok === "：")) {
+        lines.push(cur);
+        cur = ""; curW = 0; mark = -1;
+      } else if (cur !== "" && curW + w > maxLine) {
+        if (mark > 0) {
+          lines.push(cur.slice(0, mark));
+          cur = cur.slice(mark).replace(/^ /, "");
+          curW = widthOf(cur);
+          mark = -1;
+        } /* else: no allowed break point — the container measurement is the real limit */
+      }
+      cur += tok;
+      curW += w;
+      if (tok === "：" || tok === "与") mark = cur.length;
+      prevTok = tok;
+    });
+    if (cur !== "" || lines.length === 0) lines.push(cur);
+    return lines.join("\n");
   }
 
   function renderRadarChart(data) {
@@ -373,23 +412,38 @@
           return;
         }
         var html = "";
+        var cardsHtml = "";
         data.rows.forEach(function (r) {
           var modelCls = /GLM/i.test(r.model || "") ? "model-tag glm" : "model-tag";
           html +=
             "<tr>" +
             "<td>" + esc(r.id == null ? "—" : r.id) + "</td>" +
-            '<td class="title-cell">' + esc(r.title || "—") + "</td>" +
+            '<td class="title-cell">' + inlineCode(r.title || "—") + "</td>" +
             "<td class=" + JSON.stringify(modelCls) + ">" + esc(r.model || "—") + "</td>" +
             '<td class="num">' + (r.turns == null ? "—" : r.turns) + "</td>" +
             "<td>" + esc(r.duration || "—") + "</td>" +
             '<td class="num">' + fmtCredits(r.credits) + "</td>" +
             "</tr>";
+          cardsHtml +=
+            '<div class="session-card">' +
+            '<div class="sc-head"><span class="sc-id">会话 ' + esc(r.id == null ? "—" : r.id) + "</span>" +
+            '<span class="' + modelCls + '">' + esc(r.model || "—") + "</span></div>" +
+            '<div class="sc-title">' + inlineCode(r.title || "—") + "</div>" +
+            '<div class="sc-stats">' +
+            "<div><b>" + (r.turns == null ? "—" : r.turns) + "</b>轮数</div>" +
+            "<div><b>" + esc(r.duration || "—") + "</b>耗时</div>" +
+            "<div><b>" + fmtCredits(r.credits) + "</b>Credits</div>" +
+            "</div></div>";
         });
         wrap.innerHTML = html;
         var t = data.totals || {};
         document.getElementById("total-rows").textContent = t.rows != null ? t.rows : "—";
         document.getElementById("total-turns").textContent = t.turns != null ? t.turns : "—";
         document.getElementById("total-credits").textContent = t.credits != null ? fmtCredits(t.credits) : "—";
+        cardsHtml += '<div class="session-total">合计 ' + (t.rows != null ? t.rows : "—") +
+          " 条记录 · " + (t.turns != null ? t.turns : "—") +
+          " 轮 · " + (t.credits != null ? fmtCredits(t.credits) : "—") + " Credits</div>";
+        document.getElementById("sessions-cards").innerHTML = cardsHtml;
       })
       .catch(function () {
         document.getElementById("sessions-body").innerHTML =

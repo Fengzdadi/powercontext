@@ -239,7 +239,7 @@ table.blind tr.row-detail > td { padding: 0; border-bottom: 1px solid var(--line
 .cmd-block .cmt { color: #6f81a3; }
 .cmd-links { font-size: 14px; }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.cmd-links a { color: var(--primary); text-decoration: none; margin-right: 18px; }
+.cmd-links a { color: var(--primary); text-decoration: none; }
 .cmd-links a:hover { text-decoration: underline; }
 
 /* ---------- video ---------- */
@@ -259,12 +259,42 @@ table.sessions { width: 100%; border-collapse: collapse; background: var(--card)
 table.sessions { table-layout: fixed; }
 table.sessions th, table.sessions td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 table.sessions th { background: #f0f4fa; font-size: 13px; }
+/* fixed layout: every column but the title gets just the width it needs,
+   the remainder goes to the title column */
+table.sessions th:nth-child(1) { width: 48px; }
+table.sessions th:nth-child(3) { width: 142px; }
+table.sessions th:nth-child(4) { width: 62px; }
+table.sessions th:nth-child(5) { width: 92px; }
+table.sessions th:nth-child(6) { width: 92px; }
 table.sessions td.title-cell { white-space: normal; overflow-wrap: anywhere; }
 table.sessions td.num, table.sessions th.num { text-align: right; white-space: nowrap; }
 table.sessions tr.total td { background: #f0f4fa; font-weight: 700; border-bottom: none; }
-table.sessions td.title-cell { min-width: 260px; }
 .model-tag { white-space: nowrap; }
 .model-tag.glm { color: #9333ea; font-weight: 600; }
+
+/* mobile: one card per session instead of the table */
+.sessions-cards { display: none; }
+.session-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 13px 16px; margin-bottom: 12px; overflow: hidden;
+}
+.session-card .sc-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.session-card .sc-id { font-weight: 700; color: var(--primary); font-size: 14px; }
+.session-card .sc-title { font-size: 14.5px; margin: 7px 0 10px; overflow-wrap: anywhere; }
+.session-card .sc-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  font-size: 12.5px; color: var(--ink-faint);
+}
+.session-card .sc-stats b { display: block; font-size: 15px; color: var(--ink); font-weight: 700; white-space: nowrap; }
+.session-total {
+  background: #f0f4fa; border-radius: var(--radius); padding: 12px 16px;
+  font-weight: 700; font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .sessions-table-wrap { display: none; }
+  .sessions-cards { display: block; }
+}
 
 .split-note {
   display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 26px 0 18px;
