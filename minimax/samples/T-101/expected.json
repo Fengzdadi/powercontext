@@ -1,0 +1,21 @@
+{
+  "task": "T-101",
+  "specs": {
+    "target": ["CAT-007", "CAT-008"],
+    "required": ["API-002", "API-003", "API-004", "CAT-004", "DATA-001"]
+  },
+  "code": {
+    "to_change": ["library/catalog.py::search_books", "library/api/handlers.py::list_books"],
+    "required": ["library/api/params.py::parse_bool", "library/api/params.py::parse_int"]
+  },
+  "tests": {
+    "target_files": ["tests/test_api_books_filters.py"],
+    "regression_files": ["tests/test_api_books.py", "tests/test_catalog_search.py", "tests/test_api_params.py"]
+  },
+  "spec_update": {
+    "spec": "CAT-007",
+    "file": "specs/catalog.md",
+    "find": "- `available=yes` 返回 400 `invalid_parameter`，`field` 为 `available`。\n",
+    "added_text": "- 只有维修中（`repair`）或遗失（`lost`）副本的图书不算可借：`available=true` 不返回它们，`available=false` 返回它们。\n"
+  }
+}

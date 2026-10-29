@@ -1,0 +1,13 @@
+# sddctx 导入这个工程时读取的清单：工程标识、资料位置和追溯约定。
+[project]
+id = "campus-library"
+name = "校园图书馆借阅服务"
+
+[sources]
+specs = ["specs/*.md"]
+code = ["library/**/*.py"]
+tests = ["tests/test_*.py"]
+
+[rules]
+# 实现者（MiniMax 开发助手）只能修改 code 下的文件；这些路径只读。
+read_only = ["specs/**", "tests/**", "sdd.toml", "pyproject.toml"]

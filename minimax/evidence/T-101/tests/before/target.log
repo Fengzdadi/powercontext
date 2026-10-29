@@ -1,0 +1,496 @@
+# label: target
+# command: python -m pytest -q -rfE -p no:cacheprovider --junitxml=runs/T-101/tests/before/target.junit.xml tests/test_api_books_filters.py::test_available_true_returns_only_books_with_copies_on_shelf tests/test_api_books_filters.py::test_available_false_returns_only_books_without_copies_on_shelf tests/test_api_books_filters.py::test_available_accepts_true_spellings tests/test_api_books_filters.py::test_available_accepts_false_spellings tests/test_api_books_filters.py::test_invalid_available_value_is_rejected tests/test_api_books_filters.py::test_year_range_is_inclusive tests/test_api_books_filters.py::test_single_year_range tests/test_api_books_filters.py::test_year_from_alone tests/test_api_books_filters.py::test_year_to_alone tests/test_api_books_filters.py::test_non_integer_year_is_rejected tests/test_api_books_filters.py::test_year_from_after_year_to_is_rejected tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_category tests/test_api_books_filters.py::test_filters_apply_before_pagination tests/test_api_books_filters.py::test_filters_apply_before_sorting tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns
+# cwd: runs/T-101/snapshots/before
+# code_version: d8b4de84b1a3
+# tree_sha256: 8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009
+# started_at: 2026-10-29T02:23:17.147+00:00
+# seconds: 0.21
+# exit_code: 1
+# result: 0 passed, 25 failed，exit 1；断言失败 25，其他问题 0
+FFFFFFFFFFFFFFFFFFFFFFFFF                                                [100%]
+=================================== FAILURES ===================================
+_________ test_available_true_returns_only_books_with_copies_on_shelf __________
+
+client = <conftest.TestClient object at 0xffffab2656d0>
+
+    @pytest.mark.spec("CAT-007", "DATA-001")
+    def test_available_true_returns_only_books_with_copies_on_shelf(client):
+        response = client.get("/books?available=true&page_size=50")
+        assert response.status == 200
+>       assert ids(response) == AVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B001', 'B00..., 'B010', ...]
+E         
+E         At index 1 diff: 'B002' != 'B003'
+E         Left contains 7 more items, first extra item: 'B010'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:25: AssertionError
+_______ test_available_false_returns_only_books_without_copies_on_shelf ________
+
+client = <conftest.TestClient object at 0xffffab26dd30>
+
+    @pytest.mark.spec("CAT-007", "DATA-001")
+    def test_available_false_returns_only_books_without_copies_on_shelf(client):
+        response = client.get("/books?available=false&page_size=50")
+        assert response.status == 200
+>       assert ids(response) == UNAVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B002', 'B00..., 'B013', ...]
+E         
+E         At index 0 diff: 'B001' != 'B002'
+E         Left contains 9 more items, first extra item: 'B008'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:34: AssertionError
+_________________ test_available_accepts_true_spellings[TRUE] __________________
+
+client = <conftest.TestClient object at 0xffffab297fb0>, raw = 'TRUE'
+
+    @pytest.mark.spec("CAT-007", "API-003")
+    @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
+    def test_available_accepts_true_spellings(client, raw):
+>       assert ids(client.get(f"/books?available={raw}&page_size=50")) == AVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B001', 'B00..., 'B010', ...]
+E         
+E         At index 1 diff: 'B002' != 'B003'
+E         Left contains 7 more items, first extra item: 'B010'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:42: AssertionError
+_________________ test_available_accepts_true_spellings[True] __________________
+
+client = <conftest.TestClient object at 0xffffab397590>, raw = 'True'
+
+    @pytest.mark.spec("CAT-007", "API-003")
+    @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
+    def test_available_accepts_true_spellings(client, raw):
+>       assert ids(client.get(f"/books?available={raw}&page_size=50")) == AVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B001', 'B00..., 'B010', ...]
+E         
+E         At index 1 diff: 'B002' != 'B003'
+E         Left contains 7 more items, first extra item: 'B010'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:42: AssertionError
+___________________ test_available_accepts_true_spellings[1] ___________________
+
+client = <conftest.TestClient object at 0xffffab2674a0>, raw = '1'
+
+    @pytest.mark.spec("CAT-007", "API-003")
+    @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
+    def test_available_accepts_true_spellings(client, raw):
+>       assert ids(client.get(f"/books?available={raw}&page_size=50")) == AVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B001', 'B00..., 'B010', ...]
+E         
+E         At index 1 diff: 'B002' != 'B003'
+E         Left contains 7 more items, first extra item: 'B010'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:42: AssertionError
+______________ test_available_accepts_true_spellings[%20true%20] _______________
+
+client = <conftest.TestClient object at 0xffffab0b7110>, raw = '%20true%20'
+
+    @pytest.mark.spec("CAT-007", "API-003")
+    @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
+    def test_available_accepts_true_spellings(client, raw):
+>       assert ids(client.get(f"/books?available={raw}&page_size=50")) == AVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B001', 'B00..., 'B010', ...]
+E         
+E         At index 1 diff: 'B002' != 'B003'
+E         Left contains 7 more items, first extra item: 'B010'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:42: AssertionError
+________________ test_available_accepts_false_spellings[FALSE] _________________
+
+client = <conftest.TestClient object at 0xffffab0c1e20>, raw = 'FALSE'
+
+    @pytest.mark.spec("CAT-007", "API-003")
+    @pytest.mark.parametrize("raw", ["FALSE", "0"])
+    def test_available_accepts_false_spellings(client, raw):
+>       assert ids(client.get(f"/books?available={raw}&page_size=50")) == UNAVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B002', 'B00..., 'B013', ...]
+E         
+E         At index 0 diff: 'B001' != 'B002'
+E         Left contains 9 more items, first extra item: 'B008'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:48: AssertionError
+__________________ test_available_accepts_false_spellings[0] ___________________
+
+client = <conftest.TestClient object at 0xffffab1447a0>, raw = '0'
+
+    @pytest.mark.spec("CAT-007", "API-003")
+    @pytest.mark.parametrize("raw", ["FALSE", "0"])
+    def test_available_accepts_false_spellings(client, raw):
+>       assert ids(client.get(f"/books?available={raw}&page_size=50")) == UNAVAILABLE
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B002', 'B00..., 'B013', ...]
+E         
+E         At index 0 diff: 'B001' != 'B002'
+E         Left contains 9 more items, first extra item: 'B008'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:48: AssertionError
+________________ test_invalid_available_value_is_rejected[yes] _________________
+
+client = <conftest.TestClient object at 0xffffab14a870>, raw = 'yes'
+
+    @pytest.mark.spec("CAT-007", "API-002", "API-003")
+    @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
+    def test_invalid_available_value_is_rejected(client, raw):
+>       assert_invalid(client.get(f"/books?available={raw}"), "available")
+
+tests/test_api_books_filters.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'available'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+__________________ test_invalid_available_value_is_rejected[] __________________
+
+client = <conftest.TestClient object at 0xffffab2b9fd0>, raw = ''
+
+    @pytest.mark.spec("CAT-007", "API-002", "API-003")
+    @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
+    def test_invalid_available_value_is_rejected(client, raw):
+>       assert_invalid(client.get(f"/books?available={raw}"), "available")
+
+tests/test_api_books_filters.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'available'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+_________________ test_invalid_available_value_is_rejected[2] __________________
+
+client = <conftest.TestClient object at 0xffffab16cc20>, raw = '2'
+
+    @pytest.mark.spec("CAT-007", "API-002", "API-003")
+    @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
+    def test_invalid_available_value_is_rejected(client, raw):
+>       assert_invalid(client.get(f"/books?available={raw}"), "available")
+
+tests/test_api_books_filters.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'available'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+_________________ test_invalid_available_value_is_rejected[on] _________________
+
+client = <conftest.TestClient object at 0xffffaae53770>, raw = 'on'
+
+    @pytest.mark.spec("CAT-007", "API-002", "API-003")
+    @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
+    def test_invalid_available_value_is_rejected(client, raw):
+>       assert_invalid(client.get(f"/books?available={raw}"), "available")
+
+tests/test_api_books_filters.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'available'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+_________________________ test_year_range_is_inclusive _________________________
+
+client = <conftest.TestClient object at 0xffffaae536e0>
+
+    @pytest.mark.spec("CAT-008")
+    def test_year_range_is_inclusive(client):
+        response = client.get("/books?year_from=2000&year_to=2015&page_size=50")
+        assert response.status == 200
+>       assert ids(response) == ["B002", "B003", "B009", "B012", "B014", "B016"]
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B002', 'B00...B014', 'B016']
+E         
+E         At index 0 diff: 'B001' != 'B002'
+E         Left contains 10 more items, first extra item: 'B007'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:61: AssertionError
+____________________________ test_single_year_range ____________________________
+
+client = <conftest.TestClient object at 0xffffaaed1970>
+
+    @pytest.mark.spec("CAT-008")
+    def test_single_year_range(client):
+>       assert ids(client.get("/books?year_from=2015&year_to=2015")) == ["B002", "B016"]
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B002', 'B016']
+E         
+E         At index 0 diff: 'B001' != 'B002'
+E         Left contains 8 more items, first extra item: 'B003'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:66: AssertionError
+_____________________________ test_year_from_alone _____________________________
+
+client = <conftest.TestClient object at 0xffffaaeac1a0>
+
+    @pytest.mark.spec("CAT-008")
+    def test_year_from_alone(client):
+>       assert ids(client.get("/books?year_from=2016")) == ["B001", "B004"]
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B001', 'B004']
+E         
+E         At index 1 diff: 'B002' != 'B004'
+E         Left contains 8 more items, first extra item: 'B003'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:71: AssertionError
+______________________________ test_year_to_alone ______________________________
+
+client = <conftest.TestClient object at 0xffffaae5bfe0>
+
+    @pytest.mark.spec("CAT-008")
+    def test_year_to_alone(client):
+>       assert ids(client.get("/books?year_to=1950")) == ["B006", "B007"]
+E       AssertionError: assert ['B001', 'B00..., 'B006', ...] == ['B006', 'B007']
+E         
+E         At index 0 diff: 'B001' != 'B006'
+E         Left contains 8 more items, first extra item: 'B003'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:76: AssertionError
+__________ test_non_integer_year_is_rejected[year_from=abc-year_from] __________
+
+client = <conftest.TestClient object at 0xffffaaed3e90>, query = 'year_from=abc'
+field = 'year_from'
+
+    @pytest.mark.spec("CAT-008", "API-002", "API-004")
+    @pytest.mark.parametrize(
+        ("query", "field"),
+        [
+            ("year_from=abc", "year_from"),
+            ("year_from=2000.5", "year_from"),
+            ("year_to=20x5", "year_to"),
+            ("year_to=", "year_to"),
+        ],
+    )
+    def test_non_integer_year_is_rejected(client, query, field):
+>       assert_invalid(client.get(f"/books?{query}"), field)
+
+tests/test_api_books_filters.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'year_from'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+________ test_non_integer_year_is_rejected[year_from=2000.5-year_from] _________
+
+client = <conftest.TestClient object at 0xffffaae51220>
+query = 'year_from=2000.5', field = 'year_from'
+
+    @pytest.mark.spec("CAT-008", "API-002", "API-004")
+    @pytest.mark.parametrize(
+        ("query", "field"),
+        [
+            ("year_from=abc", "year_from"),
+            ("year_from=2000.5", "year_from"),
+            ("year_to=20x5", "year_to"),
+            ("year_to=", "year_to"),
+        ],
+    )
+    def test_non_integer_year_is_rejected(client, query, field):
+>       assert_invalid(client.get(f"/books?{query}"), field)
+
+tests/test_api_books_filters.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'year_from'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+___________ test_non_integer_year_is_rejected[year_to=20x5-year_to] ____________
+
+client = <conftest.TestClient object at 0xffffab2b9a60>, query = 'year_to=20x5'
+field = 'year_to'
+
+    @pytest.mark.spec("CAT-008", "API-002", "API-004")
+    @pytest.mark.parametrize(
+        ("query", "field"),
+        [
+            ("year_from=abc", "year_from"),
+            ("year_from=2000.5", "year_from"),
+            ("year_to=20x5", "year_to"),
+            ("year_to=", "year_to"),
+        ],
+    )
+    def test_non_integer_year_is_rejected(client, query, field):
+>       assert_invalid(client.get(f"/books?{query}"), field)
+
+tests/test_api_books_filters.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'year_to'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+_____________ test_non_integer_year_is_rejected[year_to=-year_to] ______________
+
+client = <conftest.TestClient object at 0xffffab16c410>, query = 'year_to='
+field = 'year_to'
+
+    @pytest.mark.spec("CAT-008", "API-002", "API-004")
+    @pytest.mark.parametrize(
+        ("query", "field"),
+        [
+            ("year_from=abc", "year_from"),
+            ("year_from=2000.5", "year_from"),
+            ("year_to=20x5", "year_to"),
+            ("year_to=", "year_to"),
+        ],
+    )
+    def test_non_integer_year_is_rejected(client, query, field):
+>       assert_invalid(client.get(f"/books?{query}"), field)
+
+tests/test_api_books_filters.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'year_to'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+___________________ test_year_from_after_year_to_is_rejected ___________________
+
+client = <conftest.TestClient object at 0xffffab14a0c0>
+
+    @pytest.mark.spec("CAT-008", "API-002")
+    def test_year_from_after_year_to_is_rejected(client):
+>       assert_invalid(client.get("/books?year_from=2020&year_to=2010"), "year_from")
+
+tests/test_api_books_filters.py:95: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]})
+field = 'year_from'
+
+    def assert_invalid(response, field):
+>       assert response.status == 400
+E       AssertionError: assert 200 == 400
+E        +  where 200 = Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '1321'}, json={'tot...': 0}, {'id': 'B010', 'title': '百年孤独', 'author': '加西亚·马尔克斯', 'category': 'lit', 'year': 1967, 'copies_available': 1}]}).status
+
+tests/test_api_books_filters.py:16: AssertionError
+________________ test_filters_combine_with_keyword_and_category ________________
+
+client = <conftest.TestClient object at 0xffffab146780>
+
+    @pytest.mark.spec("CAT-007", "CAT-008", "CAT-001", "CAT-002")
+    def test_filters_combine_with_keyword_and_category(client):
+>       assert ids(client.get("/books?available=true&category=cs")) == ["B001", "B003", "B005"]
+E       AssertionError: assert ['B001', 'B00...B004', 'B005'] == ['B001', 'B003', 'B005']
+E         
+E         At index 1 diff: 'B002' != 'B003'
+E         Left contains 2 more items, first extra item: 'B004'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:100: AssertionError
+_____________________ test_filters_apply_before_pagination _____________________
+
+client = <conftest.TestClient object at 0xffffab0c23f0>
+
+    @pytest.mark.spec("CAT-007", "CAT-004")
+    def test_filters_apply_before_pagination(client):
+        first = client.get("/books?available=true&page_size=4")
+>       assert first.json["total"] == 9
+E       assert 16 == 9
+
+tests/test_api_books_filters.py:109: AssertionError
+______________________ test_filters_apply_before_sorting _______________________
+
+client = <conftest.TestClient object at 0xffffab262a50>
+
+    @pytest.mark.spec("CAT-007", "CAT-003")
+    def test_filters_apply_before_sorting(client):
+        response = client.get("/books?available=false&sort=-year&page_size=50")
+>       assert ids(response) == ["B004", "B002", "B012", "B009", "B015", "B013", "B007"]
+E       AssertionError: assert ['B004', 'B00..., 'B014', ...] == ['B004', 'B00..., 'B013', ...]
+E         
+E         At index 1 diff: 'B001' != 'B002'
+E         Left contains 9 more items, first extra item: 'B003'
+E         Use -v to get more diff
+
+tests/test_api_books_filters.py:119: AssertionError
+_______________ test_available_filter_follows_loans_and_returns ________________
+
+client = <conftest.TestClient object at 0xffffab0b7b00>
+
+    @pytest.mark.spec("CAT-007", "DATA-001", "LOAN-001", "LOAN-004")
+    def test_available_filter_follows_loans_and_returns(client):
+        loan = client.post("/loans", {"member_id": "M002", "copy_id": "C021"}).json["loan"]  # B016 唯一的副本
+>       assert "B016" not in ids(client.get("/books?available=true&page_size=50"))
+E       AssertionError: assert 'B016' not in ['B001', 'B002', 'B003', 'B004', 'B005', 'B006', ...]
+E        +  where ['B001', 'B002', 'B003', 'B004', 'B005', 'B006', ...] = ids(Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '2099'}, json={'tot...': 'B016', 'title': '线性代数应该这样学', 'author': 'Sheldon Axler', 'category': 'math', 'year': 2015, 'copies_available': 0}]}))
+E        +    where Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '2099'}, json={'tot...': 'B016', 'title': '线性代数应该这样学', 'author': 'Sheldon Axler', 'category': 'math', 'year': 2015, 'copies_available': 0}]}) = get('/books?available=true&page_size=50')
+E        +      where get = <conftest.TestClient object at 0xffffab0b7b00>.get
+
+tests/test_api_books_filters.py:125: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_api_books_filters.py::test_available_true_returns_only_books_with_copies_on_shelf
+FAILED tests/test_api_books_filters.py::test_available_false_returns_only_books_without_copies_on_shelf
+FAILED tests/test_api_books_filters.py::test_available_accepts_true_spellings[TRUE]
+FAILED tests/test_api_books_filters.py::test_available_accepts_true_spellings[True]
+FAILED tests/test_api_books_filters.py::test_available_accepts_true_spellings[1]
+FAILED tests/test_api_books_filters.py::test_available_accepts_true_spellings[%20true%20]
+FAILED tests/test_api_books_filters.py::test_available_accepts_false_spellings[FALSE]
+FAILED tests/test_api_books_filters.py::test_available_accepts_false_spellings[0]
+FAILED tests/test_api_books_filters.py::test_invalid_available_value_is_rejected[yes]
+FAILED tests/test_api_books_filters.py::test_invalid_available_value_is_rejected[]
+FAILED tests/test_api_books_filters.py::test_invalid_available_value_is_rejected[2]
+FAILED tests/test_api_books_filters.py::test_invalid_available_value_is_rejected[on]
+FAILED tests/test_api_books_filters.py::test_year_range_is_inclusive - Assert...
+FAILED tests/test_api_books_filters.py::test_single_year_range - AssertionErr...
+FAILED tests/test_api_books_filters.py::test_year_from_alone - AssertionError...
+FAILED tests/test_api_books_filters.py::test_year_to_alone - AssertionError: ...
+FAILED tests/test_api_books_filters.py::test_non_integer_year_is_rejected[year_from=abc-year_from]
+FAILED tests/test_api_books_filters.py::test_non_integer_year_is_rejected[year_from=2000.5-year_from]
+FAILED tests/test_api_books_filters.py::test_non_integer_year_is_rejected[year_to=20x5-year_to]
+FAILED tests/test_api_books_filters.py::test_non_integer_year_is_rejected[year_to=-year_to]
+FAILED tests/test_api_books_filters.py::test_year_from_after_year_to_is_rejected
+FAILED tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_category
+FAILED tests/test_api_books_filters.py::test_filters_apply_before_pagination
+FAILED tests/test_api_books_filters.py::test_filters_apply_before_sorting - A...
+FAILED tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns
+25 failed in 0.07s

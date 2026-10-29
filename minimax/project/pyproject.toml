@@ -1,0 +1,12 @@
+[project]
+name = "campus-library"
+version = "1.0.0"
+description = "校园图书馆借阅服务：SDD 示例业务工程（原创，仅依赖 Python 标准库）"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+markers = ["spec(*ids): 该测试验证的规格条目 ID（见 specs/README.md）"]

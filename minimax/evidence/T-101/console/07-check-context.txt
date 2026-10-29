@@ -1,0 +1,21 @@
+$ ./sdd check-context T-101
+按 samples/T-101/expected.json 核对上下文（导入批次 #1，输出 runs/T-101/context-check.md）：
+  [通过] 目标规格 CAT-007 — 实际角色：target
+  [通过] 目标规格 CAT-008 — 实际角色：target
+  [通过] 必须包含的规格 API-002 — 实际角色：constraint
+  [通过] 必须包含的规格 API-003 — 实际角色：constraint
+  [通过] 必须包含的规格 API-004 — 实际角色：constraint
+  [通过] 必须包含的规格 CAT-004 — 实际角色：constraint
+  [通过] 必须包含的规格 DATA-001 — 实际角色：constraint
+  [通过] 需要修改 library/catalog.py::search_books — 在“需要修改”中
+  [通过] 需要修改 library/api/handlers.py::list_books — 在“需要修改”中
+  [通过] 必须包含的代码 library/api/params.py::parse_bool — 位置：相关代码
+  [通过] 必须包含的代码 library/api/params.py::parse_int — 位置：相关代码
+  [通过] 目标测试文件 tests/test_api_books_filters.py — 已包含
+  [通过] 回归测试文件 tests/test_api_books.py — 已包含
+  [通过] 回归测试文件 tests/test_catalog_search.py — 已包含
+  [通过] 回归测试文件 tests/test_api_params.py — 已包含
+  [通过] 引用的来源真实存在且内容一致 — 81/81 处一致
+  [通过] 任务状态来自 PowerContext — Scope sddctx/campus-library/T-101，记录 2 条
+结果：17/17 项通过
+# exit code: 0

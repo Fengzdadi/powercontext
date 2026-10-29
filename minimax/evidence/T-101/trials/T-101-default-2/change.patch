@@ -1,0 +1,66 @@
+diff --git a/library/api/handlers.py b/library/api/handlers.py
+--- a/library/api/handlers.py
++++ b/library/api/handlers.py
+@@ -16,16 +16,22 @@
+ def list_books(ctx: AppContext, request: Request) -> tuple[int, dict]:
+     """GET /books：检索图书。
+ 
+-    实现: CAT-001, CAT-002, CAT-003, CAT-004, API-005
++    实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005
+     """
+     params = request.query
+     sort = parse_choice(params, "sort", SORT_KEYS, default="id")
+     page = parse_int(params, "page", default=1, minimum=1)
+     page_size = parse_int(params, "page_size", default=10, minimum=1, maximum=50)
++    available = parse_bool(params, "available")
++    year_from = parse_int(params, "year_from")
++    year_to = parse_int(params, "year_to")
+     result = catalog.search_books(
+         ctx.repo,
+         keyword=params.get("q"),
+         category=params.get("category"),
++        available=available,
++        year_from=year_from,
++        year_to=year_to,
+         sort=sort,
+         page=page,
+         page_size=page_size,
+diff --git a/library/catalog.py b/library/catalog.py
+--- a/library/catalog.py
++++ b/library/catalog.py
+@@ -55,13 +55,16 @@
+     *,
+     keyword: str | None = None,
+     category: str | None = None,
++    available: bool | None = None,
++    year_from: int | None = None,
++    year_to: int | None = None,
+     sort: str = "id",
+     page: int = 1,
+     page_size: int = 10,
+ ) -> SearchResult:
+-    """按关键词和分类检索图书，排序后分页。
++    """按关键词、分类、可借状态和出版年份检索图书，排序后分页。
+ 
+-    实现: CAT-001, CAT-002, CAT-003, CAT-004
++    实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008
+     """
+     books = list(repo.books.values())
+ 
+@@ -73,6 +76,16 @@
+         if category not in repo.categories():
+             raise InvalidParameter("category", f"未知的分类：{category}")
+         books = [b for b in books if b.category == category]
++
++    if available is not None:
++        books = [b for b in books if (available_copies(repo, b.id) > 0) == available]
++
++    if year_from is not None and year_to is not None and year_from > year_to:
++        raise InvalidParameter("year_from", f"year_from 不能大于 year_to（{year_to}）")
++    if year_from is not None:
++        books = [b for b in books if b.year >= year_from]
++    if year_to is not None:
++        books = [b for b in books if b.year <= year_to]
+ 
+     if sort not in SORT_KEYS:
+         raise InvalidParameter("sort", f"sort 只能是 {', '.join(SORT_KEYS)} 之一")

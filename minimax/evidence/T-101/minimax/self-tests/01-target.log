@@ -1,0 +1,11 @@
+# label: 01-target
+# command: python -m pytest -q -rfE -p no:cacheprovider --junitxml=runs/T-101/develop/tests-20261029-022334/01-target.junit.xml tests/test_api_books_filters.py::test_available_true_returns_only_books_with_copies_on_shelf tests/test_api_books_filters.py::test_available_false_returns_only_books_without_copies_on_shelf tests/test_api_books_filters.py::test_available_accepts_true_spellings tests/test_api_books_filters.py::test_available_accepts_false_spellings tests/test_api_books_filters.py::test_invalid_available_value_is_rejected tests/test_api_books_filters.py::test_year_range_is_inclusive tests/test_api_books_filters.py::test_single_year_range tests/test_api_books_filters.py::test_year_from_alone tests/test_api_books_filters.py::test_year_to_alone tests/test_api_books_filters.py::test_non_integer_year_is_rejected tests/test_api_books_filters.py::test_year_from_after_year_to_is_rejected tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_category tests/test_api_books_filters.py::test_filters_apply_before_pagination tests/test_api_books_filters.py::test_filters_apply_before_sorting tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns
+# cwd: runs/T-101/snapshots/after
+# code_version: d8b4de84b1a3
+# tree_sha256: ef7bbeb1f9f451aac7264bf777ae92018dde554885f5789b47f5e7c56fb56f2b
+# started_at: 2026-10-29T02:24:42.791+00:00
+# seconds: 0.27
+# exit_code: 0
+# result: 25 passed, 0 failed，exit 0；断言失败 0，其他问题 0
+.........................                                                [100%]
+25 passed in 0.03s

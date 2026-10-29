@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# sdd：在 docker compose 环境里运行 sddctx（SDD 上下文模块）。
+#
+#   ./sdd up                 构建镜像并启动 seekdb、PowerContext（等待健康检查通过）
+#   ./sdd <子命令> [参数]     在一次性容器里运行 sddctx，例如 ./sdd import、./sdd run T-101、./sdd state T-101
+#   ./sdd restart            重启 seekdb 和 PowerContext 容器（数据在数据卷里，重启后仍在）
+#   ./sdd down               停止并删除容器，保留数据卷
+#   ./sdd reset              删除容器、数据卷（seekdb 资料、PowerContext 任务状态）和 runs/，回到空状态
+#   ./sdd ps | logs [服务]    查看容器状态 / 日志
+#
+# 子命令列表：./sdd help
+set -euo pipefail
+cd "$(dirname "$0")"
+
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "已从 .env.example 生成 .env（占位值）。实时调用 MiniMax 需要填写 MINIMAX_API_KEY，或在 shell 中 export。" >&2
+fi
+
+export HOST_UID="${HOST_UID:-$(id -u)}" HOST_GID="${HOST_GID:-$(id -g)}"
+# 代码版本：git 提交号；工作区有未提交的改动（evidence/ 和 runs/ 除外）时加 -dirty
+if [ -z "${SDD_CODE_VERSION:-}" ]; then
+  if SDD_CODE_VERSION="$(git rev-parse --short=12 HEAD 2>/dev/null)"; then
+    if [ -n "$(git status --porcelain -- . ':(exclude)evidence' ':(exclude)runs' 2>/dev/null)" ]; then
+      SDD_CODE_VERSION="${SDD_CODE_VERSION}-dirty"
+    fi
+  else
+    SDD_CODE_VERSION="unknown"
+  fi
+  export SDD_CODE_VERSION
+fi
+
+compose() { docker compose "$@"; }
+# 子命令走一次性容器；--progress quiet 去掉依赖服务启动的进度输出，只留 sddctx 自己的输出
+cli() { docker compose --progress quiet run --rm "$@"; }
+
+case "${1:-help}" in
+  up)
+    compose build sddctx
+    compose up -d --build --wait seekdb powercontext
+    compose ps
+    ;;
+  restart)
+    compose restart seekdb powercontext
+    compose up -d --wait seekdb powercontext
+    compose ps
+    ;;
+  down)
+    compose down --remove-orphans
+    ;;
+  reset)
+    compose down -v --remove-orphans
+    rm -rf runs
+    echo "已删除容器、数据卷（seekdb 中的工程资料、PowerContext 中的任务状态）和 runs/。"
+    ;;
+  ps)
+    compose ps
+    ;;
+  logs)
+    shift
+    compose logs --tail=200 "$@"
+    ;;
+  help | -h | --help)
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    echo
+    cli --no-deps sddctx --help
+    ;;
+  *)
+    cli sddctx "$@"
+    ;;
+esac

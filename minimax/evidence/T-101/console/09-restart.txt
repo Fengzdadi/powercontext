@@ -1,0 +1,15 @@
+$ ./sdd restart
+ Container sddctx-minimax-seekdb-1 Restarting 
+ Container sddctx-minimax-powercontext-1 Restarting 
+ Container sddctx-minimax-powercontext-1 Started 
+ Container sddctx-minimax-seekdb-1 Started 
+ Container sddctx-minimax-seekdb-1 Running 
+ Container sddctx-minimax-powercontext-1 Running 
+ Container sddctx-minimax-seekdb-1 Waiting 
+ Container sddctx-minimax-powercontext-1 Waiting 
+ Container sddctx-minimax-powercontext-1 Healthy 
+ Container sddctx-minimax-seekdb-1 Healthy 
+NAME                            IMAGE                                       COMMAND                  SERVICE        CREATED          STATUS                    PORTS
+sddctx-minimax-powercontext-1   sddctx-minimax/powercontext:1.4.1           "powercontext server…"   powercontext   29 seconds ago   Up 11 seconds (healthy)   127.0.0.1:18900->8000/tcp
+sddctx-minimax-seekdb-1         oceanbase/seekdb:1.4.0-100000172026082615   "/root/start.sh"         seekdb         29 seconds ago   Up 5 seconds (healthy)    127.0.0.1:10900->2881/tcp
+# exit code: 0
