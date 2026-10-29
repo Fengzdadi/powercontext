@@ -260,7 +260,7 @@ def record_context(rt: Runtime, task: Task, state: TaskState, ctx: dict, md: str
         state,
         step="context",
         status="partial",
-        summary=f"已生成任务上下文：目标 {', '.join(f['target_specs'])}；需要修改 {', '.join(f['to_change'])}；目标测试 {len(f['target_tests'])} 个",
+        summary=f"已生成任务上下文：目标 {', '.join(f['target_specs'])}；需要修改 {', '.join(f['to_change'])}；目标测试函数 {len(f['target_tests'])} 个",
         objective=objective,
         done=done,
         checks=_merge_checks(checks, [_source_check(ctx)]),

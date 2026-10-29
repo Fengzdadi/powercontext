@@ -37,8 +37,8 @@ project/（sdd.toml）─────┼─ ingest ── import ──→ │ s
    规格被修改并重新导入后提示“之前的验证结果不再代表当前规格”，`run` 会重新执行后续步骤。
 6. **核对**：每一处引用回到工程文件逐行比较，确认文件存在、内容与索引一致。
 
-所有选择都来自 seekdb 的实际查询结果（每次 `context` 约 10 条 SQL，见 `seekdb-queries.jsonl`）；修改规格后不重新导入，
-来源核对会报告不一致。
+所有选择都来自 seekdb 的实际查询结果（每次生成上下文 13 条 SQL，其中 2 次 `DBMS_HYBRID_SEARCH`，见 `seekdb-queries.jsonl`）；
+修改规格后不重新导入，来源核对会报告不一致。
 
 ## 各项技术的分工
 

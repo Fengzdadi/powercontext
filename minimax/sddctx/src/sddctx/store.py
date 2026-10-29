@@ -61,7 +61,7 @@ SCHEMA = [
   PRIMARY KEY (project, chunk_id, revision)
 )""",
     """CREATE TABLE IF NOT EXISTS sdd_import_runs (
-  run_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_id       BIGINT       NOT NULL PRIMARY KEY,
   project      VARCHAR(64)  NOT NULL,
   project_dir  VARCHAR(512) NOT NULL,
   tree_sha     CHAR(64)     NOT NULL,
@@ -196,12 +196,14 @@ class Store:
     def import_chunks(self, project: str, project_dir: str, tree_sha: str, code_version: str, chunks: list[Chunk]) -> ImportReport:
         started = time.perf_counter()
         self.ensure_schema()
+        # 批次号自己分配：seekdb 重启后 AUTO_INCREMENT 会跳号（缓存段），批次号应当连续
+        run_id = int(self.q("SELECT COALESCE(MAX(run_id), 0) + 1 AS id FROM sdd_import_runs", purpose="import: open run")[0]["id"])
         self.q(
-            "INSERT INTO sdd_import_runs (project, project_dir, tree_sha, code_version, started_at) VALUES (%s, %s, %s, %s, NOW(6))",
-            (project, project_dir, tree_sha, code_version),
+            "INSERT INTO sdd_import_runs (run_id, project, project_dir, tree_sha, code_version, started_at) "
+            "VALUES (%s, %s, %s, %s, %s, NOW(6))",
+            (run_id, project, project_dir, tree_sha, code_version),
             purpose="import: open run",
         )
-        run_id = int(self.q("SELECT LAST_INSERT_ID() AS id", purpose="import: open run")[0]["id"])
         report = ImportReport(run_id=run_id, project=project, tree_sha=tree_sha, total=len(chunks))
 
         existing = {
@@ -296,8 +298,17 @@ class Store:
 
     # -------------------------------------------------------------- 查询
 
+    def _tables_exist(self) -> bool:
+        rows = self.q(
+            "SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'sdd_import_runs'",
+            (self.database,),
+            purpose="check schema",
+        )
+        return bool(rows and rows[0]["n"])
+
     def latest_import(self, project: str) -> dict | None:
-        self.ensure_schema()
+        if not self._tables_exist():
+            return None
         rows = self.q(
             "SELECT run_id, project, project_dir, tree_sha, code_version, started_at, finished_at, added, updated, moved, "
             "unchanged, removed, total, changes FROM sdd_import_runs WHERE project = %s AND finished_at IS NOT NULL "
@@ -407,7 +418,8 @@ class Store:
         return rows[0] if rows else None
 
     def counts(self, project: str) -> list[dict]:
-        self.ensure_schema()
+        if not self._tables_exist():
+            return []
         return self.q(
             "SELECT kind, COUNT(*) AS n, MAX(revision) AS max_revision FROM sdd_chunks WHERE project = %s GROUP BY kind ORDER BY kind",
             (project,),
