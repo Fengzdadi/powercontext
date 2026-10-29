@@ -440,3 +440,70 @@
 - `usage-summary.json` 待按真实使用记录导出填写（字段约定见上）。
 - Docker 命令块按简报写了 `cp .env.example .env`、`docker compose up -d --build`、`bash scripts/load_sample.sh`，**以会话 06 的 `docs/DEPLOY.md` 为准，合并后核对**；README / VALIDATION 的链接指向仓库 GitHub 对应路径，待这些文件合入后生效。
 - 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。
+
+## 会话 09b — 网站审阅问题修复 + 会话 05 修好后的覆盖数据（2026-10-29）
+
+产品负责人逐段审阅会话 09 的网站（1440px / 375px 两种宽度）后提出 9 条修改意见。本会话逐条修复并把覆盖数据换成会话 05 修好后的新导出。规则同会话 09：只改 `site/`，DEVLOG 追加本节；只用 18808 端口；结束关掉预览服务器；不发布网站。
+
+### A. 审阅意见逐项修复
+
+1. **视频占位出现空播放器**：根因是 `.video-box video { display: block }` 的选择器优先级压过了 `hidden` 属性的 UA 样式。加全局规则 `[hidden] { display: none !important; }`（`assets/style.css`），并排查了所有用 `hidden` 切换的元素（`#usage-filled`、`#sessions-total`、`.row-detail`、`.bc-detail`、`#video-pending`、`#demo-video`）均不受同类覆盖。
+2. **雷达轴标签被截断**：改用 SVG 渲染器（`echarts.init(el, null, {renderer:"svg"})`），轴标签成为可量测的 `<text>` 元素；标签文本先按"："、"（"断行，再按行宽上限折行（宽屏 11 字、窄屏 8 字），配合半径调整（58% / 窄屏 46%）与字号（11 / 10）。
+3. **会话表"耗时"和"#"列折行**：`table.sessions` 改 `table-layout: fixed`，除标题列外 `white-space: nowrap`，标题列 `overflow-wrap: anywhere` 兜底。
+4. **导出时间是 UTC**：`fmtLocalTime()` 用 `Date.getTimezoneOffset()` 换算成访问者本地时间并标注偏移（如"2026-10-29 00:04（访问者本地时间，UTC-4）"）。
+5. **删掉"正在实现中（开发会话 07）"**：两处 `status-note` 已移除（会话 07 已完成，网站在合并后发布）。
+6. **窄屏盲区表改卡片**：≤700px 隐藏表格、显示卡片列表（`#blind-cards`），每张卡片含知识点名、覆盖等级、覆盖度、分值、盲区分数，点击展开详情；桌面表格与移动卡片共用同一个 `detailHtml()` 构造器，两套视图内容一致。
+7. **换新覆盖数据并渲染新字段**：见下 B 节字段清单。网站自己排序（`blind_spot_score` 降序、同分按 `topic_id` 字典序），不依赖文件顺序——会话 05b 再换导出时网站代码不用改。
+8. **使用效果改为三类可选数据**：Qoder Sites 访问统计、使用记录汇总、去姓名用户反馈；各块显示自己的来源与导出时间；哪类有数据显示哪块，都没有时只显示"真实使用数据收集中"，绝不放示例数字（开发测试数据不算真实数据）。
+9. **隐私自查**：`site/` 下只含示例课程数据，无个人笔记、真实姓名、邮箱、密码、密钥、token、本机路径；唯一账号信息是仓库链接里的 GitHub 用户名。
+
+### B. sample-coverage.json 字段清单（会话 05 新导出，替换了会话 09 的旧文件）
+
+`topics[].{id,name,keywords,terms[{text,aliases}]}`；`config{term_ratio_covered, support_chars_covered, min_body_chars}`（页面动态读取生成判定规则说明，不写死数值）；`items[]` 每条：`topic_id, topic_name, keywords, coverage_level, coverage_score, support_chunks, support_chars, terms[{term,aliases,found,chunks[{doc,page,heading}],best_sem}], best_evidence{content,heading,page,document_name,semantic_score,keyword_score}|null, exam_weight, exam_questions[{question_no,points,similarity,matched_terms,content}], blind_spot_score, reason`。
+
+页面渲染：`reason` 原样；支撑正文"N 段共 M 字"；每个考点词的找到/没找到、别名、最多 3 处出处（文档·页码·标题）+"等共 N 段"；最强证据；每道试题显示"命中考点词：…"、相似度、60 字截断原文 + 展开/收起。字段缺失时逐项降级（缺少证据与试题的记录显示"这条记录缺少证据与试题数据"）。
+
+### C. usage-summary.json 字段约定（更新）
+
+```json
+{
+  "site_stats": { "pv": 0, "uv": 0, "period": "……", "source": "……", "exported_at": "……" },
+  "usage": { "usage_days": 0, "study_sessions": 0, "questions_answered": 0, "total_minutes": 0, "source": "……", "exported_at": "……" },
+  "feedback": [ { "quote": "……", "source": "……", "exported_at": "……" } ]
+}
+```
+
+三块都是可选；`site_stats` 与 `usage` 的平铺旧字段仍兼容。没有数据时保持 `{"status":"collecting"}`。
+
+### D. 验收量测结果（全部用 DOM / ECharts 接口量测；桌面 1440×900 与 375×812）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 横向溢出：scrollWidth − clientWidth | 桌面 0、375px 0 |
+| 雷达 SVG 轴标签在容器内（getBoundingClientRect 对比图表容器） | 桌面 17 个标签全部在界内、375px 24 个（折行后多行 text）全部在界内，越界 0 |
+| demo.mp4 不存在时 `#demo-video` computed display = none 且占位可见；用 `page.route` 模拟文件存在时播放器可见 | 两种状态均量测通过（display none / block） |
+| 会话表"#"和"耗时"单元格单行（Range.selectNodeContents 量测文本高度 ≤ 30px） | 8 行 0 个超标单元格 |
+| 盲区第一名与数据一致：函数依赖与范式（3NF、BCNF）· missing · 0.0000 · 25 分 · 25.00，reason/考点词明细/试题（含命中考点词）全部与 JSON 一致 | 一致，桌面与 375px 卡片视图均验证 |
+| 试题原文展开/收起 | 61 字符 → 113 字符 |
+| 10 个知识点全部出现；375px 下卡片 10 张、表格 display none | 通过 |
+| 无外部请求（page.on("request")） | 桌面+手机共 30 条请求全部指向 127.0.0.1:18808；控制台错误仅预期 404（5 张待补截图 + demo.mp4 探测） |
+| 使用效果注入测试：只填 site_stats / 只填 usage / 只填 feedback | 分别只显示对应一块；真实 collecting 文件显示 0 个数字块 |
+| 字段缺失降级（去 terms/reason/best_evidence/exam_questions/support_*/config/topics） | 10 行照常渲染 + 兜底文案，无 JS 报错 |
+| site/ 体积 | 1160 KB（< 3MB） |
+| 时区文案 | "导出时间 2026-10-29 00:04（访问者本地时间，UTC-4）" |
+| 判定规则文案（从 config 动态生成） | "判定规则：一个考点词（含别名）都没找到 → 缺失；找到比例与支撑字数都达到阈值 → 已覆盖；其余 → 薄弱。（考点词找到比例阈值 0.5；支撑正文字数阈值 280 字；计入支撑的最小段字数 50 字）" |
+| 隐私 grep（邮箱格式、/Users/、password、secret、token、api_key、sk-） | 邮箱 0；/Users/ 0；password/secret/api_key/sk- 0；token 仅 marked.min.js 20 处 + echarts.min.js 1 处，均为库自身的词法分析术语（lexer token），非凭据 |
+| 截图 | `.cache/scratch/site-09b-desktop.png`、`site-09b-mobile.png`。目视核对未做（同会话 09：本会话环境读取截图只能得到不可靠描述），以 DOM/ECharts 量测代替 |
+
+### E. 遇到的问题和解决办法
+
+1. **main.js 引号笔误导致整页数据区空白**（"Invalid or unexpected token"）：环境里没有 node 可做语法检查，改用把源码注入 `<script>` 并挂 `window.onerror` 定位到 321 行 9 列——字符串用 `'` 开头却用 `"` 结尾。修复后全页恢复。
+2. **375px 雷达标签越界 30px**：容器宽度分支（<420px 时半径 46%、字号 10、8 字折行）解决，越界归零。
+3. **Playwright route 回调签名**：Python 侧 handler 收到 `(route, request)` 两个位置参数，lambda 默认参数被 Request 覆盖导致 "not JSON serializable"，改成具名函数。
+4. **单行量测误报**：单元格盒子高度会被同行的折行标题撑高，改用 `Range.selectNodeContents` 只量文本本身。
+
+### F. 未做（留给产品负责人/后续会话）
+
+- 5 张功能截图和 `media/demo.mp4` 待提供（占位机制已就位，放入文件即显示）。
+- 会话 05b 重新导出后只需替换 `site/data/sample-coverage.json`，网站代码不用改（排序与渲染均自适应该文件结构）。
+- 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。

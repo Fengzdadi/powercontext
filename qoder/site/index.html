@@ -152,7 +152,6 @@ window.imgFallback = function (img) {
           <li>出题、判分都标明出自哪份资料哪一页；配置大模型时生成选择 / 填空 / 简答题，未配置时从笔记原句挖空，功能完整；</li>
           <li>Leitner 间隔复习：5 个盒子、间隔 1 / 2 / 4 / 7 / 14 天，答对升级、答错回 1 号盒。</li>
         </ul>
-        <p class="status-note">正在实现中（开发会话 07）。</p>
       </div>
     </div>
 
@@ -170,7 +169,6 @@ window.imgFallback = function (img) {
           <li>错题和复习计划自动记录，不用手抄；</li>
           <li>新会话开场白，例如“上次你在 X 上错了 2 次，先复习这个”。</li>
         </ul>
-        <p class="status-note">正在实现中（开发会话 07）。</p>
       </div>
     </div>
 
@@ -276,7 +274,7 @@ window.imgFallback = function (img) {
           <span class="item"><span class="badge thin">薄弱</span></span>
           <span class="item"><span class="badge missing">缺失</span></span>
         </div>
-        <p class="meta" id="radar-thresholds"></p>
+        <p class="meta" id="radar-method"></p>
         <p style="font-size:13.5px;color:var(--ink-soft);margin:0">
           <b>盲区</b> = 考试分值高 × 覆盖度低。下表按盲区分值从大到小排序；点任意一行展开判定理由、最强证据和关联的往年试题。
         </p>
@@ -284,7 +282,7 @@ window.imgFallback = function (img) {
     </div>
 
     <div class="blind-list">
-      <div class="table-scroll"><table class="blind">
+      <div class="table-scroll blind-table-wrap"><table class="blind">
         <thead>
           <tr>
             <th>知识点</th><th>覆盖判定</th><th class="num">覆盖度</th><th class="num">往年分值</th><th class="num">盲区分值</th><th></th>
@@ -292,6 +290,7 @@ window.imgFallback = function (img) {
         </thead>
         <tbody id="blind-tbody"></tbody>
       </table></div>
+      <div id="blind-cards" class="blind-cards"></div>
       <p id="blind-empty" class="muted" hidden style="font-size:14px">盲区清单数据暂时不可用。</p>
     </div>
 
@@ -380,12 +379,11 @@ window.imgFallback = function (img) {
     <div class="usage-card" id="usage-collecting">
       <div class="icon">&#128202;</div>
       <div style="font-size:16px">真实使用数据收集中</div>
-      <div style="font-size:13.5px;margin-top:8px">数据来源：应用内使用记录导出（真实使用与开发测试分开统计）</div>
+      <div style="font-size:13.5px;margin-top:8px">可核对的数据来源：Qoder Sites 访问统计、应用内使用记录导出（真实使用与开发测试分开统计）、去姓名的用户反馈</div>
     </div>
 
     <div id="usage-filled" hidden>
-      <div class="usage-stats" id="usage-stats"></div>
-      <p class="usage-src" id="usage-src"></p>
+      <div id="usage-blocks"></div>
     </div>
   </div>
 </section>

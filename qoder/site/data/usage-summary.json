@@ -1,1 +1,1 @@
-{"status": "collecting", "note": "真实使用数据收集中；由产品负责人按使用记录导出填写"}
+{"status": "collecting", "note": "真实使用数据收集中。三类可选数据由产品负责人按真实导出填写：site_stats（Qoder Sites 访问统计）、usage（使用记录汇总）、feedback（去姓名的用户反馈）；字段约定见 docs/DEVLOG.md 会话 09b。"}
