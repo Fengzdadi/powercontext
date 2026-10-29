@@ -17,7 +17,9 @@ if [ "${1:-}" = "--replay" ]; then
   MODE=replay
   [ -f "$REPLAY_SESSION" ] || { echo "找不到 $REPLAY_SESSION" >&2; exit 1; }
 fi
-OUT="${OUT:-runs/evidence$([ "$MODE" = replay ] && echo -replay)/$TASK}"
+# 不能写成 $([ "$MODE" = replay ] && echo …)：live 模式下这个命令替换返回 1，set -e 会让脚本直接退出
+if [ "$MODE" = replay ]; then DEFAULT_OUT=runs/evidence-replay/$TASK; else DEFAULT_OUT=runs/evidence/$TASK; fi
+OUT="${OUT:-$DEFAULT_OUT}"
 
 sdd() {  # sdd 名称 子命令...：运行 ./sdd 并把命令、输出和退出码写到 $OUT/console/名称.txt
   local name="$1"; shift
