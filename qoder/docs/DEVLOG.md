@@ -1280,6 +1280,61 @@ $ CSV 导出前 3 字节: efbbbf
 
 ---
 
+## 会话 09e — 网站第三轮修正：开场白示例换新说法、不再显示 Credits（2026-10-29）
+
+**参与者**：产品负责人（审阅意见与 CREDITS.md 标题修订）、Qoder（修改与验证）。规则同前：只改 `site/`、`scripts/build_site_data.py`（及其重新生成的 `site/data/qoder-sessions.json`）与 DEVLOG；只用 18808 端口；结束关掉预览服务器；不发布。本会话模型 GLM-5.3。
+
+### A. 改动内容
+
+1. **开场白示例换新说法**（`index.html` 学习者记忆一节）：旧的"上次你在 X 上错了 2 次，先复习这个"换成 `build_opening_line` docstring 里的真实示例——"你在『隔离级别与 MVCC』上累计错了 2 次，先复习它；『B+树与哈希索引』今天到期；『函数依赖与范式』往年考 25 分但笔记里没有"（会话 10c 后次数为累计口径，见 `app/examradar/mastery.py`）。
+2. **网站上不再显示 Credits**。CLI 报告的累计用量与 Qoder 账户用量页对不上，公开网站不放这些数字：
+   - 会话表（`index.html`）去掉 Credits 列（6 列→5 列：#、会话内容、模型、轮数、耗时），合计行去掉 Credits 单元格（`#total-credits`），说明文字改为"下表是每次 Qoder 会话的模型、轮数和耗时"；
+   - 表格（手机上是卡片）下方加可见说明"用量以 Qoder 账户用量页为准（账号 UID 见 dev-records/README.md）。"（`.sessions-note`），链接指向 GitHub 仓库的 `dev-records/README.md`，新标签页打开（写法同页面上已有的 GitHub 链接）；
+   - `main.js`：删 `fmtCredits`、行/卡片的 credits 单元、合计里的 credits（桌面合计只剩条数和轮数，手机合计卡"合计 23 条记录 · 1572 轮"），手机卡片统计由 3 格改 2 格（轮数、耗时），会话数据不可用占位的 colspan 6→5；
+   - `style.css`：删第 6 列宽度规则，`.sc-stats` 网格 3 列→2 列，加 `.sessions-note`（13px 弱色）；
+   - `scripts/build_site_data.py`：行数据和 totals 不再输出 credits 字段，末尾打印行不再打印 credits；`dev-records/CREDITS.md` 表格仍照旧解析（含 Credits/累计两列，只是不输出）。运行后重新生成 `site/data/qoder-sessions.json`：23 行 / 1572 轮，全 JSON 无 credits 键。
+3. **CREDITS.md 同步修订（产品负责人操作）**：验证中发现 7 条会话标题里带用量数字（单价/速度探测、05（中止）、06b、09b、09c），其中 2 处直接含 "credits" 字样（05（中止）的 `usage.credits`、Qwen3.8-Flash 行的"CLI 报告 0 Credits"），而 09c 又要求标题逐字渲染。产品负责人把数字从标题挪到表格下方的补充说明（表头、行数、Credits/累计两列不变），本会话随后重新生成 JSON，页面文本里的 "Credits" 全部消失。
+4. 其余内容不变。
+
+### B. 验收量测结果（`.cache/scratch/check_09e.py`，桌面 1440×900 与手机 375×812，DOM 量测；ALL 09e CHECKS PASSED）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 页面文本无 Credits | 两宽度 `document.body.innerText` 匹配 `/[Cc]redits/g` 均为 0（CREDITS.md 标题修订后；修订前命中 2 处、均在标题内） |
+| JSON 无 credits 键 | 遍历 `qoder-sessions.json` 全部 144 个键名，含 credits 的 0 个；行键 = id/title/date/model/turns/duration，totals 键 = rows/turns |
+| 会话表 5 列 | 表头 5、23 个数据行均 5 列（`#|会话内容|模型|轮数|耗时`）、合计行 colspan 跨度合计 5 |
+| 合计与 JSON 一致 | 桌面合计行 23 条记录 / 1572 轮 = totals；非标题列全部单行（无折行）；标题列占表宽 66.2%（≥45%） |
+| 手机卡片与合计卡 | 23 张卡各 2 个统计（轮数、耗时）、无 Credits 字样、无裁剪（scrollWidth ≤ clientWidth）、标题宽 ≥280px、合计文本"合计 23 条记录 · 1572 轮"、表格 display=none |
+| 表格下方说明 | 两宽度均可见、逐字一致、位于表格/卡片正下方（12px），链接 `https://github.com/Fengzdadi/powercontext/blob/2026-competition-ecosystem/qoder/dev-records/README.md`、target=_blank |
+| 开场白示例 | 两宽度页面文本含新示例整句，"上次你在"0 处 |
+| 横向溢出 / 雷达标签 / 盲区 | 溢出 0；SVG 标签越界 0；盲区 10 行逐行与 JSON 一致、t04 第一 |
+| echarts / cmd-links / 网络 | echarts 5.6.0 与页脚一致；README-和 间隙 4px；34 条请求全部 127.0.0.1:18808、外部请求 0、控制台错误 0 |
+| 视频占位 | 文件在：播放器可见、占位隐藏；路由拦成 404：播放器隐藏、占位可见（降级分支） |
+
+### C. 09c / 09d 检查项复验
+
+- `check_09c_radar.py`：全部通过（两宽度轴标签越界 0、断点不拆 ASCII 词、与图例不相交）。
+- `check_09d.py`：全部通过（5 张截图加载、手机截图不越界、视频 72.87 秒、封面、f5 说明、视频文案、路由 404 降级、无外部请求、无控制台错误、site/ 除视频 1804 KB）。
+- `check_09c.py` 中核对 Credits 合计的两处检查（合计文本含 credits、`#total-credits` 与 JSON 一致）已按本会话要求改写为核对"没有 Credits"（B 节前两行），写成新脚本 `.cache/scratch/check_09e.py`；09c 的其余检查项（横向溢出、雷达标签、会话表行数、盲区逐行、echarts、cmd-links、使用效果三块注入、视频占位、网络与控制台）全部并入 09e 脚本并通过。
+
+### D. 截图目视核对（Read）
+
+- `clip-09e-desktop-qoder.png`（Qoder 开发过程一节）：目视与页面相符——5 列表、无 Credits 列、合计 23 条 / 1572 轮、下方说明与链接可见、GLM-5.3 紫色高亮。
+- `clip-09e-desktop-memory.png`、`clip-09e-mobile-memory.png`（学习者记忆一节）：目视相符，开场白是新说法的整句。
+- `clip-09e-mobile-qoder.png`：描述与页面结构大体相符（卡片、模型、耗时、无 Credits）但细节有偏差；整页截图（`site-09e-desktop.png`、`site-09e-mobile.png`）Read 得到的仍是与页面完全不符的描述（同 09/09b/09c/09d 现象），目视核对以局部截图 + DOM 量测代替。
+
+### E. 改动的文件
+
+`site/index.html`（开场白示例、会话表 5 列、说明文字与 `.sessions-note`）、`site/assets/main.js`（删 fmtCredits 与 credits 渲染）、`site/assets/style.css`（列宽、`.sc-stats` 两列、`.sessions-note`）、`scripts/build_site_data.py`（不输出 credits）、重新生成的 `site/data/qoder-sessions.json`、`docs/DEVLOG.md`（本节）。`dev-records/CREDITS.md` 的标题修订是产品负责人所为，本会话只负责重新生成 JSON。检查脚本 `.cache/scratch/check_09e.py`、`clip_09e.py`。
+
+### F. 未做（留给产品负责人/后续会话）
+
+- 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。
+- `usage-summary.json` 仍是 collecting 态（真实使用数据待导出）。
+
+
+---
+
 ## 会话 10 — M3 合并与集成：复习教练接会话 05 覆盖结果、导航/使用记录/文档收尾（2026-10-29）
 
 **参与者**：产品负责人（任务输入）、Qoder（集成与验证）

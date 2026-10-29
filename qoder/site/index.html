@@ -169,7 +169,7 @@ window.imgFallback = function (img) {
         <ul>
           <li>掌握度卡片：每次判分产生新的 revision，历次变化就是掌握度轨迹；</li>
           <li>错题和复习计划自动记录，不用手抄；</li>
-          <li>新会话开场白，例如“上次你在 X 上错了 2 次，先复习这个”。</li>
+          <li>新会话开场白，例如“你在『隔离级别与 MVCC』上累计错了 2 次，先复习它；『B+树与哈希索引』今天到期；『函数依赖与范式』往年考 25 分但笔记里没有”。</li>
         </ul>
       </div>
     </div>
@@ -330,12 +330,12 @@ window.imgFallback = function (img) {
 <section class="alt" id="qoder">
   <div class="wrap">
     <h2 class="sec-title">Qoder 开发过程</h2>
-    <p class="sec-sub">本项目的需求拆解、技术设计、编码和调试由 <b>Qoder CLI</b>（qoderclicn 1.1.80，Qoder CN）完成；产品负责人负责写需求、提供样例数据和接口实测备忘、审阅和验收，不直接写应用代码。下表是每次 Qoder 会话的型号、轮数和 Credits 用量，数据来自仓库的 <code>dev-records/CREDITS.md</code>。</p>
+    <p class="sec-sub">本项目的需求拆解、技术设计、编码和调试由 <b>Qoder CLI</b>（qoderclicn 1.1.80，Qoder CN）完成；产品负责人负责写需求、提供样例数据和接口实测备忘、审阅和验收，不直接写应用代码。下表是每次 Qoder 会话的模型、轮数和耗时，数据来自仓库的 <code>dev-records/CREDITS.md</code>。</p>
 
     <div class="sessions-table-wrap">
       <table class="sessions">
         <thead>
-          <tr><th>#</th><th>会话内容</th><th>模型</th><th class="num">轮数</th><th>耗时</th><th class="num">Credits</th></tr>
+          <tr><th>#</th><th>会话内容</th><th>模型</th><th class="num">轮数</th><th>耗时</th></tr>
         </thead>
         <tbody id="sessions-body"></tbody>
         <tfoot>
@@ -343,12 +343,12 @@ window.imgFallback = function (img) {
             <td colspan="3">合计（<span id="total-rows">—</span> 条记录）</td>
             <td class="num" id="total-turns">—</td>
             <td></td>
-            <td class="num" id="total-credits">—</td>
           </tr>
         </tfoot>
       </table>
     </div>
     <div id="sessions-cards" class="sessions-cards"></div>
+    <p class="sessions-note">用量以 Qoder 账户用量页为准（账号 UID 见 <a href="https://github.com/Fengzdadi/powercontext/blob/2026-competition-ecosystem/qoder/dev-records/README.md" target="_blank" rel="noopener">dev-records/README.md</a>）。</p>
 
     <div class="split-note">
       <div class="split-card">

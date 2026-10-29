@@ -21,11 +21,6 @@
     return Number(v).toFixed(digits == null ? 2 : digits);
   }
 
-  function fmtCredits(v) {
-    if (v == null || isNaN(v)) return "—";
-    return String(Math.round(v * 100) / 100);
-  }
-
   function renderMarkdown(text) {
     if (typeof marked === "undefined") return "<p>" + esc(text) + "</p>";
     try {
@@ -407,7 +402,7 @@
         var wrap = document.getElementById("sessions-body");
         var totalRow = document.getElementById("sessions-total");
         if (!data || !Array.isArray(data.rows) || data.rows.length === 0) {
-          wrap.innerHTML = '<tr><td colspan="6" class="muted">会话数据不可用。</td></tr>';
+          wrap.innerHTML = '<tr><td colspan="5" class="muted">会话数据不可用。</td></tr>';
           totalRow.hidden = true;
           return;
         }
@@ -422,7 +417,6 @@
             "<td class=" + JSON.stringify(modelCls) + ">" + esc(r.model || "—") + "</td>" +
             '<td class="num">' + (r.turns == null ? "—" : r.turns) + "</td>" +
             "<td>" + esc(r.duration || "—") + "</td>" +
-            '<td class="num">' + fmtCredits(r.credits) + "</td>" +
             "</tr>";
           cardsHtml +=
             '<div class="session-card">' +
@@ -432,22 +426,19 @@
             '<div class="sc-stats">' +
             "<div><b>" + (r.turns == null ? "—" : r.turns) + "</b>轮数</div>" +
             "<div><b>" + esc(r.duration || "—") + "</b>耗时</div>" +
-            "<div><b>" + fmtCredits(r.credits) + "</b>Credits</div>" +
             "</div></div>";
         });
         wrap.innerHTML = html;
         var t = data.totals || {};
         document.getElementById("total-rows").textContent = t.rows != null ? t.rows : "—";
         document.getElementById("total-turns").textContent = t.turns != null ? t.turns : "—";
-        document.getElementById("total-credits").textContent = t.credits != null ? fmtCredits(t.credits) : "—";
         cardsHtml += '<div class="session-total">合计 ' + (t.rows != null ? t.rows : "—") +
-          " 条记录 · " + (t.turns != null ? t.turns : "—") +
-          " 轮 · " + (t.credits != null ? fmtCredits(t.credits) : "—") + " Credits</div>";
+          " 条记录 · " + (t.turns != null ? t.turns : "—") + " 轮</div>";
         document.getElementById("sessions-cards").innerHTML = cardsHtml;
       })
       .catch(function () {
         document.getElementById("sessions-body").innerHTML =
-          '<tr><td colspan="6" class="muted">会话数据不可用。</td></tr>';
+          '<tr><td colspan="5" class="muted">会话数据不可用。</td></tr>';
         document.getElementById("sessions-total").hidden = true;
       });
   }

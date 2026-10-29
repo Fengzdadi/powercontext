@@ -266,12 +266,12 @@ table.sessions th:nth-child(1) { width: 48px; }
 table.sessions th:nth-child(3) { width: 142px; }
 table.sessions th:nth-child(4) { width: 62px; }
 table.sessions th:nth-child(5) { width: 92px; }
-table.sessions th:nth-child(6) { width: 92px; }
 table.sessions td.title-cell { white-space: normal; overflow-wrap: anywhere; }
 table.sessions td.num, table.sessions th.num { text-align: right; white-space: nowrap; }
 table.sessions tr.total td { background: #f0f4fa; font-weight: 700; border-bottom: none; }
 .model-tag { white-space: nowrap; }
 .model-tag.glm { color: #9333ea; font-weight: 600; }
+.sessions-note { font-size: 13px; color: var(--ink-faint); margin: 12px 0 0; }
 
 /* mobile: one card per session instead of the table */
 .sessions-cards { display: none; }
@@ -283,7 +283,7 @@ table.sessions tr.total td { background: #f0f4fa; font-weight: 700; border-botto
 .session-card .sc-id { font-weight: 700; color: var(--primary); font-size: 14px; }
 .session-card .sc-title { font-size: 14.5px; margin: 7px 0 10px; overflow-wrap: anywhere; }
 .session-card .sc-stats {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
   font-size: 12.5px; color: var(--ink-faint);
 }
 .session-card .sc-stats b { display: block; font-size: 15px; color: var(--ink); font-weight: 700; white-space: nowrap; }

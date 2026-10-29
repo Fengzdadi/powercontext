@@ -52,7 +52,7 @@ def parse_table(lines: list[str]) -> list[dict]:
             continue
         if len(cells) != len(EXPECTED_HEADERS):
             continue
-        row_id, title, date, model, turns, duration, credits, _cumulative = cells
+        row_id, title, date, model, turns, duration, _credits, _cumulative = cells
         rows.append(
             {
                 "id": row_id,
@@ -61,7 +61,6 @@ def parse_table(lines: list[str]) -> list[dict]:
                 "model": model,
                 "turns": parse_number(turns),
                 "duration": duration,
-                "credits": parse_number(credits),
             }
         )
     if not header_seen:
@@ -72,7 +71,6 @@ def parse_table(lines: list[str]) -> list[dict]:
 def main() -> None:
     lines = CREDITS_MD.read_text(encoding="utf-8").splitlines()
     rows = parse_table(lines)
-    total_credits = sum(r["credits"] or 0 for r in rows)
     total_turns = sum(r["turns"] or 0 for r in rows)
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -81,7 +79,6 @@ def main() -> None:
         "totals": {
             "rows": len(rows),
             "turns": total_turns,
-            "credits": round(total_credits, 2),
         },
     }
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
@@ -89,7 +86,7 @@ def main() -> None:
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(f"wrote {OUT_JSON.relative_to(QODER_DIR)}: {len(rows)} rows, "
-          f"{total_turns} turns, {total_credits:.2f} credits")
+          f"{total_turns} turns")
 
 
 if __name__ == "__main__":
