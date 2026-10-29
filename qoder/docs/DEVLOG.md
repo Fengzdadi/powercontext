@@ -474,6 +474,71 @@
 
 ---
 
+## 会话 05b — 会话 05 审阅遗留：盲区排序、雷达标签与理由措辞（2026-10-29）
+
+**参与者**：产品负责人（审阅意见与验收标准）、Qoder（实现与验证）
+**并行说明**：会话 07（M3）、08b、09b 在各自 worktree 进行；本会话只改 `app/examradar/coverage.py`、`app/static/radar.html`、`app/tests/test_coverage.py`、`app/tests/test_integration.py`（`scripts/calibrate.py` 自有 `_ref_str` 与"距离阈值"措辞，不依赖本次改动，未改），并在本文件追加记录。
+
+### A. "载入上次分析"盲区清单未排序（bug）
+
+- 原因：`analyze()` 返回前 `topic_results.sort(key=lambda t: -t.blind_spot_score)`，而 `get_latest()` 读的是 `seekdb.py` 里 `ORDER BY topic_id` 的持久化结果，没有再排——标题写"按 考试权重 × 未覆盖度 排序"，实际却按 t01…t10，t04（25.00）被排到第 4。
+- 修法：新增纯函数 `blind_spot_sort_key(topic_id, blind_spot_score)`（分数降序、同分按 topic_id 升序，None 按 0 处理），`analyze()` 和 `get_latest()` 共用这一处排序；页面"排名"列以接口顺序为准。会话 07 的复习教练经 `get_latest()` 读到的也是与刚分析一致的顺序。
+- 测试：`TestBlindSpotSortKey` 构造数据单测（降序、同分按 ID、全 0、None）；集成测试 `test_coverage_latest_order_matches_fresh_analysis` 断言 `get_latest()` 首位是 t04、整个顺序与 `analyze()` 逐项一致、分数单调不增。
+
+### B. 判定理由措辞
+
+1. **阈值距离**：`covered` 不再输出"考点词比例 1/2 高出阈值 0.5 0.00"，改为"考点词比例 1/2，达到阈值 0.5"（恰等）或"高于阈值 0.5（高出 0.50）"（超出）；支撑一句同时写"高出 covered 支撑阈值（280 字）N 字"。
+2. **证据引用缩短**：新增 `_short_ref()`，理由里每个考点词只列"文档名·最后一级标题"（取 heading 路径最后一段，无标题则用页码），最多 2 处，再写"等 N 段"。找到/未找到的考点词、支撑段数与字数、离阈值的距离全部保留；不再使用的 `_ref_str` 删除。t03 理由里"03-索引与B+树.md·第3章 … > 3.1 …"重复 7 遍的问题消除，10 条理由总长降到 1523 字。
+
+理由是分析时写入 `coverage_runs` 的，改完后在开发库 db101 重新跑了一次分析（旧 run 留在库里，`get_latest` 取的是新 run）。
+
+### C. 雷达图与盲区表（radar.html）
+
+1. **SVG 渲染器**：`echarts.init(el, null, {renderer: "svg"})`（复用同一实例），标签可以用 DOM 量出来。
+2. **轴标签换行**：`axisLabel()` 重写——知识点名先在"："后分段，再按"自然单元"（：/与/空格后、（前）贪心装箱到 14 个显示宽度单位（汉字 2、ASCII 1）。英文单词与缩写（3NF、BCNF、WAL、ARIES、MVCC、ACID、2PC、B+）是原子单元，永不拆开。
+3. **图例避让**：雷达 `center: ['50%','48%']` + `radius: '58%'`，为顶部标签留上方空间、为底部标签与图例留下方空间，实测两宽度下标签与图例零相交、全部在容器内。
+4. **表头/折行**：盲区表加 `class="blindspot"`，`.blindspot th, .blindspot summary { white-space: nowrap }` + 外层 `.table-wrap { overflow-x: auto }`（窄屏横向滚动，不折行）；选择器只作用于盲区表——证据 Markdown 也渲染 `<table>`，不能一并 nowrap。
+
+### D. 开发库重跑结果（阈值 0.5 / 280 字 / 50 字）
+
+- 10 个判定与 11 道题归属全部与设计真值一致（与 05 节 G 表相同，不再重复）。
+- 接口顺序 = "载入上次分析"顺序：**t04（25.00）、t08（8.41）、t02（7.92）、t01（5.00）、t05（5.00）、t10（2.50）、t03、t06、t07、t09（0.00）**——同分的 t01/t05 与四个 0 分项按 topic_id 升序，第一名 t04 两个接口一致。
+- 全部 10 条判定理由（重跑后原文）：
+
+  - **t04 函数依赖与范式（3NF、BCNF）**（missing，权重 25，盲区 25.00）：考点词 0/2 找到：函数依赖、范式在笔记、课件和阅读材料中均未出现，覆盖度 0。
+  - **t08 隔离级别与 MVCC**（thin，权重 10，盲区 8.41）：考点词 2/2 找到（隔离级别→05-事务与并发控制.md·5.5 隔离级别（只记了个大概，课上讲得快）；MVCC→05-事务与并发控制.md·5.5 隔离级别（只记了个大概，课上讲得快））。支撑段落 1 段共 89 字，距 covered 阈值（280 字）还差 191 字，判为 thin。
+  - **t02 SQL 查询与视图**（thin，权重 10，盲区 7.92）：考点词 1/2 找到（SQL 查询→02-SQL速记.md·基本查询、02-SQL速记.md·分组）。未找到：视图。支撑段落 2 段共 233 字，距 covered 阈值（280 字）还差 47 字，判为 thin。
+  - **t01 关系模型与关系代数**（missing，权重 5，盲区 5.00）：考点词 0/2 找到：关系模型、关系代数在笔记、课件和阅读材料中均未出现，覆盖度 0。
+  - **t05 查询处理与优化**（missing，权重 5，盲区 5.00）：考点词 0/2 找到：查询处理、优化在笔记、课件和阅读材料中均未出现，覆盖度 0。
+  - **t10 分布式事务与两阶段提交（2PC）**（covered，权重 10，盲区 2.50）：考点词 1/2 找到（两阶段提交→two-phase-commit-primer.pdf·Two-Phase Commit: A Short Primer、two-phase-commit-primer.pdf·5. Handling Failures）。未找到：分布式事务。支撑段落 2 段共 3250 字，高出 covered 支撑阈值（280 字）2970 字，考点词比例 1/2，达到阈值 0.5。
+  - **t03 索引：B+树与哈希索引**（covered，权重 10，盲区 0.00）：考点词 3/3 找到（索引→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段；B+树→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段；哈希索引→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段）。支撑段落 6 段共 1237 字，高出 covered 支撑阈值（280 字）957 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。
+  - **t06 事务的 ACID 特性**（covered，权重 5，盲区 0.00）：考点词 1/1 找到（事务的 ACID 特性→05-事务与并发控制.md·5.1 事务与 ACID）。支撑段落 1 段共 345 字，高出 covered 支撑阈值（280 字）65 字，考点词比例 1/1，高于阈值 0.5（高出 0.50）。
+  - **t07 并发控制：两阶段锁与死锁**（covered，权重 10，盲区 0.00）：考点词 3/3 找到（并发控制→05-事务与并发控制.md·第5章 事务与并发控制（课堂笔记）、05-事务与并发控制.md·5.1 事务与 ACID 等6段；两阶段锁→05-事务与并发控制.md·5.3 封锁与两阶段锁协议（2PL）；死锁→05-事务与并发控制.md·5.3 封锁与两阶段锁协议（2PL）、05-事务与并发控制.md·5.4 死锁的预防与检测 等3段）。支撑段落 6 段共 1496 字，高出 covered 支撑阈值（280 字）1216 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。
+  - **t09 故障恢复：WAL 与 ARIES**（covered，权重 10，盲区 0.00）：考点词 3/3 找到（故障恢复→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES；WAL→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES、第7讲-故障恢复.pdf·先写日志原则（WAL） 等3段；ARIES→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES、第7讲-故障恢复.pdf·ARIES 恢复算法的三个阶段 等3段）。支撑段落 3 段共 531 字，高出 covered 支撑阈值（280 字）251 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。
+
+### 验收结果
+
+| 验收项 | 结果 |
+|---|---|
+| `uv run pytest` | ✅ 130 passed, 28 skipped（新增排序函数 4 条、理由措辞/短引用 2 条单测） |
+| `export EXAMRADAR_IT=1 && uv run pytest -m integration` | ✅ 28 passed（新增 `test_coverage_latest_order_matches_fresh_analysis`、`test_coverage_reasons_are_compact`，理由断言更新为"高出 covered 支撑阈值"/"达到阈值 0.5"） |
+| 开发库重跑：10 判定 + 11 归属 = 设计真值 | ✅ 脚本断言 `levels match design: True`、`assignments match design: True` |
+| 接口与"载入上次分析"盲区第一均为 t04 | ✅ 两个接口 items 逐项相同，首位 t04（25.00） |
+| 10 条判定理由贴进 DEVLOG | ✅ 见上节 D，原文逐条粘贴 |
+| 浏览器验证 1440×900 / 768×1024（`?source=auto`，点"载入上次分析"后） | ✅ 两宽度全过：图表容器内 30 个 SVG text（10 个标签按行拆成 28 个 + 2 个图例）的 getBoundingClientRect 全在容器内且与图例不相交；标签分行与 `axisLabel()` 输出一致，3NF/BCNF/WAL/ARIES/MVCC/ACID/2PC/SQL/B+ 均未被拆开；盲区表 7 个表头与"查看理由"summary 实测 38.9px/20.8px，低于单行基准 40.4px/22.8px（无折行）；盲区表第一行是 t04 |
+| 截图 Read 复核 | ✅ 图表局部截图（`s05b_chart_1440x900.png`、`s05b_chart_768x1024.png`）可见 10 个标签全部完整——t09 为"故障恢复：/WAL 与 ARIES"、t04 为"函数依赖与范式/（3NF、BCNF）"，没有单词从中间断开；图例"覆盖度/考试权重"独立在底部，不压任何标签；蓝实线与橙虚线两个多边形清晰可辨。表格局部截图（`s05b_table_*.png`）可见 7 列表头各占一行、第一行排名 1 = t04 函数依赖与范式（missing，25 分，盲区 25.00），"查看理由"一行显示。整页截图 `s05b_radar_*.png`、视口截图 `s05b_viewport_1440x900.png` 一并存档（`.cache/scratch/`） |
+| 会话结束前关闭进程、git status 只含允许文件 | ✅ 开发服务器（18809，后台任务 bbfu8sfao）已停；改动仅 coverage.py、radar.html、test_coverage.py、test_integration.py 四个文件 + 本 DEVLOG 追加 |
+
+### 遇到的问题和解决办法
+
+1. **ECharts SVG 把标签的每一行渲染成独立 `<text>`**：验收脚本最初按"一个 text = 一个标签"计数，得到 28 个"标签"。改为在浏览器里把垂直相邻（17px 字框叠在 14px 行高上、相邻行重叠约 3px）且水平重叠的行聚回成组，再与 `axisLabel()` 的预期分行逐标签比对。
+2. **整页截图太高，Read 复核不可靠**：full_page 截图的图像描述与页面内容对不上；改为对 `#radar-chart` 和 `table.blindspot` 元素单独截图，两宽度各两张，视觉复核全部通过。
+3. **`#results-area th` 全局 nowrap 波及证据 Markdown 表格**：t03 的证据里有"B+树 vs 哈希索引"对照表，全局选择器会把它的表头也撑开。加 `.blindspot` 类把 nowrap 限定在盲区表。
+4. **表头折行检测基准**：不能只量单元格高度是否超过某个常数——用隐藏 span 以同字体量"单行文字高"加单元格内边距作上限；两种宽度下 7 个表头 38.9px、判定理由 summary 20.8px，均未超限。
+5. **脚本路径假设错了一次**：`.cache/scratch` 在 worktree 的 `qoder/` 根下，`parents[3]` 越过了仓库根，读不到 `samples/course-db/syllabus.txt`；改 `parents[2]` 后通过 API（带 `X-ExamRadar-Source: auto`）重跑分析成功。
+
+---
+
 ## 会话 06 — M4 第一部分：Docker 一键部署（2026-10-28）
 
 **参与者**：产品负责人（任务输入）、Qoder（部署实现与验证）
@@ -608,65 +673,52 @@ query "脏页表"          → 第一条 第7讲-故障恢复.pdf 第 7 页 "ARI
 
 ---
 
-## 会话 05b — 会话 05 审阅遗留：盲区排序、雷达标签与理由措辞（2026-10-29）
+## 会话 08a — M4 第二部分之一：端到端验证脚本（2026-10-29）
 
-**参与者**：产品负责人（审阅意见与验收标准）、Qoder（实现与验证）
-**并行说明**：会话 07（M3）、08b、09b 在各自 worktree 进行；本会话只改 `app/examradar/coverage.py`、`app/static/radar.html`、`app/tests/test_coverage.py`、`app/tests/test_integration.py`（`scripts/calibrate.py` 自有 `_ref_str` 与"距离阈值"措辞，不依赖本次改动，未改），并在本文件追加记录。
+**参与者**：产品负责人（任务输入）、Qoder（脚本实现与验证）
+**并行说明**：本会话在独立 worktree 进行；会话 07 在另一份目录改 `app/`（复习教练与学习者记忆），会话 08b 在另一份目录写 README / VALIDATION / `.env.example`，之后由产品负责人合并。本会话只改 `scripts/e2e_verify.py`、`docs/validation/` 和本 DEVLOG，**`app/` 零改动**（git status 确认）。
 
-### A. "载入上次分析"盲区清单未排序（bug）
+### A. `scripts/e2e_verify.py`（约 640 行，仅标准库）
 
-- 原因：`analyze()` 返回前 `topic_results.sort(key=lambda t: -t.blind_spot_score)`，而 `get_latest()` 读的是 `seekdb.py` 里 `ORDER BY topic_id` 的持久化结果，没有再排——标题写"按 考试权重 × 未覆盖度 排序"，实际却按 t01…t10，t04（25.00）被排到第 4。
-- 修法：新增纯函数 `blind_spot_sort_key(topic_id, blind_spot_score)`（分数降序、同分按 topic_id 升序，None 按 0 处理），`analyze()` 和 `get_latest()` 共用这一处排序；页面"排名"列以接口顺序为准。会话 07 的复习教练经 `get_latest()` 读到的也是与刚分析一致的顺序。
-- 测试：`TestBlindSpotSortKey` 构造数据单测（降序、同分按 ID、全 0、None）；集成测试 `test_coverage_latest_order_matches_fresh_analysis` 断言 `get_latest()` 首位是 t04、整个顺序与 `analyze()` 逐项一致、分数单调不增。
+1. **按步骤组织**：每步一个函数（`step_health` / `step_import` / `step_search` / `step_coverage`），`STEPS` 表串起全流程；每步返回 `StepResult`（若干 `Check` + 报告正文），挂起即停并在报告里记"执行中断"。会话 10 在 `STEPS` 表加"复习教练"一步即可（表里已留注释占位）。
+2. **期望值集中**在脚本开头的常量表，逐项注明出处：导入文件表与试卷 11 题/100 分（`samples/course-db/README.md` 资料表）、6 条验收检索与期望第一条（`dev-records/prompts/02-m1-ingest-search.md` 验收表）、10 个判定/11 道归属/盲区第一 t04（README「设计真值」表）。块数不在真值里（README 未给），以首次导入实际结果为准、只核对重复导入后不变。
+3. **HTTP**：`urllib` 手写客户端（JSON POST / multipart 文件上传），所有请求带 `X-ExamRadar-Source: auto`；`--app-url` / `--pc-url`（默认 18806，本地开发栈可用 `--pc-url http://127.0.0.1:18801` 覆盖）。
+4. **报告**：`docs/validation/e2e-report.md`，每步检查表 + 详细正文（导入块数表、每条检索的前 3 条出处和两路分数、判定/归属总表）+ 末行总结。
+5. **试卷题目核对不查库**：用 `POST /api/search`（`doc_kinds: ["exam"]`, top_k=20，试卷仅 11 块全召回）数题号块和分值合计，脚本保持零依赖、只走 HTTP。
+6. **latest 的已知问题按约定处理**：`latest` 第一名核对改为"盲区分数最高的知识点是 t04（25 分）"（按分数，不按列表位置），会话 05b 修复排序前后都成立；"整体顺序按盲区分数从高到低"保持位置核对，当前 ❌ 属预期（05b 修复中）。判定理由只核对结构（提到各考点词、支撑字数），不比对原文。
 
-### B. 判定理由措辞
+### B. 验证（examradar-ci 栈：先 `down -v` 再 `up -d --build` 从零启动）
 
-1. **阈值距离**：`covered` 不再输出"考点词比例 1/2 高出阈值 0.5 0.00"，改为"考点词比例 1/2，达到阈值 0.5"（恰等）或"高于阈值 0.5（高出 0.50）"（超出）；支撑一句同时写"高出 covered 支撑阈值（280 字）N 字"。
-2. **证据引用缩短**：新增 `_short_ref()`，理由里每个考点词只列"文档名·最后一级标题"（取 heading 路径最后一段，无标题则用页码），最多 2 处，再写"等 N 段"。找到/未找到的考点词、支撑段数与字数、离阈值的距离全部保留；不再使用的 `_ref_str` 删除。t03 理由里"03-索引与B+树.md·第3章 … > 3.1 …"重复 7 遍的问题消除，10 条理由总长降到 1523 字。
+三服务 healthy（app 18807 / powercontext 18806 / seekdb 18805，均只绑 127.0.0.1）。随后对 `--app-url http://127.0.0.1:18807` 连续运行三次脚本：首次导入 6 份资料共 38 块（3+7+6+9+11+2），后两次全部 skip、结果完全一致（幂等）。报告 `docs/validation/e2e-report.md` 保留最后一次运行结果。
 
-理由是分析时写入 `coverage_runs` 的，改完后在开发库 db101 重新跑了一次分析（旧 run 留在库里，`get_latest` 取的是新 run）。
-
-### C. 雷达图与盲区表（radar.html）
-
-1. **SVG 渲染器**：`echarts.init(el, null, {renderer: "svg"})`（复用同一实例），标签可以用 DOM 量出来。
-2. **轴标签换行**：`axisLabel()` 重写——知识点名先在"："后分段，再按"自然单元"（：/与/空格后、（前）贪心装箱到 14 个显示宽度单位（汉字 2、ASCII 1）。英文单词与缩写（3NF、BCNF、WAL、ARIES、MVCC、ACID、2PC、B+）是原子单元，永不拆开。
-3. **图例避让**：雷达 `center: ['50%','48%']` + `radius: '58%'`，为顶部标签留上方空间、为底部标签与图例留下方空间，实测两宽度下标签与图例零相交、全部在容器内。
-4. **表头/折行**：盲区表加 `class="blindspot"`，`.blindspot th, .blindspot summary { white-space: nowrap }` + 外层 `.table-wrap { overflow-x: auto }`（窄屏横向滚动，不折行）；选择器只作用于盲区表——证据 Markdown 也渲染 `<table>`，不能一并 nowrap。
-
-### D. 开发库重跑结果（阈值 0.5 / 280 字 / 50 字）
-
-- 10 个判定与 11 道题归属全部与设计真值一致（与 05 节 G 表相同，不再重复）。
-- 接口顺序 = "载入上次分析"顺序：**t04（25.00）、t08（8.41）、t02（7.92）、t01（5.00）、t05（5.00）、t10（2.50）、t03、t06、t07、t09（0.00）**——同分的 t01/t05 与四个 0 分项按 topic_id 升序，第一名 t04 两个接口一致。
-- 全部 10 条判定理由（重跑后原文）：
-
-  - **t04 函数依赖与范式（3NF、BCNF）**（missing，权重 25，盲区 25.00）：考点词 0/2 找到：函数依赖、范式在笔记、课件和阅读材料中均未出现，覆盖度 0。
-  - **t08 隔离级别与 MVCC**（thin，权重 10，盲区 8.41）：考点词 2/2 找到（隔离级别→05-事务与并发控制.md·5.5 隔离级别（只记了个大概，课上讲得快）；MVCC→05-事务与并发控制.md·5.5 隔离级别（只记了个大概，课上讲得快））。支撑段落 1 段共 89 字，距 covered 阈值（280 字）还差 191 字，判为 thin。
-  - **t02 SQL 查询与视图**（thin，权重 10，盲区 7.92）：考点词 1/2 找到（SQL 查询→02-SQL速记.md·基本查询、02-SQL速记.md·分组）。未找到：视图。支撑段落 2 段共 233 字，距 covered 阈值（280 字）还差 47 字，判为 thin。
-  - **t01 关系模型与关系代数**（missing，权重 5，盲区 5.00）：考点词 0/2 找到：关系模型、关系代数在笔记、课件和阅读材料中均未出现，覆盖度 0。
-  - **t05 查询处理与优化**（missing，权重 5，盲区 5.00）：考点词 0/2 找到：查询处理、优化在笔记、课件和阅读材料中均未出现，覆盖度 0。
-  - **t10 分布式事务与两阶段提交（2PC）**（covered，权重 10，盲区 2.50）：考点词 1/2 找到（两阶段提交→two-phase-commit-primer.pdf·Two-Phase Commit: A Short Primer、two-phase-commit-primer.pdf·5. Handling Failures）。未找到：分布式事务。支撑段落 2 段共 3250 字，高出 covered 支撑阈值（280 字）2970 字，考点词比例 1/2，达到阈值 0.5。
-  - **t03 索引：B+树与哈希索引**（covered，权重 10，盲区 0.00）：考点词 3/3 找到（索引→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段；B+树→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段；哈希索引→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段）。支撑段落 6 段共 1237 字，高出 covered 支撑阈值（280 字）957 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。
-  - **t06 事务的 ACID 特性**（covered，权重 5，盲区 0.00）：考点词 1/1 找到（事务的 ACID 特性→05-事务与并发控制.md·5.1 事务与 ACID）。支撑段落 1 段共 345 字，高出 covered 支撑阈值（280 字）65 字，考点词比例 1/1，高于阈值 0.5（高出 0.50）。
-  - **t07 并发控制：两阶段锁与死锁**（covered，权重 10，盲区 0.00）：考点词 3/3 找到（并发控制→05-事务与并发控制.md·第5章 事务与并发控制（课堂笔记）、05-事务与并发控制.md·5.1 事务与 ACID 等6段；两阶段锁→05-事务与并发控制.md·5.3 封锁与两阶段锁协议（2PL）；死锁→05-事务与并发控制.md·5.3 封锁与两阶段锁协议（2PL）、05-事务与并发控制.md·5.4 死锁的预防与检测 等3段）。支撑段落 6 段共 1496 字，高出 covered 支撑阈值（280 字）1216 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。
-  - **t09 故障恢复：WAL 与 ARIES**（covered，权重 10，盲区 0.00）：考点词 3/3 找到（故障恢复→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES；WAL→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES、第7讲-故障恢复.pdf·先写日志原则（WAL） 等3段；ARIES→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES、第7讲-故障恢复.pdf·ARIES 恢复算法的三个阶段 等3段）。支撑段落 3 段共 531 字，高出 covered 支撑阈值（280 字）251 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。
+关键数字（与设计真值及 DEVLOG 会话 05 校准结果一致）：试卷 11 题合计 100 分；6 条验收检索全部第一条命中期望出处且 `keyword_score` 均非空（3.69 / 2.60 / 11.23 / 2.77 / 4.00 / 3.85）；analyze 的 10 个判定、11 道归属（含依据考点词）、盲区第一 t04（25 分、blind 25）全部等于设计真值，analyze 顺序 t04(25) > t08(8.41) > t02(7.92) > …；`latest` 与 `analyze` 的 run_id 一致、判定/归属/盲区第一也全部一致。
 
 ### 验收结果
 
 | 验收项 | 结果 |
-|---|---|
-| `uv run pytest` | ✅ 130 passed, 28 skipped（新增排序函数 4 条、理由措辞/短引用 2 条单测） |
-| `export EXAMRADAR_IT=1 && uv run pytest -m integration` | ✅ 28 passed（新增 `test_coverage_latest_order_matches_fresh_analysis`、`test_coverage_reasons_are_compact`，理由断言更新为"高出 covered 支撑阈值"/"达到阈值 0.5"） |
-| 开发库重跑：10 判定 + 11 归属 = 设计真值 | ✅ 脚本断言 `levels match design: True`、`assignments match design: True` |
-| 接口与"载入上次分析"盲区第一均为 t04 | ✅ 两个接口 items 逐项相同，首位 t04（25.00） |
-| 10 条判定理由贴进 DEVLOG | ✅ 见上节 D，原文逐条粘贴 |
-| 浏览器验证 1440×900 / 768×1024（`?source=auto`，点"载入上次分析"后） | ✅ 两宽度全过：图表容器内 30 个 SVG text（10 个标签按行拆成 28 个 + 2 个图例）的 getBoundingClientRect 全在容器内且与图例不相交；标签分行与 `axisLabel()` 输出一致，3NF/BCNF/WAL/ARIES/MVCC/ACID/2PC/SQL/B+ 均未被拆开；盲区表 7 个表头与"查看理由"summary 实测 38.9px/20.8px，低于单行基准 40.4px/22.8px（无折行）；盲区表第一行是 t04 |
-| 截图 Read 复核 | ✅ 图表局部截图（`s05b_chart_1440x900.png`、`s05b_chart_768x1024.png`）可见 10 个标签全部完整——t09 为"故障恢复：/WAL 与 ARIES"、t04 为"函数依赖与范式/（3NF、BCNF）"，没有单词从中间断开；图例"覆盖度/考试权重"独立在底部，不压任何标签；蓝实线与橙虚线两个多边形清晰可辨。表格局部截图（`s05b_table_*.png`）可见 7 列表头各占一行、第一行排名 1 = t04 函数依赖与范式（missing，25 分，盲区 25.00），"查看理由"一行显示。整页截图 `s05b_radar_*.png`、视口截图 `s05b_viewport_1440x900.png` 一并存档（`.cache/scratch/`） |
-| 会话结束前关闭进程、git status 只含允许文件 | ✅ 开发服务器（18809，后台任务 bbfu8sfao）已停；改动仅 coverage.py、radar.html、test_coverage.py、test_integration.py 四个文件 + 本 DEVLOG 追加 |
+| --- | --- |
+| 先 `down -v` 再 `up -d --build` 从零启动，三服务 healthy | ✅ |
+| `python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18807` | ✅ 除「latest 整体顺序」一项外全部 ✅（该项按约定记 ❌，原因：会话 05b 修复中，`get_latest()` 现按 topic_id 排序），退出码 1 |
+| 报告写入 `docs/validation/e2e-report.md` | ✅ 总览 + 每步检查表 + 详细正文 + 总结行 |
+| 再跑一次结果不变（导入幂等） | ✅ 第三次运行与第二次逐项一致，6 份全部 skip、块数不变 |
+| 对无服务监听的地址运行（`--app-url http://127.0.0.1:18803`） | ✅ 清晰错误信息（含 DEPLOY.md 指引，无 Python 堆栈），退出码 1 |
+| 会话结束前 `down -v` 清掉 examradar-ci | ✅ 容器、pc-data/seekdb-data 卷、网络全部删除，`ps` 为空 |
+| `git status` 只含允许改的文件 | ✅ `scripts/e2e_verify.py`、`docs/validation/`、`docs/DEVLOG.md`（另有会话启动时即存在的 `dev-records/sessions/08a-*` 运行记录，未改动） |
+| 除「latest 的顺序」外全部 ✅ | ✅（见上） |
+
+### 发现的问题（应用 bug，不在本会话修）
+
+1. **`GET /api/coverage/latest` 返回顺序与 `analyze` 不一致**（已知，会话 05b 修复中）：`latest` 按 topic_id 排序，`analyze` 按盲区分数降序。复现：`POST /api/coverage/analyze` 后 `GET /api/coverage/latest?course_id=db101`，`items[0]` 是 t01 而非 t04。脚本该项照实记 ❌。
+2. 其余步骤未发现应用 bug：6 条检索、导入幂等、判定/归属/盲区均与设计真值一致。
 
 ### 遇到的问题和解决办法
 
-1. **ECharts SVG 把标签的每一行渲染成独立 `<text>`**：验收脚本最初按"一个 text = 一个标签"计数，得到 28 个"标签"。改为在浏览器里把垂直相邻（17px 字框叠在 14px 行高上、相邻行重叠约 3px）且水平重叠的行聚回成组，再与 `axisLabel()` 的预期分行逐标签比对。
-2. **整页截图太高，Read 复核不可靠**：full_page 截图的图像描述与页面内容对不上；改为对 `#radar-chart` 和 `table.blindspot` 元素单独截图，两宽度各两张，视觉复核全部通过。
-3. **`#results-area th` 全局 nowrap 波及证据 Markdown 表格**：t03 的证据里有"B+树 vs 哈希索引"对照表，全局选择器会把它的表头也撑开。加 `.blindspot` 类把 nowrap 限定在盲区表。
-4. **表头折行检测基准**：不能只量单元格高度是否超过某个常数——用隐藏 span 以同字体量"单行文字高"加单元格内边距作上限；两种宽度下 7 个表头 38.9px、判定理由 summary 20.8px，均未超限。
-5. **脚本路径假设错了一次**：`.cache/scratch` 在 worktree 的 `qoder/` 根下，`parents[3]` 越过了仓库根，读不到 `samples/course-db/syllabus.txt`；改 `parents[2]` 后通过 API（带 `X-ExamRadar-Source: auto`）重跑分析成功。
+1. **两行字符串字面量漏拼接**：导入步骤的说明文字写成 `+ "……（README "` 换行 `"未给出……"`，第二行成了独立表达式，报告里被截断为"（README"。改为括号内隐式拼接后完整。
+2. **`latest` 第一名核对方式**：初版按列表位置核对 `items[0]`，在 05b 修复前的代码上会把「latest 第一名」也判 ❌（按 topic_id 排序时 `items[0]` 是 t01），与任务约定"除顺序项外全部 ✅"冲突。改为按盲区分数核对（`max(blind_spot_score)` 属于 t04 且权重 25），数据本身正确、仅顺序有缺陷，前后兼容。
+3. **空端口的错误信息**：`urllib` 的 `URLError.reason` 在连接拒绝时是 `[Errno 61] Connection refused`，包装成中文提示并附部署指引；`HTTPError` 单独处理保留状态码和响应体。
+
+### 未做（留给后续会话）
+
+- "复习教练"步骤（会话 07 开发中、会话 10 合并后加进 `STEPS` 表）
+- 会话 05b 修复合并后重跑本脚本，「latest 整体顺序」应转 ✅
+- 会话 08b 的 README / VALIDATION / `.env.example`（另一目录并行进行）
