@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>第7讲 故障恢复</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  body { margin: 0; font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", sans-serif; color: #1d2433; }
+  .slide { width: 1280px; height: 720px; box-sizing: border-box; padding: 64px 88px; page-break-after: always; position: relative; background: #fff; }
+  .slide:last-child { page-break-after: auto; }
+  h1 { font-size: 44px; margin: 0 0 36px; color: #0b4f8a; border-bottom: 4px solid #0b4f8a; padding-bottom: 16px; }
+  .cover h1 { font-size: 60px; border: none; margin-top: 180px; }
+  .cover p { font-size: 28px; color: #555; }
+  ul { font-size: 27px; line-height: 1.6; margin: 0; padding-left: 36px; }
+  li { margin-bottom: 10px; }
+  code { font-family: Menlo, monospace; font-size: 24px; background: #f2f4f8; padding: 2px 8px; }
+  .foot { position: absolute; bottom: 28px; right: 48px; font-size: 18px; color: #999; }
+</style>
+</head>
+<body>
+<div class="slide cover">
+  <h1>第7讲 故障恢复：日志、WAL 与 ARIES</h1>
+  <p>《数据库系统原理》2026 秋 · 课件</p>
+  <div class="foot">1</div>
+</div>
+<div class="slide">
+  <h1>故障的种类</h1>
+  <ul>
+    <li><b>事务故障</b>：事务内部出错（如违反约束、除零）或被死锁检测选为牺牲者，事务无法继续，需要回滚。</li>
+    <li><b>系统故障</b>：掉电、操作系统崩溃等，内存（缓冲区）中的内容全部丢失，但磁盘数据完好。</li>
+    <li><b>介质故障</b>：磁盘损坏，持久存储上的数据丢失，需要从备份和归档日志恢复。</li>
+    <li>恢复子系统的目标：故障后把数据库恢复到一个<b>一致的状态</b>，保证事务的<b>原子性</b>和<b>持久性</b>。</li>
+  </ul>
+  <div class="foot">2</div>
+</div>
+<div class="slide">
+  <h1>日志记录与日志文件</h1>
+  <ul>
+    <li>日志按时间顺序<b>追加</b>写入，每条日志有一个单调递增的日志序列号 <b>LSN</b>。</li>
+    <li>更新日志记录：<code>&lt;T, X, 旧值, 新值&gt;</code>，旧值用于撤销，新值用于重做。</li>
+    <li>事务开始、提交、回滚分别记 <code>&lt;T start&gt;</code>、<code>&lt;T commit&gt;</code>、<code>&lt;T abort&gt;</code>。</li>
+    <li>日志先写在内存的日志缓冲区，再按规则刷到稳定存储（磁盘）上。</li>
+  </ul>
+  <div class="foot">3</div>
+</div>
+<div class="slide">
+  <h1>先写日志原则（WAL）</h1>
+  <ul>
+    <li><b>Write-Ahead Logging</b>：一个数据页被写回磁盘之前，描述该页修改的日志记录必须<b>先</b>写到稳定存储。</li>
+    <li>事务提交之前，它的所有日志记录（包括 commit 记录）必须先刷到磁盘，提交才算完成。</li>
+    <li>第一条保证崩溃后总能找到旧值来 <b>undo</b>；第二条保证已提交事务总能找到新值来 <b>redo</b>。</li>
+    <li>有了 WAL，缓冲区管理可以采用 <b>steal</b>（未提交的脏页也可写回）+ <b>no-force</b>（提交时不必强制写数据页）的策略，性能最好。</li>
+  </ul>
+  <div class="foot">4</div>
+</div>
+<div class="slide">
+  <h1>Undo 与 Redo</h1>
+  <ul>
+    <li>steal 策略下，未提交事务的修改可能已经落盘 → 恢复时要 <b>undo</b>。</li>
+    <li>no-force 策略下，已提交事务的修改可能还没落盘 → 恢复时要 <b>redo</b>。</li>
+    <li>基本恢复过程：正向扫描日志，对有 commit 记录的事务重做；反向扫描日志，对没有 commit 也没有 abort 的事务撤销。</li>
+    <li>undo 和 redo 都必须是<b>幂等</b>的：恢复过程中再次崩溃，重新执行一遍结果不变。</li>
+  </ul>
+  <div class="foot">5</div>
+</div>
+<div class="slide">
+  <h1>检查点（Checkpoint）</h1>
+  <ul>
+    <li>不做检查点的话，恢复时要从日志开头扫描，太慢。</li>
+    <li>检查点把当前活跃事务表、脏页信息写入日志，恢复时只需从<b>最近的检查点</b>附近开始扫描。</li>
+    <li><b>模糊检查点</b>（fuzzy checkpoint）：做检查点时不暂停正在运行的事务，也不强制把所有脏页刷盘，只记录状态。</li>
+  </ul>
+  <div class="foot">6</div>
+</div>
+<div class="slide">
+  <h1>ARIES 恢复算法的三个阶段</h1>
+  <ul>
+    <li><b>分析（Analysis）</b>：从最近的检查点正向扫描日志，重建<b>脏页表</b>和<b>活跃事务表</b>，确定 redo 的起点（脏页表中最小的 recLSN）。</li>
+    <li><b>重做（Redo）</b>：从该起点开始"<b>重演历史</b>"，把所有更新（包括未提交事务的更新）都重做一遍，使数据库回到崩溃前一刻的状态。</li>
+    <li><b>撤销（Undo）</b>：反向回滚崩溃时仍未提交的事务，每撤销一个操作写一条<b>补偿日志记录 CLR</b>。</li>
+  </ul>
+  <div class="foot">7</div>
+</div>
+<div class="slide">
+  <h1>LSN、pageLSN 与补偿日志记录（CLR）</h1>
+  <ul>
+    <li>每个数据页上记录 <b>pageLSN</b>：最后一次修改该页的日志 LSN。redo 时若日志 LSN ≤ pageLSN，说明修改已在页上，跳过。</li>
+    <li><b>CLR</b> 记录"撤销了哪条日志"，并带 <b>UndoNextLSN</b> 指向下一条要撤销的日志。</li>
+    <li>CLR 只 redo、不 undo：undo 过程中再次崩溃时，已经撤销的部分不会被重复撤销，恢复一定能结束。</li>
+  </ul>
+  <div class="foot">8</div>
+</div>
+<div class="slide">
+  <h1>本讲小结</h1>
+  <ul>
+    <li>故障分三类；恢复保证原子性和持久性。</li>
+    <li>WAL 是一切的前提：先写日志，后写数据页；提交前日志先落盘。</li>
+    <li>ARIES = 分析 + 重做（重演历史）+ 撤销（写 CLR）。</li>
+    <li>课后思考：为什么 ARIES 的 redo 阶段要连未提交事务的更新也重做？</li>
+  </ul>
+  <div class="foot">9</div>
+</div>
+</body>
+</html>

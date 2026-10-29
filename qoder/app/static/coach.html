@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>复习教练 — 考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/source.js"></script>
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+<a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
+<a href="/usage.html">使用记录</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>开始复习</h2>
+<div class="form-row">
+<div>
+<label for="learner-input">你的名字</label>
+<input type="text" id="learner-input" placeholder="例如：验收同学">
+</div>
+<div>
+<label for="course-id">课程 ID</label>
+<input type="text" id="course-id" value="db101">
+</div>
+</div>
+<div class="form-row" style="margin-top:12px">
+<button class="btn" id="start-btn" onclick="startSession()">开始学习会话</button>
+<button class="btn" id="resume-btn" style="display:none" onclick="resumeSession()">继续上次会话</button>
+<button class="btn" id="end-btn" style="display:none" onclick="endSession()">结束会话</button>
+</div>
+<div id="memory-notice" class="status err" style="display:none;margin-top:12px">记忆服务暂不可用</div>
+<div id="opening-line" style="margin-top:12px"></div>
+</div>
+
+<div class="card" id="plan-card" style="display:none">
+<h2>复习计划</h2>
+<div id="plan-body"></div>
+</div>
+
+<div class="card" id="quiz-card" style="display:none">
+<h2>当前题目</h2>
+<div id="quiz-meta"></div>
+<div id="quiz-history" style="margin-top:8px"></div>
+<div id="quiz-body" style="margin-top:12px"></div>
+<div style="margin-top:12px">
+<button class="btn" id="answer-btn" onclick="submitAnswer()">提交回答</button>
+<button class="btn" id="next-btn" style="display:none" onclick="nextQuestion()">下一题</button>
+</div>
+<div id="quiz-result" style="margin-top:12px"></div>
+</div>
+</div>
+<script>
+const SRC = new URLSearchParams(window.location.search).get('source') === 'auto' ? 'auto' : null;
+const HDRS = Object.assign({'Content-Type': 'application/json'}, SRC ? {'X-ExamRadar-Source': SRC} : {});
+
+let session = null;
+let currentQuestion = null;
+let pendingSelfRating = null;
+let coachStatus = null;
+
+function ls(key, val) {
+  if (val !== undefined) localStorage.setItem(key, val);
+  return localStorage.getItem(key);
+}
+
+function init() {
+  document.getElementById('learner-input').value = ls('examradar_learner') || '';
+  document.getElementById('course-id').value = ls('examradar_course') || 'db101';
+  const saved = ls('examradar_session');
+  if (saved && ls('examradar_learner')) {
+    document.getElementById('resume-btn').style.display = '';
+  }
+  fetch('/api/coach/status').then(r => r.json()).then(d => { coachStatus = d; }).catch(() => {});
+  window.addEventListener('pagehide', () => {
+    if (session && !session.ended) {
+      navigator.sendBeacon('/api/sessions/end', new Blob(
+        [JSON.stringify({session_id: session.session_id, source: SRC || 'real'})],
+        {type: 'text/plain'}));
+    }
+  });
+}
+
+function showMemoryNotice(show) {
+  document.getElementById('memory-notice').style.display = show ? '' : 'none';
+}
+
+async function startSession() {
+  const learner = document.getElementById('learner-input').value.trim();
+  const course = document.getElementById('course-id').value.trim();
+  if (!learner) { alert('请输入你的名字'); return; }
+  ls('examradar_learner', learner);
+  ls('examradar_course', course);
+  const btn = document.getElementById('start-btn');
+  btn.disabled = true; btn.textContent = '开始中...';
+  try {
+    const r = await fetch('/api/sessions/start', {
+      method: 'POST', headers: HDRS,
+      body: JSON.stringify({learner, course_id: course})
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || '开始失败'); return; }
+    session = {session_id: d.session_id, course_id: course, ended: false};
+    ls('examradar_session', d.session_id);
+    showMemoryNotice(!d.memory_ok);
+    renderStart(d);
+    document.getElementById('quiz-card').style.display = '';
+    document.getElementById('end-btn').style.display = '';
+    document.getElementById('resume-btn').style.display = 'none';
+    nextQuestion();
+  } catch (e) { alert('网络错误: ' + e.message); }
+  btn.disabled = false; btn.textContent = '开始学习会话';
+}
+
+async function resumeSession() {
+  const sid = ls('examradar_session');
+  if (!sid) return;
+  session = {session_id: sid, course_id: ls('examradar_course') || 'db101', ended: false};
+  document.getElementById('quiz-card').style.display = '';
+  document.getElementById('end-btn').style.display = '';
+  document.getElementById('start-btn').style.display = 'none';
+  nextQuestion();
+}
+
+function renderStart(d) {
+  const el = document.getElementById('opening-line');
+  el.innerHTML = d.opening_line
+    ? '<div class="status ok">' + escapeHtml(d.opening_line) + '</div>'
+    : '<div class="status">这是你的第一次复习，还没有历史记忆。</div>';
+  const plan = [];
+  if (d.due_topics && d.due_topics.length) {
+    plan.push('<h3>今天到期</h3><ul>' + d.due_topics.map(t =>
+      `<li>${escapeHtml(t.topic_id)} ${escapeHtml(t.topic_name)}（盒 ${t.box}，${escapeHtml(t.next_review)} 到期）</li>`).join('') + '</ul>');
+  }
+  if (d.blind_topics && d.blind_topics.length) {
+    plan.push('<h3>覆盖盲区</h3><ul>' + d.blind_topics.slice(0, 5).map(t =>
+      `<li>${escapeHtml(t.topic_id)} ${escapeHtml(t.topic_name)} — ${escapeHtml(t.coverage_level)}，考试权重 ${t.exam_weight} 分</li>`).join('') + '</ul>');
+  }
+  const pc = document.getElementById('plan-card');
+  if (plan.length) { document.getElementById('plan-body').innerHTML = plan.join(''); pc.style.display = ''; }
+  else pc.style.display = 'none';
+}
+
+async function nextQuestion(preferred) {
+  if (!session) return;
+  const body = {session_id: session.session_id};
+  if (preferred) body.question_type = preferred;
+  document.getElementById('quiz-result').innerHTML = '';
+  document.getElementById('next-btn').style.display = 'none';
+  try {
+    const r = await fetch('/api/quiz/next', {
+      method: 'POST', headers: HDRS, body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) { document.getElementById('quiz-result').innerHTML = '<div class="status err">' + escapeHtml(d.error || '出题失败') + '</div>'; return; }
+    currentQuestion = d;
+    showMemoryNotice(!d.memory_ok);
+    renderQuestion(d);
+  } catch (e) {
+    document.getElementById('quiz-result').innerHTML = '<div class="status err">网络错误: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderQuestion(d) {
+  document.getElementById('quiz-meta').innerHTML =
+    `<div class="meta">${escapeHtml(d.topic_id)} ${escapeHtml(d.topic_name)} · ${typeLabel(d.question_type)}${d.llm_generated ? '（AI 生成）' : '（规则出题）'} · 出处：${escapeHtml((d.source || {}).label || '—')}</div>`;
+  const hist = document.getElementById('quiz-history');
+  if (d.mistake_history && d.mistake_history.length) {
+    hist.innerHTML = '<div class="status warn">你之前在这里错过：</div><ul>' +
+      d.mistake_history.slice(0, 3).map(h => '<li>' + escapeHtml(firstLines(h.text, 2)) + '</li>').join('') + '</ul>';
+  } else hist.innerHTML = '';
+  const body = document.getElementById('quiz-body');
+  pendingSelfRating = null;
+  if (d.question_type === 'choice') {
+    body.innerHTML = '<p>' + escapeHtml(d.question) + '</p>' +
+      Object.entries(d.options || {}).map(([k, v]) =>
+        `<label style="display:block;margin:6px 0"><input type="radio" name="opt" value="${escapeHtml(k)}"> ${escapeHtml(k)}. ${escapeHtml(v)}</label>`).join('');
+    document.getElementById('answer-btn').style.display = '';
+  } else if (d.question_type === 'fill') {
+    body.innerHTML = '<p>' + escapeHtml(d.question) + '</p>' +
+      '<input type="text" id="fill-answer" style="width:100%">';
+    document.getElementById('answer-btn').style.display = '';
+  } else if (d.question_type === 'short') {
+    body.innerHTML = '<p>' + escapeHtml(d.question) + '</p>' +
+      '<textarea id="short-answer" rows="3" style="width:100%" placeholder="用自己的话回答"></textarea>';
+    document.getElementById('answer-btn').style.display = '';
+  } else if (d.question_type === 'self') {
+    body.innerHTML = '<p>' + escapeHtml(d.question) + '</p>' +
+      (d.hint ? '<div class="status warn">' + escapeHtml(d.hint) + '</div>' : '') +
+      (d.self_ratings || ['会', '模糊', '不会']).map(r =>
+        `<button class="btn" style="margin:6px 6px 0 0" onclick="submitSelfRating('${r}')">${r}</button>`).join('');
+    document.getElementById('answer-btn').style.display = 'none';
+  }
+}
+
+function typeLabel(t) {
+  return {fill: '填空题', choice: '选择题', short: '简答题', self: '自测题'}[t] || t;
+}
+
+async function submitAnswer() {
+  if (!currentQuestion) return;
+  let answer = '';
+  if (currentQuestion.question_type === 'choice') {
+    const sel = document.querySelector('input[name="opt"]:checked');
+    if (!sel) { alert('请选择一个选项'); return; }
+    answer = sel.value;
+  } else if (currentQuestion.question_type === 'fill') {
+    answer = document.getElementById('fill-answer').value;
+  } else if (currentQuestion.question_type === 'short') {
+    answer = document.getElementById('short-answer').value;
+    if (!answer.trim()) { alert('请输入你的回答'); return; }
+  }
+  await postAnswer({question_id: currentQuestion.question_id, answer});
+}
+
+async function submitSelfRating(rating) {
+  await postAnswer({question_id: currentQuestion.question_id, self_rating: rating});
+}
+
+async function postAnswer(payload) {
+  const btn = document.getElementById('answer-btn');
+  btn.disabled = true; btn.textContent = '判分中...';
+  try {
+    const r = await fetch('/api/quiz/answer', {
+      method: 'POST', headers: HDRS, body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      if (d.reference_answer && d.self_ratings) {
+        renderSelfCheck(d);
+      } else {
+        document.getElementById('quiz-result').innerHTML = '<div class="status err">' + escapeHtml(d.error || '判分失败') + '</div>';
+      }
+      return;
+    }
+    showMemoryNotice(!d.memory_ok);
+    renderResult(d);
+  } catch (e) {
+    document.getElementById('quiz-result').innerHTML = '<div class="status err">网络错误: ' + escapeHtml(e.message) + '</div>';
+  }
+  btn.disabled = false; btn.textContent = '提交回答';
+}
+
+function renderSelfCheck(d) {
+  const el = document.getElementById('quiz-result');
+  el.innerHTML = '<div class="card" style="margin:0">' +
+    '<h3>参考答案</h3><p>' + escapeHtml(d.reference_answer) + '</p>' +
+    '<p>对照参考答案，你觉得自己掌握了吗？</p>' +
+    (d.self_ratings || ['会', '模糊', '不会']).map(r =>
+      `<button class="btn" style="margin:6px 6px 0 0" onclick="submitSelfRating('${r}')">${r}</button>`).join('') +
+    '</div>';
+}
+
+function renderResult(d) {
+  const el = document.getElementById('quiz-result');
+  const cls = d.correct ? 'ok' : 'err';
+  let html = `<div class="status ${cls}">${d.correct ? '✅' : '❌'} ${escapeHtml(d.feedback)}</div>`;
+  if (d.box_before != null && d.box_after != null) {
+    html += `<div class="meta">Leitner 盒号：${d.box_before} → ${d.box_after}</div>`;
+  }
+  if (d.explanation) html += '<p>解析：' + escapeHtml(d.explanation) + '</p>';
+  if (d.misconception) html += '<p>误区：' + escapeHtml(d.misconception) + '</p>';
+  if (d.mastery) html += `<div class="meta">掌握度卡片：${escapeHtml(d.mastery.artifact_id)} rev ${d.mastery.revision}</div>`;
+  if (d.mistake_memory && d.mistake_memory.artifact_id) {
+    html += `<div class="meta">错题记忆：${escapeHtml(d.mistake_memory.artifact_id)} rev ${d.mistake_memory.revision}</div>`;
+  }
+  if (d.review_plan) html += `<div class="meta">复习计划：${escapeHtml(d.review_plan.artifact_id)} rev ${d.review_plan.revision}</div>`;
+  el.innerHTML = html;
+  document.getElementById('answer-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display = '';
+}
+
+async function endSession() {
+  if (!session) return;
+  const d = await endSessionApi();
+  session.ended = true;
+  localStorage.removeItem('examradar_session');
+  document.getElementById('end-btn').style.display = 'none';
+  document.getElementById('start-btn').style.display = '';
+  document.getElementById('quiz-card').style.display = 'none';
+  if (d) {
+    const el = document.getElementById('opening-line');
+    el.innerHTML = '<div class="status">会话已结束：时长 ' + Math.round(d.duration_seconds / 60) +
+      ' 分钟，做题 ' + d.questions_asked + ' 道，答对 ' + d.questions_correct + ' 道。</div>';
+  }
+}
+
+async function endSessionApi() {
+  try {
+    const r = await fetch('/api/sessions/end', {
+      method: 'POST', headers: HDRS,
+      body: JSON.stringify({session_id: session.session_id, source: SRC || 'real'})
+    });
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+function firstLines(text, n) {
+  return (text || '').split('\n').slice(0, n).join(' ');
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+init();
+</script>
+</body>
+</html>

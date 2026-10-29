@@ -1,0 +1,910 @@
+{
+  "run_id": 11,
+  "course_id": "db101",
+  "created_at": "2026-10-29T05:34:38+00:00",
+  "topics": [
+    {
+      "id": "t01",
+      "name": "关系模型与关系代数",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "关系模型",
+          "aliases": []
+        },
+        {
+          "text": "关系代数",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t02",
+      "name": "SQL 查询与视图",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "SQL 查询",
+          "aliases": []
+        },
+        {
+          "text": "视图",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t03",
+      "name": "索引：B+树与哈希索引",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "索引",
+          "aliases": []
+        },
+        {
+          "text": "B+树",
+          "aliases": []
+        },
+        {
+          "text": "哈希索引",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t04",
+      "name": "函数依赖与范式（3NF、BCNF）",
+      "keywords": [
+        "3NF",
+        "BCNF"
+      ],
+      "terms": [
+        {
+          "text": "函数依赖",
+          "aliases": []
+        },
+        {
+          "text": "范式",
+          "aliases": [
+            "3NF",
+            "BCNF"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "t05",
+      "name": "查询处理与优化",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "查询处理",
+          "aliases": []
+        },
+        {
+          "text": "优化",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t06",
+      "name": "事务的 ACID 特性",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "事务的 ACID 特性",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t07",
+      "name": "并发控制：两阶段锁与死锁",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "并发控制",
+          "aliases": []
+        },
+        {
+          "text": "两阶段锁",
+          "aliases": []
+        },
+        {
+          "text": "死锁",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t08",
+      "name": "隔离级别与 MVCC",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "隔离级别",
+          "aliases": []
+        },
+        {
+          "text": "MVCC",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t09",
+      "name": "故障恢复：WAL 与 ARIES",
+      "keywords": [],
+      "terms": [
+        {
+          "text": "故障恢复",
+          "aliases": []
+        },
+        {
+          "text": "WAL",
+          "aliases": []
+        },
+        {
+          "text": "ARIES",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "id": "t10",
+      "name": "分布式事务与两阶段提交（2PC）",
+      "keywords": [
+        "2PC"
+      ],
+      "terms": [
+        {
+          "text": "分布式事务",
+          "aliases": []
+        },
+        {
+          "text": "两阶段提交",
+          "aliases": [
+            "2PC"
+          ]
+        }
+      ]
+    }
+  ],
+  "config": {
+    "term_ratio_covered": 0.5,
+    "support_chars_covered": 280,
+    "min_body_chars": 50
+  },
+  "items": [
+    {
+      "topic_id": "t04",
+      "topic_name": "函数依赖与范式（3NF、BCNF）",
+      "keywords": [
+        "3NF",
+        "BCNF"
+      ],
+      "coverage_level": "missing",
+      "coverage_score": 0.0,
+      "support_chunks": 0,
+      "support_chars": 0,
+      "terms": [
+        {
+          "term": "函数依赖",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        },
+        {
+          "term": "范式",
+          "aliases": [
+            "3NF",
+            "BCNF"
+          ],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        }
+      ],
+      "best_evidence": null,
+      "exam_weight": 25.0,
+      "exam_questions": [
+        {
+          "question_no": 4,
+          "points": 15.0,
+          "similarity": 0.8505618314147229,
+          "matched_terms": [
+            "函数依赖",
+            "范式"
+          ],
+          "content": "4.（15 分）设关系模式 R(A, B, C, D, E)，函数依赖集 F = { A→B, B→C, AD→E }。 （1）求 R 的所有候选码；（2）求属性集闭包 (A) +；（3）判断 R 最高属于第几范式，说明理由。"
+        },
+        {
+          "question_no": 5,
+          "points": 10.0,
+          "similarity": 0.8103109937072029,
+          "matched_terms": [
+            "函数依赖",
+            "范式"
+          ],
+          "content": "5.（10 分）将上题的 R 分解为满足 BCNF 的关系模式集合，并判断你的分解是否无损连接、是否保持函数依赖。"
+        }
+      ],
+      "blind_spot_score": 25.0,
+      "reason": "考点词 0/2 找到：函数依赖、范式在笔记、课件和阅读材料中均未出现，覆盖度 0。"
+    },
+    {
+      "topic_id": "t08",
+      "topic_name": "隔离级别与 MVCC",
+      "keywords": [],
+      "coverage_level": "thin",
+      "coverage_score": 0.1589,
+      "support_chunks": 1,
+      "support_chars": 89,
+      "terms": [
+        {
+          "term": "隔离级别",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快）"
+            }
+          ],
+          "best_sem": 0.86812534
+        },
+        {
+          "term": "MVCC",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快）"
+            }
+          ],
+          "best_sem": 0.86812534
+        }
+      ],
+      "best_evidence": {
+        "content": "## 5.5 隔离级别（只记了个大概，课上讲得快）\n\nSQL 标准定义了四个隔离级别：读未提交、读已提交、可重复读、可串行化。级别越高，允许的异常越少，并发度越低。\n\nMVCC 老师说是多版本，读的时候不加锁，具体没记下来，回头看课件。",
+        "heading": "第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快）",
+        "page": null,
+        "document_name": "05-事务与并发控制.md",
+        "semantic_score": 0.7531,
+        "keyword_score": 2.9678
+      },
+      "exam_weight": 10.0,
+      "exam_questions": [
+        {
+          "question_no": 9,
+          "points": 10.0,
+          "similarity": 0.8146532348002631,
+          "matched_terms": [
+            "隔离级别",
+            "MVCC"
+          ],
+          "content": "9.（10 分）比较\"读已提交\"和\"可重复读\"两种隔离级别分别能避免哪些并发异常；说明 MVCC （多版本并发控制）如何实现不加锁的快照读。"
+        }
+      ],
+      "blind_spot_score": 8.41,
+      "reason": "考点词 2/2 找到（隔离级别→05-事务与并发控制.md·5.5 隔离级别（只记了个大概，课上讲得快）；MVCC→05-事务与并发控制.md·5.5 隔离级别（只记了个大概，课上讲得快））。支撑段落 1 段共 89 字，距 covered 阈值（280 字）还差 191 字，判为 thin。"
+    },
+    {
+      "topic_id": "t02",
+      "topic_name": "SQL 查询与视图",
+      "keywords": [],
+      "coverage_level": "thin",
+      "coverage_score": 0.208,
+      "support_chunks": 2,
+      "support_chars": 233,
+      "terms": [
+        {
+          "term": "SQL 查询",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "02-SQL速记.md",
+              "page": null,
+              "heading": "第2章 SQL（速记，没整理完） > 基本查询"
+            },
+            {
+              "doc": "02-SQL速记.md",
+              "page": null,
+              "heading": "第2章 SQL（速记，没整理完） > 分组"
+            }
+          ],
+          "best_sem": 0.78252804
+        },
+        {
+          "term": "视图",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        }
+      ],
+      "best_evidence": {
+        "content": "## 基本查询\n\n- `SELECT 列 FROM 表 WHERE 条件`，`DISTINCT` 去重。\n- `ORDER BY 列 DESC` 降序排列。\n- 多表查询用 `JOIN ... ON ...`，外连接分 `LEFT JOIN` / `RIGHT JOIN`。",
+        "heading": "第2章 SQL（速记，没整理完） > 基本查询",
+        "page": null,
+        "document_name": "02-SQL速记.md",
+        "semantic_score": 0.7509,
+        "keyword_score": null
+      },
+      "exam_weight": 10.0,
+      "exam_questions": [
+        {
+          "question_no": 2,
+          "points": 10.0,
+          "similarity": 0.7871816424910261,
+          "matched_terms": [
+            "SQL 查询",
+            "视图"
+          ],
+          "content": "2.（10 分）用 SQL 写出：查询平均成绩高于 85 分的学生学号和平均成绩，结果按平均成绩降序排列；再基于该查询建立一个名为 good_students 的视图，并说明通过视图更新数据有哪些限制。"
+        }
+      ],
+      "blind_spot_score": 7.92,
+      "reason": "考点词 1/2 找到（SQL 查询→02-SQL速记.md·基本查询、02-SQL速记.md·分组）。未找到：视图。支撑段落 2 段共 233 字，距 covered 阈值（280 字）还差 47 字，判为 thin。"
+    },
+    {
+      "topic_id": "t01",
+      "topic_name": "关系模型与关系代数",
+      "keywords": [],
+      "coverage_level": "missing",
+      "coverage_score": 0.0,
+      "support_chunks": 0,
+      "support_chars": 0,
+      "terms": [
+        {
+          "term": "关系模型",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        },
+        {
+          "term": "关系代数",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        }
+      ],
+      "best_evidence": null,
+      "exam_weight": 5.0,
+      "exam_questions": [
+        {
+          "question_no": 1,
+          "points": 5.0,
+          "similarity": 0.7884928744808726,
+          "matched_terms": [
+            "关系代数"
+          ],
+          "content": "1.（5 分）设有关系学生 S(Sno, Sname, Dept)、选课 SC(Sno, Cno, Grade)。用关系代数表达式写出\"选修了 2 号课程的学生姓名\"，并说明选择、投影、自然连接各自起什么作用。"
+        }
+      ],
+      "blind_spot_score": 5.0,
+      "reason": "考点词 0/2 找到：关系模型、关系代数在笔记、课件和阅读材料中均未出现，覆盖度 0。"
+    },
+    {
+      "topic_id": "t05",
+      "topic_name": "查询处理与优化",
+      "keywords": [],
+      "coverage_level": "missing",
+      "coverage_score": 0.0,
+      "support_chunks": 0,
+      "support_chars": 0,
+      "terms": [
+        {
+          "term": "查询处理",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        },
+        {
+          "term": "优化",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        }
+      ],
+      "best_evidence": null,
+      "exam_weight": 5.0,
+      "exam_questions": [
+        {
+          "question_no": 6,
+          "points": 5.0,
+          "similarity": 0.8185040000596009,
+          "matched_terms": [
+            "优化"
+          ],
+          "content": "6.（5 分）查询优化中为什么要尽早执行选择操作（\"选择下推\"）？结合查询树说明它如何减少中间结果的大小。"
+        }
+      ],
+      "blind_spot_score": 5.0,
+      "reason": "考点词 0/2 找到：查询处理、优化在笔记、课件和阅读材料中均未出现，覆盖度 0。"
+    },
+    {
+      "topic_id": "t10",
+      "topic_name": "分布式事务与两阶段提交（2PC）",
+      "keywords": [
+        "2PC"
+      ],
+      "coverage_level": "covered",
+      "coverage_score": 0.75,
+      "support_chunks": 2,
+      "support_chars": 3250,
+      "terms": [
+        {
+          "term": "分布式事务",
+          "aliases": [],
+          "found": false,
+          "chunks": [],
+          "best_sem": null
+        },
+        {
+          "term": "两阶段提交",
+          "aliases": [
+            "2PC"
+          ],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "two-phase-commit-primer.pdf",
+              "page": 1,
+              "heading": "Two-Phase Commit: A Short Primer"
+            },
+            {
+              "doc": "two-phase-commit-primer.pdf",
+              "page": 2,
+              "heading": "5. Handling Failures"
+            }
+          ],
+          "best_sem": 0.76505527
+        }
+      ],
+      "best_evidence": {
+        "content": "Two-Phase Commit: A Short Primer\nSupplementary reading for \"Principles of Database Systems\", Fall 2026\n1. The Atomic Commitment Problem\nA distributed transaction updates data stored on several independent database nodes. Each node can commit or abort its local part, but the transaction as a whole must be atomic: either every participant commits, or every participant aborts. A node cannot simply commit when its own work succeeds, because another node may fail to apply its part. Atomic commitment protocols solve this problem, and two-phase commit (2PC) is the most widely used one.\n2. Roles\nOne node acts as the coordinator; the nodes that executed parts of the transaction are the participants. The coordinator is often the node where the transaction started. Every node keeps a write-ahead log on stable storage so that it can recover its decisions after a crash.\n3. Phase One: Prepare (Voting)\nThe coordinator sends a PREPARE message to every participant. A participant that can commit its part force-writes a prepared log record, which guarantees that it will be able to commit even after a crash, and replies YES. A participant that cannot commit writes an abort record and replies NO. After voting YES, a participant gives up its right to abort on its own: it is now in the uncertain (prepared) state and must wait for the coordinator's decision.\n4. Phase Two: Commit or Abort (Decision)\nIf every participant voted YES, the coordinator force-writes a commit record and sends COMMIT to all participants; this log write is the moment the transaction is committed. If any participant voted NO or did not answer before a timeout, the coordinator decides to abort and sends ABORT. Each participant applies the decision, writes it to its log, releases its locks, and replies with an acknowledgment. When all acknowledgments have arrived, the coordinator writes an end record and can forget the transaction.",
+        "heading": "Two-Phase Commit: A Short Primer",
+        "page": 1,
+        "document_name": "two-phase-commit-primer.pdf",
+        "semantic_score": 0.7651,
+        "keyword_score": 0.348
+      },
+      "exam_weight": 10.0,
+      "exam_questions": [
+        {
+          "question_no": 11,
+          "points": 10.0,
+          "similarity": 0.8665346011753801,
+          "matched_terms": [
+            "分布式事务",
+            "两阶段提交"
+          ],
+          "content": "11.（10 分）在分布式事务中，两阶段提交协议（2PC）的两个阶段分别做什么？为什么说 2PC 是\"阻塞\"的协议？协调者在什么时刻崩溃会导致参与者阻塞？"
+        }
+      ],
+      "blind_spot_score": 2.5,
+      "reason": "考点词 1/2 找到（两阶段提交→two-phase-commit-primer.pdf·Two-Phase Commit: A Short Primer、two-phase-commit-primer.pdf·5. Handling Failures）。未找到：分布式事务。支撑段落 2 段共 3250 字，高出 covered 支撑阈值（280 字）2970 字，考点词比例 1/2，达到阈值 0.5。"
+    },
+    {
+      "topic_id": "t03",
+      "topic_name": "索引：B+树与哈希索引",
+      "keywords": [],
+      "coverage_level": "covered",
+      "coverage_score": 1.0,
+      "support_chunks": 6,
+      "support_chars": 1237,
+      "terms": [
+        {
+          "term": "索引",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记）"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.1 为什么需要索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.2 B+树的结构"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.3 B+树的查找、插入与删除"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.4 聚簇索引与非聚簇索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.5 哈希索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.6 小结：B+树 vs 哈希"
+            }
+          ],
+          "best_sem": 0.88741196
+        },
+        {
+          "term": "B+树",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记）"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.1 为什么需要索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.2 B+树的结构"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.3 B+树的查找、插入与删除"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.4 聚簇索引与非聚簇索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.5 哈希索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.6 小结：B+树 vs 哈希"
+            }
+          ],
+          "best_sem": 0.88741196
+        },
+        {
+          "term": "哈希索引",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记）"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.1 为什么需要索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.2 B+树的结构"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.3 B+树的查找、插入与删除"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.4 聚簇索引与非聚簇索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.5 哈希索引"
+            },
+            {
+              "doc": "03-索引与B+树.md",
+              "page": null,
+              "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.6 小结：B+树 vs 哈希"
+            }
+          ],
+          "best_sem": 0.88741196
+        }
+      ],
+      "best_evidence": {
+        "content": "## 3.6 小结：B+树 vs 哈希\n\n| 对比项 | B+树 | 哈希索引 |\n| --- | --- | --- |\n| 等值查找 | O(log n)，3～4 次 I/O | 平均 O(1) |\n| 范围查询 / 排序 | 支持（叶子链表） | 不支持 |\n| 适用场景 | 通用，数据库默认索引 | 只有等值查询的场景，如内存哈希表 |\n\n老师强调：考试常考 **B+树插入时的结点分裂过程**，要会画图。",
+        "heading": "第3章 索引：B+树与哈希索引（课堂笔记） > 3.6 小结：B+树 vs 哈希",
+        "page": null,
+        "document_name": "03-索引与B+树.md",
+        "semantic_score": 0.7433,
+        "keyword_score": null
+      },
+      "exam_weight": 10.0,
+      "exam_questions": [
+        {
+          "question_no": 3,
+          "points": 10.0,
+          "similarity": 0.7789299198596442,
+          "matched_terms": [
+            "B+树"
+          ],
+          "content": "3.（10 分）一棵阶数为 4 的 B+树，叶子结点依次为 [5, 10, 15]、[20, 25]、[30, 40]。依次插入 12 和 13，画出每次插入后的 B+树，说明叶子结点分裂时哪个搜索码被复制到父结点。"
+        }
+      ],
+      "blind_spot_score": 0.0,
+      "reason": "考点词 3/3 找到（索引→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段；B+树→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段；哈希索引→03-索引与B+树.md·第3章 索引：B+树与哈希索引（课堂笔记）、03-索引与B+树.md·3.1 为什么需要索引 等7段）。支撑段落 6 段共 1237 字，高出 covered 支撑阈值（280 字）957 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。"
+    },
+    {
+      "topic_id": "t06",
+      "topic_name": "事务的 ACID 特性",
+      "keywords": [],
+      "coverage_level": "covered",
+      "coverage_score": 1.0,
+      "support_chunks": 1,
+      "support_chars": 345,
+      "terms": [
+        {
+          "term": "事务的 ACID 特性",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.1 事务与 ACID"
+            }
+          ],
+          "best_sem": 0.85796635
+        }
+      ],
+      "best_evidence": {
+        "content": "## 5.1 事务与 ACID\n\n事务是数据库执行的一个逻辑工作单位，要么全部完成，要么全部不做。经典例子：银行转账，A 账户减 100 和 B 账户加 100 必须一起成功。\n\n- **原子性 Atomicity**：事务中的操作要么全做要么全不做。出错时用日志里的旧值把已做的修改**撤销（undo）**。\n- **一致性 Consistency**：事务执行前后数据库都满足完整性约束（例如转账前后总金额不变）。一致性靠应用逻辑和数据库约束共同保证。\n- **隔离性 Isolation**：并发执行的事务互不干扰，效果等价于某种串行执行。由**并发控制**机制保证。\n- **持久性 Durability**：事务一旦提交，它的修改就永久保存，即使随后系统崩溃。靠**日志先写到磁盘**、崩溃后**重做（redo）**来保证。",
+        "heading": "第5章 事务与并发控制（课堂笔记） > 5.1 事务与 ACID",
+        "page": null,
+        "document_name": "05-事务与并发控制.md",
+        "semantic_score": 0.7945,
+        "keyword_score": 4.3378
+      },
+      "exam_weight": 5.0,
+      "exam_questions": [
+        {
+          "question_no": 7,
+          "points": 5.0,
+          "similarity": 0.8267515418749909,
+          "matched_terms": [
+            "事务的 ACID 特性"
+          ],
+          "content": "7.（5 分）事务的 ACID 特性中，原子性和持久性分别由数据库的什么机制来保证？"
+        }
+      ],
+      "blind_spot_score": 0.0,
+      "reason": "考点词 1/1 找到（事务的 ACID 特性→05-事务与并发控制.md·5.1 事务与 ACID）。支撑段落 1 段共 345 字，高出 covered 支撑阈值（280 字）65 字，考点词比例 1/1，高于阈值 0.5（高出 0.50）。"
+    },
+    {
+      "topic_id": "t07",
+      "topic_name": "并发控制：两阶段锁与死锁",
+      "keywords": [],
+      "coverage_level": "covered",
+      "coverage_score": 1.0,
+      "support_chunks": 6,
+      "support_chars": 1496,
+      "terms": [
+        {
+          "term": "并发控制",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记）"
+            },
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.1 事务与 ACID"
+            },
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.2 并发执行会出什么问题"
+            },
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.3 封锁与两阶段锁协议（2PL）"
+            },
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.4 死锁的预防与检测"
+            },
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快）"
+            }
+          ],
+          "best_sem": 0.82661406
+        },
+        {
+          "term": "两阶段锁",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.3 封锁与两阶段锁协议（2PL）"
+            }
+          ],
+          "best_sem": 0.82661406
+        },
+        {
+          "term": "死锁",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.3 封锁与两阶段锁协议（2PL）"
+            },
+            {
+              "doc": "05-事务与并发控制.md",
+              "page": null,
+              "heading": "第5章 事务与并发控制（课堂笔记） > 5.4 死锁的预防与检测"
+            },
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 2,
+              "heading": "故障的种类"
+            }
+          ],
+          "best_sem": 0.82661406
+        }
+      ],
+      "best_evidence": {
+        "content": "## 5.3 封锁与两阶段锁协议（2PL）\n\n- **排他锁（X 锁，写锁）**：加了 X 锁后，其他事务不能再对该数据加任何锁。\n- **共享锁（S 锁，读锁）**：多个事务可以同时持有 S 锁，但不能加 X 锁。\n- 锁相容矩阵：只有 S 与 S 相容。\n\n**两阶段锁协议（Two-Phase Locking, 2PL）**：每个事务的加锁和解锁分成两个阶段——\n\n1. **增长阶段（扩展阶段）**：只能加锁，不能解锁；\n2. **收缩阶段**：只能解锁，不能再加新锁。\n\n- 定理：所有事务都遵守 2PL，则任何并发调度都是**冲突可串行化**的。（2PL 是可串行化的**充分条件**，不是必要条件。）\n- **严格两阶段锁（Strict 2PL）**：X 锁一直持有到事务提交或回滚才释放，可以避免**级联回滚**。大多数数据库实际用的是严格 2PL。\n- 注意：**2PL 不能防止死锁**。两个事务都在增长阶段、互相等待对方的锁，就会死锁。",
+        "heading": "第5章 事务与并发控制（课堂笔记） > 5.3 封锁与两阶段锁协议（2PL）",
+        "page": null,
+        "document_name": "05-事务与并发控制.md",
+        "semantic_score": 0.7799,
+        "keyword_score": 8.5294
+      },
+      "exam_weight": 10.0,
+      "exam_questions": [
+        {
+          "question_no": 8,
+          "points": 10.0,
+          "similarity": 0.8597534269223944,
+          "matched_terms": [
+            "两阶段锁",
+            "死锁"
+          ],
+          "content": "8.（10 分）什么是两阶段锁协议？证明或说明遵守两阶段锁协议的并发调度是冲突可串行化的；遵守两阶段锁协议能否避免死锁？举例说明。"
+        }
+      ],
+      "blind_spot_score": 0.0,
+      "reason": "考点词 3/3 找到（并发控制→05-事务与并发控制.md·第5章 事务与并发控制（课堂笔记）、05-事务与并发控制.md·5.1 事务与 ACID 等6段；两阶段锁→05-事务与并发控制.md·5.3 封锁与两阶段锁协议（2PL）；死锁→05-事务与并发控制.md·5.3 封锁与两阶段锁协议（2PL）、05-事务与并发控制.md·5.4 死锁的预防与检测 等3段）。支撑段落 6 段共 1496 字，高出 covered 支撑阈值（280 字）1216 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。"
+    },
+    {
+      "topic_id": "t09",
+      "topic_name": "故障恢复：WAL 与 ARIES",
+      "keywords": [],
+      "coverage_level": "covered",
+      "coverage_score": 1.0,
+      "support_chunks": 3,
+      "support_chars": 531,
+      "terms": [
+        {
+          "term": "故障恢复",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 1,
+              "heading": "第7讲故障恢复：日志、WAL 与 ARIES"
+            }
+          ],
+          "best_sem": 0.87101482
+        },
+        {
+          "term": "WAL",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 1,
+              "heading": "第7讲故障恢复：日志、WAL 与 ARIES"
+            },
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 4,
+              "heading": "先写日志原则（WAL）"
+            },
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 9,
+              "heading": "本讲小结"
+            }
+          ],
+          "best_sem": 0.87101482
+        },
+        {
+          "term": "ARIES",
+          "aliases": [],
+          "found": true,
+          "chunks": [
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 1,
+              "heading": "第7讲故障恢复：日志、WAL 与 ARIES"
+            },
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 7,
+              "heading": "ARIES 恢复算法的三个阶段"
+            },
+            {
+              "doc": "第7讲-故障恢复.pdf",
+              "page": 9,
+              "heading": "本讲小结"
+            }
+          ],
+          "best_sem": 0.87101482
+        }
+      ],
+      "best_evidence": {
+        "content": "本讲小结\n故障分三类；恢复保证原子性和持久性。\nWAL 是一切的前提：先写日志，后写数据页；提交前日志先落盘。\nARIES = 分析 + 重做（重演历史）+ 撤销（写 CLR）。\n课后思考：为什么 ARIES 的 redo 阶段要连未提交事务的更新也重做？",
+        "heading": "本讲小结",
+        "page": 9,
+        "document_name": "第7讲-故障恢复.pdf",
+        "semantic_score": 0.7834,
+        "keyword_score": 2.2036
+      },
+      "exam_weight": 10.0,
+      "exam_questions": [
+        {
+          "question_no": 10,
+          "points": 10.0,
+          "similarity": 0.7664190587041295,
+          "matched_terms": [
+            "WAL",
+            "ARIES"
+          ],
+          "content": "10.（10 分）简述 ARIES 恢复算法的三个阶段及每个阶段的作用，并说明先写日志（WAL）原则为什么是恢复正确性的前提。"
+        }
+      ],
+      "blind_spot_score": 0.0,
+      "reason": "考点词 3/3 找到（故障恢复→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES；WAL→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES、第7讲-故障恢复.pdf·先写日志原则（WAL） 等3段；ARIES→第7讲-故障恢复.pdf·第7讲故障恢复：日志、WAL 与 ARIES、第7讲-故障恢复.pdf·ARIES 恢复算法的三个阶段 等3段）。支撑段落 3 段共 531 字，高出 covered 支撑阈值（280 字）251 字，考点词比例 3/3，高于阈值 0.5（高出 0.50）。"
+    }
+  ]
+}
