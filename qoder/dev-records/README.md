@@ -38,6 +38,7 @@
 | `qoder-native/` | Qoder CLI 自己保存的会话文件（`~/.qoder-cn/projects/<项目>/<会话 ID>.jsonl`，含子 Agent 记录）的副本 |
 | `screenshots/` | 关键环节的 Qoder 界面截图 |
 | `CREDITS.md` | 每个会话消耗的 Qoder Credits |
+| `sites-publish.md` | 项目网站在 Qoder Sites 上的发布记录：执行的命令、输出摘要和未登录访问检查 |
 | `run_qoder.sh` | 每个会话的调用方式（非交互 `-p`、`--permission-mode accept_edits`、允许执行的命令清单） |
 | `tui_capture.py` | 截图工具：在虚拟终端里运行 `qoderclicn --resume <会话 ID>`，把 Qoder 界面显示的会话历史渲染成图片，不发送任何新指令 |
 

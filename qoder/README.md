@@ -2,6 +2,8 @@
 
 **一句话**：ExamRadar 把期末前零散的课程资料（笔记、课件、往年试卷、阅读材料）变成一个可检索、可量化"复习覆盖度"的知识库——问笔记有出处，考前一眼看清"笔记没记到、但往年试卷分值很高"的盲区。
 
+**项目网站**：<https://examradar-9ertt3o7l76.qoder.zone>（Qoder Sites，任何人都可访问；发布过程见 [`dev-records/sites-publish.md`](dev-records/sites-publish.md)）
+
 ## 解决什么问题
 
 期末复习时，学生手里的资料是零散的：笔记记得有的全有的缺、课件一摞 PDF、往年试卷不知道考什么。
