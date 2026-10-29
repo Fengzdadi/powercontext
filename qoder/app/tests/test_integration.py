@@ -308,10 +308,23 @@ def test_coverage_reasons_are_explained(coverage_result):
     assert "0/2" in by_id["t01"]["reason"]
     # covered topic: reports support chars above the threshold
     assert "支撑段落" in by_id["t03"]["reason"]
-    assert "高出 covered 阈值" in by_id["t03"]["reason"]
+    assert "高出 covered 支撑阈值" in by_id["t03"]["reason"]
+    # ratio above threshold is phrased naturally, distance kept
+    assert "高于阈值" in by_id["t03"]["reason"]
+    # covered at exactly the ratio threshold reads "达到阈值", not
+    # "高出阈值 0.5 0.00"
+    assert "达到阈值 0.5" in by_id["t10"]["reason"]
     # thin topics say which dimension fell short
     assert "thin" in by_id["t02"]["reason"]
     assert "thin" in by_id["t08"]["reason"]
+
+
+def test_coverage_reasons_are_compact(coverage_result):
+    """Reasons cite doc·last-heading (max 2 refs + "等 N 段"), not full
+    chapter paths repeated for every paragraph."""
+    for item in coverage_result["items"]:
+        reason = item["reason"]
+        assert " > " not in reason, item["topic_id"]
 
 
 def test_coverage_latest(coverage_result):
@@ -327,3 +340,18 @@ def test_coverage_latest(coverage_result):
     t10 = next(i for i in latest["items"] if i["topic_id"] == "t10")
     assert t10["exam_questions"][0]["content"], "question text must persist"
     assert t10["exam_questions"][0]["matched_terms"]
+
+
+def test_coverage_latest_order_matches_fresh_analysis(coverage_result):
+    """get_latest must return the same ordering as analyze() — blind-spot
+    score high→low, ties by topic_id — so the radar page's "载入上次分析"
+    shows the same ranking as a fresh run (and session 07's coach reads a
+    stable sequence)."""
+    from examradar.coverage import get_latest
+    latest = get_latest(COURSE)
+    assert latest["items"][0]["topic_id"] == "t04"
+    fresh_ids = [i["topic_id"] for i in coverage_result["items"]]
+    latest_ids = [i["topic_id"] for i in latest["items"]]
+    assert latest_ids == fresh_ids
+    scores = [i["blind_spot_score"] for i in latest["items"]]
+    assert scores == sorted(scores, reverse=True)

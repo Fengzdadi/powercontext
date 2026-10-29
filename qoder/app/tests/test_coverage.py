@@ -6,6 +6,7 @@ just classify the course-db sample.
 from examradar.coverage import (
     judge_topic, match_variant, term_matches, body_text,
     evaluate_topic, assign_question, build_reason, make_chunk,
+    blind_spot_sort_key,
 )
 from examradar.syllabus import parse_syllabus, parse_terms, normalize_for_match
 
@@ -223,6 +224,32 @@ class TestEvaluateTopic:
         assert 2 not in [c.chunk_id for c in supporting]  # not evidence
 
 
+# -- blind-spot ordering -------------------------------------------------------
+
+class TestBlindSpotSortKey:
+    def test_descending_by_score(self):
+        order = sorted(
+            [{"id": i} for i in ["t01", "t02", "t03"]],
+            key=lambda x: blind_spot_sort_key(x["id"],
+                                              {"t01": 5, "t02": 25, "t03": 8}[x["id"]]),
+        )
+        assert [x["id"] for x in order] == ["t02", "t03", "t01"]
+
+    def test_ties_broken_by_topic_id(self):
+        items = ["t09", "t02", "t10", "t01"]
+        order = sorted(items, key=lambda tid: blind_spot_sort_key(tid, 7.67))
+        assert order == ["t01", "t02", "t09", "t10"]
+
+    def test_all_zero_scores_ordered_by_topic_id(self):
+        items = ["t05", "t01", "t07", "t03"]
+        order = sorted(items, key=lambda tid: blind_spot_sort_key(tid, 0.0))
+        assert order == ["t01", "t03", "t05", "t07"]
+
+    def test_none_score_sorts_last_within_zeros(self):
+        # get_latest items may carry NULL blind_spot_score
+        assert blind_spot_sort_key("t04", None) == (0.0, "t04")
+
+
 # -- exam question assignment -------------------------------------------------
 
 class TestAssignQuestion:
@@ -280,8 +307,37 @@ class TestBuildReason:
         reason, level = self._evaluate(topics[1], _corpus())
         assert level == "covered"
         assert "2/2" in reason
-        assert "高出 covered 阈值" in reason
-        assert "-" not in reason.split("高出 covered 阈值")[1][:10]
+        assert "高出 covered 支撑阈值" in reason
+        assert "-" not in reason.split("高出 covered 支撑阈值")[1][:10]
+        # ratio above threshold is phrased naturally, with the distance kept
+        assert "高于阈值 0.5（高出 0.50）" in reason
+
+    def test_covered_reason_at_exact_ratio_says_reached(self):
+        # 1 of 2 terms found + big support: ratio exactly meets 0.5
+        topics = parse_syllabus(SYLLABUS)
+        reason, level = self._evaluate(topics[2], _corpus())
+        assert level == "covered"
+        assert "考点词比例 1/2，达到阈值 0.5" in reason
+
+    def test_reason_uses_short_refs_and_caps_the_list(self):
+        # every chunk repeats the same chapter path; the reason must state
+        # doc·last-heading, at most 2 refs per term, then "等 N 段"
+        chunks = [
+            make_chunk(i,
+                       "两阶段锁协议要求加锁和解锁分成两个阶段。增长阶段只能加锁。" * 8,
+                       heading=f"第5章 事务管理 > 5.{i} 封锁协议",
+                       document_name="notes-事务.md")
+            for i in range(1, 5)
+        ]
+        topics = parse_syllabus("1. 两阶段锁")
+        reason, level = self._evaluate(topics[0], chunks)
+        assert level == "covered"
+        assert "notes-事务.md·5.1 封锁协议" in reason
+        assert "第5章 事务管理" not in reason
+        assert "等4段" in reason
+        # at most two refs listed for the term
+        listed = reason.split("两阶段锁→")[1].split("；")[0]
+        assert listed.count("notes-事务.md") <= 2
 
     def test_missing_reason_names_terms(self):
         topics = parse_syllabus("1. 关系模型与关系代数")

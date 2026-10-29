@@ -146,15 +146,31 @@ def judge_topic(found_terms: int, total_terms: int, support_chars: int,
     return "thin", 0.5 * degree
 
 
-def _ref_str(ref: dict) -> str:
-    parts = []
-    if ref.get("doc"):
-        parts.append(ref["doc"])
+def _short_ref(ref: dict) -> str:
+    """Compact evidence reference for reasons: doc name + last heading level.
+
+    Full heading paths repeat the chapter title for every paragraph of the
+    same document and made reasons unusably long.
+    """
+    doc = ref.get("doc") or ""
+    heading = ref.get("heading") or ""
+    if " > " in heading:
+        heading = heading.rsplit(" > ", 1)[-1]
+    if heading:
+        return f"{doc}·{heading}" if doc else heading
     if ref.get("page"):
-        parts.append(f"第{ref['page']}页")
-    if ref.get("heading"):
-        parts.append(ref["heading"])
-    return "·".join(parts)
+        return f"{doc}·第{ref['page']}页" if doc else f"第{ref['page']}页"
+    return doc
+
+
+def blind_spot_sort_key(topic_id: str, blind_spot_score) -> tuple:
+    """Blind-spot score high→low, ties broken by topic_id (asc).
+
+    The single ordering used by both the fresh analysis result and the
+    persisted run read back via get_latest(), so the two APIs and the
+    radar page's blind-spot table always agree.
+    """
+    return (-float(blind_spot_score or 0), topic_id)
 
 
 def build_reason(level: str, score: float, terms: list[TermEvidence],
@@ -168,8 +184,8 @@ def build_reason(level: str, score: float, terms: list[TermEvidence],
 
     found_parts = []
     for t in found:
-        refs = [_ref_str(r) for r in t.chunk_refs[:3]]
-        more = f" 等{len(t.chunk_refs)}段" if len(t.chunk_refs) > 3 else ""
+        refs = [_short_ref(r) for r in t.chunk_refs[:2]]
+        more = f" 等{len(t.chunk_refs)}段" if len(t.chunk_refs) > 2 else ""
         found_parts.append(f"{t.term}→{'、'.join(refs)}{more}")
     found_desc = "考点词 {}/{} 找到（{}）".format(
         len(found), total, "；".join(found_parts)) if found_parts else \
@@ -183,10 +199,15 @@ def build_reason(level: str, score: float, terms: list[TermEvidence],
         head = f"{found_desc}。"
         if missing:
             head += "未找到：" + "、".join(t.term for t in missing) + "。"
+        ratio = len(found) / total
+        if ratio > ratio_t:
+            ratio_phrase = (f"考点词比例 {len(found)}/{total}，"
+                            f"高于阈值 {ratio_t}（高出 {ratio - ratio_t:.2f}）")
+        else:
+            ratio_phrase = f"考点词比例 {len(found)}/{total}，达到阈值 {ratio_t}"
         return (head + f"支撑段落 {support_chunks} 段共 {support_chars} 字，"
-                f"高出 covered 阈值（{support_t} 字）{support_chars - support_t} 字，"
-                f"考点词比例 {len(found)}/{total} 高出阈值 {ratio_t} "
-                f"{len(found) / total - ratio_t:.2f}。")
+                f"高出 covered 支撑阈值（{support_t} 字）{support_chars - support_t} 字，"
+                f"{ratio_phrase}。")
     # thin
     ratio = len(found) / total if total else 0.0
     head = f"{found_desc}。"
@@ -440,7 +461,8 @@ def analyze(course_id: str, syllabus_text: str, source: str = "real",
         tr.exam_weight = sum(q.points for q in qs)
         tr.blind_spot_score = round(tr.exam_weight * (1.0 - tr.coverage_score), 2)
 
-    topic_results.sort(key=lambda t: -t.blind_spot_score)
+    topic_results.sort(
+        key=lambda t: blind_spot_sort_key(t.topic_id, t.blind_spot_score))
 
     config_json = json.dumps({
         "term_ratio_covered": ratio_t,
@@ -599,6 +621,10 @@ def get_latest(course_id: str) -> Optional[dict]:
             "blind_spot_score": item.get("blind_spot_score"),
             "reason": item.get("reason"),
         })
+    # the persisted run comes back ORDER BY topic_id; re-apply the same
+    # ordering as analyze() so both APIs return an identical sequence
+    items.sort(key=lambda it: blind_spot_sort_key(
+        it["topic_id"], it.get("blind_spot_score")))
     return {
         "run_id": run["id"],
         "course_id": run["course_id"],

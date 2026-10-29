@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>考前覆盖雷达 — 考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<style>
+  /* blind-spot table: headers and the 查看理由 toggle must stay on one
+     line; on narrow screens the table scrolls horizontally instead
+     (scope to this table: evidence Markdown also renders <table> here) */
+  .blindspot th, .blindspot summary { white-space: nowrap; }
+  .table-wrap { overflow-x: auto; }
+</style>
 <script src="/static/js/source.js"></script>
 </head>
 <body>
@@ -74,11 +81,51 @@ function renderContent(text) {
   return html;
 }
 
-// break a CJK/mixed topic name into short lines for the radar axis label
-function axisLabel(item) {
-  const words = item.topic_name.split('');
+// Break a topic name into short axis-label lines, but only at natural
+// points: after ：/与/space and before （. English words and acronyms
+// (3NF, BCNF, WAL, ARIES, MVCC, ACID) are atomic units and never split.
+const LABEL_BREAK_AFTER = new Set(['：', '与', ' ']);
+const LABEL_MAX_WIDTH = 14; // display units: CJK char = 2, ASCII = 1
+
+function labelUnits(text) {
+  const units = [];
+  let cur = '';
+  for (const ch of text) {
+    if (ch === '（' && cur) { units.push(cur); cur = '（'; continue; }
+    cur += ch;
+    if (LABEL_BREAK_AFTER.has(ch)) { units.push(cur); cur = ''; }
+  }
+  if (cur) units.push(cur);
+  return units;
+}
+
+function displayWidth(s) {
+  let w = 0;
+  for (const ch of s) w += ch.codePointAt(0) > 0xFF ? 2 : 1;
+  return w;
+}
+
+function wrapUnits(units, max) {
   const lines = [];
-  for (let i = 0; i < words.length; i += 5) lines.push(words.slice(i, i + 5).join(''));
+  let cur = '';
+  for (const u of units) {
+    if (cur && displayWidth(cur.trimEnd()) + displayWidth(u) > max) {
+      lines.push(cur.trimEnd());
+      cur = u;
+    } else {
+      cur += u;
+    }
+  }
+  if (cur) lines.push(cur.trimEnd());
+  return lines;
+}
+
+function axisLabel(item) {
+  const lines = [];
+  // ： ends a segment: "索引：" / "B+树与哈希索引", never "索引：B+" / "树…"
+  for (const seg of item.topic_name.split(/(?<=：)/)) {
+    lines.push(...wrapUnits(labelUnits(seg), LABEL_MAX_WIDTH));
+  }
   return item.topic_id + '\n' + lines.join('\n');
 }
 
@@ -168,7 +215,7 @@ function renderResults(data) {
   html += '<div class="card"><h2>覆盖度雷达图</h2><div id="radar-chart" style="width:100%;height:450px"></div></div>';
 
   html += '<div class="card"><h2>盲区清单（按 考试权重 × 未覆盖度 排序）</h2>';
-  html += '<table><tr><th>排名</th><th>知识点</th><th>覆盖度</th><th>考试权重</th><th>盲区分数</th><th>关联试题</th><th>判定理由</th></tr>';
+  html += '<div class="table-wrap"><table class="blindspot"><tr><th>排名</th><th>知识点</th><th>覆盖度</th><th>考试权重</th><th>盲区分数</th><th>关联试题</th><th>判定理由</th></tr>';
   items.forEach((item, i) => {
     const levelClass = item.coverage_level === 'covered' ? 'level-covered' :
                        item.coverage_level === 'thin' ? 'level-thin' : 'level-missing';
@@ -184,7 +231,7 @@ function renderResults(data) {
       <td><details><summary>查看理由</summary><p style="margin:8px 0;font-size:13px;color:#555">${escapeHtml(item.reason)}</p></details></td>
     </tr>`;
   });
-  html += '</table></div>';
+  html += '</table></div></div>';
 
   items.forEach((item, i) => {
     html += `<div class="card"><h2>${escapeHtml(item.topic_id)} · ${escapeHtml(item.topic_name)}</h2>`;
@@ -245,8 +292,13 @@ function renderResults(data) {
   renderRadarChart(items);
 }
 
+let radarChart = null;
+
 function renderRadarChart(items) {
-  const chart = echarts.init(document.getElementById('radar-chart'));
+  const el = document.getElementById('radar-chart');
+  // SVG renderer so label boxes can be measured in the DOM (and text stays
+  // crisp); reuse the instance across re-renders
+  if (!radarChart) radarChart = echarts.init(el, null, {renderer: 'svg'});
   const maxWeight = Math.max(...items.map(i => i.exam_weight), 1);
   const indicators = items.map(i => ({
     name: axisLabel(i),
@@ -255,13 +307,16 @@ function renderRadarChart(items) {
   const coverageData = items.map(i => i.coverage_score);
   const weightData = items.map(i => i.exam_weight / maxWeight);
 
-  chart.setOption({
+  radarChart.setOption({
     tooltip: {},
     legend: { data: ['覆盖度', '考试权重'], bottom: 0 },
     radar: {
       indicator: indicators,
       shape: 'polygon',
-      radius: '65%',
+      // center/radius leave room above for the top label and below for the
+      // bottom label plus the legend, so nothing overlaps
+      center: ['50%', '48%'],
+      radius: '58%',
       splitArea: { areaStyle: { color: ['#fff', '#f5f6fa'] } },
       axisName: { color: '#555', lineHeight: 14 },
     },
@@ -273,7 +328,7 @@ function renderRadarChart(items) {
       ],
     }],
   });
-  window.addEventListener('resize', () => chart.resize());
+  window.addEventListener('resize', () => radarChart && radarChart.resize());
 }
 
 function fmtScore(v, digits) {
