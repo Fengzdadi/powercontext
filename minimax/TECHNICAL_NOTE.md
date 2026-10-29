@@ -54,6 +54,6 @@ project/（sdd.toml）─────┼─ ingest ── import ──→ │ s
 - **修改前失败是行为失败**：verify-before 要求目标用例全部失败且全部是断言失败，导入、夹具、收集错误都不算。
 - **测试不被削弱**：MiniMax 只能写 `sdd.toml` 中 `code` 范围的文件；verify-after 再比较只读路径修改前后的指纹，并检查被测代码的差异与开发记录一致。
 - **记录可核对**：开发记录保存每一轮的响应 ID、用量、工具调用及结果和最终差异；`check-record` 在干净副本上重放修改调用，得到与 `change.patch` 相同的 sha256。
-- **成本与时延**：上下文约 2 万字符。一次实时开发 `MiniMax-M3.1-Flash` 用 12–15 轮、模型响应约 1–2 分钟，
-  `MiniMax-M3` 用 8 轮、约 40–70 秒；多轮对话命中 MiniMax 的输入缓存（记录中 `cache_read_input_tokens` 占输入的 85%–91%）。
-  6 次实时运行全部通过，见 `evidence/T-101/README.md`。
+- **成本与时延**：上下文约 2 万字符。一次实时开发 `MiniMax-M3.1-Flash` 一般用 12–18 轮、模型响应 1–3.5 分钟，
+  `MiniMax-M3` 用 8 轮、约 40–70 秒；多轮对话命中 MiniMax 的输入缓存（记录中 `cache_read_input_tokens` 占输入的 85%–93%）。
+  提交的 6 次实时运行全部通过，见 `evidence/T-101/README.md`。
