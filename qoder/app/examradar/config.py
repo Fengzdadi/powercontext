@@ -73,10 +73,6 @@ class Settings(BaseSettings):
     # never count as evidence (title-only pages / one-line notes)
     coverage_min_body_chars: int = 50
 
-    # Usage stats: estimated study time from events (real sessions arrive in M3)
-    usage_session_gap_minutes: int = 30
-    usage_minutes_per_event: float = 1.0
-
     leitner_intervals: str = "1,2,4,7,14"
 
     @property

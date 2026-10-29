@@ -58,6 +58,81 @@ class TestFillQuestion:
         assert q["expected_answer"] != "第3章"
         assert not q["question"].startswith("填空：#")
 
+    def test_blank_prefers_found_terms(self):
+        """挖空优先挖考点词本身（会话 05 覆盖结果的 terms[].found）。"""
+        topic = {"topic_id": "t08", "topic_name": "隔离级别与 MVCC",
+                 "keywords": ["MVCC"],
+                 "terms": [
+                     {"term": "隔离级别", "aliases": [], "found": True},
+                     {"term": "MVCC", "aliases": ["多版本并发控制"],
+                      "found": True},
+                 ]}
+        chunk = make_chunk(
+            "隔离级别由低到高有读未提交、读已提交等；MVCC 通过快照实现读写不阻塞。",
+            heading="5.5 隔离级别（只记了个大概，课上讲得快）")
+        q = coach.make_fill_question(topic, chunk)
+        assert q is not None
+        assert q["expected_answer"] == "隔离级别"
+        assert "隔离级别" not in q["question"]
+        assert q["source"]["heading"].startswith("5.5")
+
+    def test_unfound_terms_not_blanked(self):
+        """未找到的考点词不会出现在出题段落里，不参与挖空。"""
+        topic = {"topic_id": "t04", "topic_name": "函数依赖与范式（3NF、BCNF）",
+                 "keywords": [],
+                 "terms": [{"term": "函数依赖", "aliases": ["3NF", "BCNF"],
+                            "found": False}]}
+        chunk = make_chunk("SQL 的 GROUP BY 子句可以按列分组聚合。")
+        q = coach.make_fill_question(topic, chunk)
+        # 挖空只能落在无关的字母术语上——调用方（quiz 路由）不会把这种段落
+        # 选为 t04 的材料，这里只验证函数本身不挖未找到的考点词
+        if q is not None:
+            assert q["expected_answer"] not in ("函数依赖", "3NF", "BCNF")
+
+
+class TestTermMatchedChunks:
+    """thin/covered 知识点的出题材料 = 找到考点词的段落。"""
+
+    ROWS = [
+        {"id": 11, "content": "隔离级别由低到高……", "heading": "5.5 隔离级别",
+         "page": None, "doc_name": "05-事务与并发控制.md"},
+        {"id": 12, "content": "GROUP BY 按列分组。", "heading": "分组",
+         "page": None, "doc_name": "02-SQL速记.md"},
+    ]
+
+    def test_only_chunks_with_terms(self, monkeypatch):
+        monkeypatch.setattr(coach, "get_coverage_chunks",
+                            lambda course, kinds: self.ROWS)
+        topic = {"topic_id": "t08", "topic_name": "隔离级别与 MVCC",
+                 "keywords": [], "terms": [
+                     {"term": "隔离级别", "aliases": [], "found": True}]}
+        chunks = coach._term_matched_chunks("db101", topic)
+        assert [c["id"] for c in chunks] == [11]
+
+    def test_no_found_terms_returns_empty(self, monkeypatch):
+        monkeypatch.setattr(coach, "get_coverage_chunks",
+                            lambda course, kinds: self.ROWS)
+        topic = {"topic_id": "t04", "topic_name": "函数依赖与范式",
+                 "keywords": [], "terms": [
+                     {"term": "函数依赖", "aliases": [], "found": False}]}
+        assert coach._term_matched_chunks("db101", topic) == []
+
+    def test_hit_term_count_orders_chunks(self, monkeypatch):
+        rows = [
+            {"id": 21, "content": "两阶段锁在增长阶段只加锁。", "heading": "5.3 封锁",
+             "page": None, "doc_name": "05-事务与并发控制.md"},
+            {"id": 22, "content": "两阶段锁与死锁：死锁检测与解除。", "heading": "5.4",
+             "page": None, "doc_name": "05-事务与并发控制.md"},
+        ]
+        monkeypatch.setattr(coach, "get_coverage_chunks",
+                            lambda course, kinds: rows)
+        topic = {"topic_id": "t07", "topic_name": "并发控制：两阶段锁与死锁",
+                 "keywords": [], "terms": [
+                     {"term": "两阶段锁", "aliases": [], "found": True},
+                     {"term": "死锁", "aliases": [], "found": True}]}
+        chunks = coach._term_matched_chunks("db101", topic)
+        assert chunks[0]["id"] == 22  # 命中 2 个考点词 > 1 个
+
 
 class TestSelfTestQuestion:
     def test_missing_topic_uses_past_exam_question(self, monkeypatch):

@@ -1,6 +1,6 @@
 # ExamRadar 端到端验证报告
 
-- 时间：2026-10-29 04:23:05 UTC
+- 时间：2026-10-29 04:53:09 UTC
 - 应用地址：http://127.0.0.1:18807
 - PowerContext 地址：http://127.0.0.1:18806
 - 课程：db101（samples/course-db）
@@ -13,9 +13,10 @@
 | 健康检查 | ✅ |
 | 导入样例资料 | ✅ |
 | 验收检索 | ✅ |
-| 覆盖雷达 | ❌ |
+| 覆盖雷达 | ✅ |
+| 复习教练 | ✅ |
 
-**总结：存在未通过项 ❌**
+**总结：全部通过 ✅**
 
 ---
 
@@ -41,12 +42,12 @@
 
 | 文件 | 类型 | 块数 | 状态 |
 | --- | --- | --- | --- |
-| 02-SQL速记.md | notes | 3 | skip（已导入） |
-| 03-索引与B+树.md | notes | 7 | skip（已导入） |
-| 05-事务与并发控制.md | notes | 6 | skip（已导入） |
-| 第7讲-故障恢复.pdf | slides | 9 | skip（已导入） |
-| 2025-2026-1-期末试卷A.pdf | exam | 11 | skip（已导入） |
-| two-phase-commit-primer.pdf | paper | 2 | skip（已导入） |
+| 02-SQL速记.md | notes | 3 | new |
+| 03-索引与B+树.md | notes | 7 | new |
+| 05-事务与并发控制.md | notes | 6 | new |
+| 第7讲-故障恢复.pdf | slides | 9 | new |
+| 2025-2026-1-期末试卷A.pdf | exam | 11 | new |
+| two-phase-commit-primer.pdf | paper | 2 | new |
 | **合计（6 份）** | | **38** | |
 
 各份资料块数以首次导入结果为准（README 未给出块数）；随后核对重复导入后不变。
@@ -163,11 +164,11 @@
 | analyze：判定理由结构（提到各考点词和支撑字数） | ✅ | 全部理由结构完整 |
 | analyze：盲区第一名是 t04（25 分） | ✅ | exam_weight=25，blind_spot_score=25 |
 | analyze：整体顺序按盲区分数从高到低 | ✅ | 顺序：t04(25) > t08(8.41) > t02(7.92) > t01(5) > t05(5) > t10(2.5) > t03(0) > t06(0) > t07(0) > t09(0) |
-| latest 与 analyze 的 run_id 一致（读到刚才的分析） | ✅ | analyze run_id=4，latest run_id=4 |
+| latest 与 analyze 的 run_id 一致（读到刚才的分析） | ✅ | analyze run_id=1，latest run_id=1 |
 | latest：10 个知识点判定 = 设计真值 | ✅ | 10 个知识点全部一致 |
 | latest：11 道题归属与分值 = 设计真值 | ✅ | 11 道题归属（Q1→t01 … Q11→t10）与分值全部一致 |
 | latest：盲区第一名是 t04（25 分） | ✅ | exam_weight=25，blind_spot_score=25 |
-| latest：整体顺序按盲区分数从高到低 | ❌ | 顺序：t01(5) > t02(7.92) > t03(0) > t04(25) > t05(5) > t06(0) > t07(0) > t08(8.41) > t09(0) > t10(2.5)（已知问题：会话 05b 修复中，latest 现按 topic_id 排序） |
+| latest：整体顺序按盲区分数从高到低 | ✅ | 顺序：t04(25) > t08(8.41) > t02(7.92) > t01(5) > t05(5) > t10(2.5) > t03(0) > t06(0) > t07(0) > t09(0) |
 
 analyze 判定总表（对照 samples/course-db/README.md 设计真值）：
 
@@ -197,4 +198,77 @@ analyze 判定总表（对照 samples/course-db/README.md 设计真值）：
 - Q9（10 分）→ t08，依据考点词：隔离级别、MVCC
 - Q10（10 分）→ t09，依据考点词：WAL、ARIES
 - Q11（10 分）→ t10，依据考点词：分布式事务、两阶段提交
+
+
+---
+
+## 复习教练
+
+| 检查项 | 结果 | 说明 |
+| --- | --- | --- |
+| /api/coach/status：PowerContext 可用 | ✅ | llm configured=False（CI 栈不配大模型，走无模型路径） |
+| 新学习者开始会话：scope 已建、bootstrap 为空 | ✅ | scope_id=scp_70sc34m7…，bootstrap items=[] |
+| 第 1 题自动选题 = 盲区第一 t04，missing 走往年原题自测 | ✅ | topic=t04，题型=self，出处=2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 第4题（15.0分） |
+| 自测答错（不会）：correct=False，盒 1→1，错题记忆已写 | ✅ | 卡片 artifact=art_b055f37dd18546cf82276a5302ab5879 rev=1，错题 artifact=art_9bfe62fd13bc4a579528cc13a951ecdc |
+| context/prepare 召回上次答错的错题（「你之前在这里错过」材料） | ✅ | 召回 1 条，第一条：【错题】t04 函数依赖与范式（3NF、BCNF）：题目「4.（15 分）设关系模式 R(A, B, |
+| 同知识点答对（会）：盒 1→2，卡片 revision 递增 | ✅ | 卡片 artifact=art_b055f37dd18546cf82276a5302ab5879，rev 1→2 |
+| 第 3 题自动选题 = t08（thin），填空题出考点词所在段落 | ✅ | topic=t08，出处=05-事务与并发控制.md · 第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快） |
+| 填空题挖空的是考点词本身（判分回执里的正确答案） | ✅ | expected_answer=隔离级别（来自 t08 的考点词） |
+| 结束会话：3 题 1 对，时长按最后事件计，会话小结入记忆 | ✅ | duration=0.0s，小结 artifact=art_b65f992293624c3187ef8f4b49741227 |
+| 新会话开场白提到上次答错的知识点（复习计划首行） | ✅ | 上次你在『隔离级别与 MVCC』上错了 1 次，先复习它；『函数依赖与范式（3NF、BCNF）』错了 1 次；『函数依赖与范式（3NF、BCNF）』往年考 25 |
+| 会话 2 bootstrap 就绪（复习计划带 bootstrap-context 标签） | ✅ | bootstrap items=1 |
+| 复习计划 handle 指向会话结束时更新的 artifact | ✅ | handle→art_4b88e468807e4c8eb6daa23521bb45de，结束会话写入 rev=4 |
+| 复习计划标签含 bootstrap-context（新会话开场白来源） | ✅ | tags=['bootstrap-context', 'examradar', 'type-plan'] |
+| 掌握度卡片（t04）revision 历史：盒 1 → 盒 2 轨迹可见 | ✅ | 2 个 revision：rev1→掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 1，答对 0 次 / 答错 1 次，下次复习 2026-10-30；rev2→掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 2，答对 1 次 / 答错 1 次，下次复习 2026-10-31 |
+| 使用记录（auto）：本次 3 次答题入账，会话数 ≥ 1 | ✅ | 答题 3 次，会话 2 个，累计学习时长 0.0 分钟 |
+| 使用记录导出（JSON）不含学习者名字（只有 8 位哈希） | ✅ | 导出 6969 字节，未出现「e2e教练20261029045307」 |
+
+复习教练全程（无大模型路径；学习者每次运行都用新名字，保证首会话 bootstrap 为空）：
+
+- 学习者：e2e教练20261029045307（usage_events 里只有其 sha256 前 8 位哈希）
+- 会话 1：0101190c09984bdf，3 题（t04 自测答错 → t04 自测答对 → t08 填空答错），1 对；结束后新会话开场白：上次你在『隔离级别与 MVCC』上错了 1 次，先复习它；『函数依赖与范式（3NF、BCNF）』错了 1 次；『函数依赖与范式（3NF、BCNF）』往年考 25 分但笔记里没有；『关系模型与关系代数』往年考 5 分但笔记里没有
+
+t04（missing）往年原题自测题目原文：
+
+```
+4.（15 分）设关系模式 R(A, B, C, D, E)，函数依赖集 F = { A→B, B→C, AD→E }。 （1）求 R 的所有候选码；（2）求属性集闭包 (A) +；（3）判断 R 最高属于第几范式，说明理由。
+```
+
+- 出处：2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 第4题（15.0分）
+- 提示：笔记里没有这部分，建议先补。
+
+t08（thin）填空题原文（挖空的是考点词，出处为找到考点词的段落）：
+
+```
+填空：SQL 标准定义了四个＿＿＿：读未提交、读已提交、可重复读、可串行化。（4 个字）
+```
+
+- 出处：05-事务与并发控制.md · 第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快）；正确答案：隔离级别（t08 的考点词）
+
+这一路对 PowerContext 的关键读写（接口、artifact id、revision、标签；由应用 API 响应与脚本直接核对汇总）：
+
+| 方向 | 接口 | artifact / 说明 | revision / 标签 |
+| --- | --- | --- | --- |
+| 写 | POST /v1/scopes（幂等 key examradar:learner:…） | scp_70sc34m7q7apbn7mt8wmba8cv2 | Scope |
+| 读 | POST /v1/context/bootstrap（会话 1 开始） | —（空，第一次复习） | items=[] |
+| 读 | POST /v1/context/prepare（t04 出题前） | —（尚无错题） | history=[] |
+| 写 | POST artifacts + PUT tags + PUT handle（t04 掌握度卡片） | art_b055f37dd18546cf82276a5302ab5879 | rev 1；tags examradar/type-mastery/topic-t04 |
+| 写 | POST /v1/memory/remember + PUT tags（t04 错题） | art_9bfe62fd13bc4a579528cc13a951ecdc | rev 1；tags examradar/type-mistake/topic-t04 |
+| 读 | POST /v1/context/prepare（t04 再出题前） | art_9bfe62fd13bc4a579528cc13a951ecdc | 召回错题 1 条 |
+| 写 | PUT artifacts（If-Match，t04 卡片） | art_b055f37dd18546cf82276a5302ab5879 | rev 2（盒 1→2） |
+| 写 | POST artifacts + tags + handle（t08 掌握度卡片） | art_52349488b7a645ceabc91096a885da12 | rev 1 |
+| 写 | POST /v1/memory/remember + PUT tags（t08 错题） | art_5050d5e6cd7949708b671de5cff0c22f | rev 1 |
+| 写 | PUT artifacts（If-Match，复习计划） | art_4b88e468807e4c8eb6daa23521bb45de | rev 4；tags bootstrap-context,examradar,type-plan |
+| 写 | POST /v1/memory/remember + PUT tags（会话小结） | art_b65f992293624c3187ef8f4b49741227 | rev 1 |
+| 读 | POST /v1/context/bootstrap（会话 2 开始） | art_4b88e468807e4c8eb6daa23521bb45de | 开场白 = 计划首行 |
+| 读 | GET artifact-handles / tags / revisions（脚本核对） | art_4b88e468807e4c8eb6daa23521bb45de | handle→rev 4 |
+
+掌握度卡片（t04，art_b055f37dd18546cf82276a5302ab5879）revision 历史：
+
+- rev 1：掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 1，答对 0 次 / 答错 1 次，下次复习 2026-10-30
+- rev 2：掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 2，答对 1 次 / 答错 1 次，下次复习 2026-10-31
+
+context/prepare 召回的错题（第 2 题出题前）：
+
+- 【错题】t04 函数依赖与范式（3NF、BCNF）：题目「4.（15 分）设关系模式 R(A, B, C, D, E)，函数依赖集 F = { A→B, B→C, AD→E }。 （1）求 R 的所有候选码；（2）求属性集闭包 (A) +；（3）判断 R 最高属于第几范式，说明理由。」
 

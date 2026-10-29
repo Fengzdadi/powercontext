@@ -105,7 +105,7 @@ export EXAMRADAR_IT=1 && uv run pytest -m integration   # 集成测试（需 see
 
 | 变量 | 默认值 | 含义 |
 |------|--------|------|
-| `SEEKDB_PASSWORD` | 无（必须设置） | seekdb root 密码，同时传给 app（compose 会自动设一个随机值吗？不会，请自己改掉 `change-me`） |
+| `SEEKDB_PASSWORD` | 无（必须设置） | seekdb root 密码，同时传给 app；务必改掉 `change-me` 占位值 |
 | `SEEKDB_HOST_PORT` | 10800 | seekdb 映射到宿主机的端口 |
 | `POWERCONTEXT_HOST_PORT` | 18801 | PowerContext 映射到宿主机的端口 |
 | `APP_PORT` | 18800 | app 映射到宿主机的端口 |
@@ -128,11 +128,15 @@ export EXAMRADAR_IT=1 && uv run pytest -m integration   # 集成测试（需 see
 | `APP_HOST` / `APP_PORT` | 127.0.0.1 / 18800 | 应用监听地址（compose 内为 0.0.0.0 / 18800） |
 | `EMBEDDING_QUERY_INSTRUCTION` | 空 | BGE 查询指令前缀（默认关闭，见 DEVLOG 会话 03 的对照实验） |
 | `EMBEDDING_BASE_URL` / `EMBEDDING_API_KEY` | 空 | 仅 `EMBEDDING_PROVIDER=openai` 时需要 |
-| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | 空 | 可选 LLM（出题/判分增强） |
-| `COVERAGE_T_COVERED` | 0.55 | 覆盖判定阈值：≥ 此值为 covered |
-| `COVERAGE_T_THIN` | 0.20 | 覆盖判定阈值：≥ 此值为 thin，否则 missing |
-| `COVERAGE_KW_SCALE` | 10.0 | BM25 分数归一化分母 |
-| `LEITNER_INTERVALS` | 1,2,4,7,14 | Leitner 复习间隔（天） |
+| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | 空 | 可选 LLM（出题/判分增强；base_url 和 model 都配置才生效，未配置走规则出题 + 自评判分）。OpenAI 兼容 API，本地 Ollama 可用 `http://127.0.0.1:11434/v1` |
+| `POWERCONTEXT_TIMEOUT_SECONDS` | 8.0 | PowerContext HTTP 超时（判分等记忆写路径的超时上限；超时进入降级，答题不受影响） |
+| `SESSION_IDLE_MINUTES` | 30 | 学习会话空闲判定：超过该分钟数无事件，会话视为结束（时长按最后一个事件计） |
+| `PC_CONTEXT_MAX_BYTES` | 2000 | 单次读回 PowerContext 上下文（bootstrap / prepare）的字节上限 |
+| `LLM_MAX_CONTEXT_BYTES` | 6000 | 发给 LLM 的出题材料（正文 + 历史错题）字节上限 |
+| `COVERAGE_TERM_RATIO_COVERED` | 0.5 | covered 要求的考点词找到比例 |
+| `COVERAGE_SUPPORT_CHARS` | 280 | covered 要求的支撑正文字数（介于两者之间为 thin） |
+| `COVERAGE_MIN_BODY_CHARS` | 50 | 正文短于该值的块（目录页等）不算覆盖证据 |
+| `LEITNER_INTERVALS` | 1,2,4,7,14 | Leitner 复习间隔（天，1–5 号盒子） |
 
 ### 脚本变量
 

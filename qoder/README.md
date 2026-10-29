@@ -22,9 +22,9 @@ ExamRadar 用 seekdb 的**混合检索**（BM25 关键词 + 向量语义，RRF �
 | 问笔记 | 输入问题，返回带**出处**（文件·页·题号·标题）的段落，BM25 + 向量双路分数；页面可展开查看 seekdb 实际执行 SQL | `ask.html` |
 | 覆盖雷达 | 粘贴考试范围 → 解析出知识点 → 判定每个知识点 covered / thin / missing，**判定依据是"考点词是否真的出现在材料里 + 支撑正文量"**（可解释、可展开证据），不是黑盒相似度打分 | `radar.html` |
 | 盲区排序 | `盲区分 = 试卷分值 × (1 − 覆盖度)`，一眼找出"没记到但分值高"的知识点，直接列出考察它的往年试题原文 | `radar.html` |
-| 使用记录 | 检索/导入/分析自动记事件，区分真实使用与验证脚本（auto）；按天统计（按浏览器时区）、CSV/JSON 导出（CSV 带 BOM，Excel 打开不乱码） | `usage.html` |
-
-> 出题判分、复习教练、学习者记忆（掌握度/错题，基于 PowerContext）见下方 [M3 功能规划](#9-里程碑与后续功能m3复习教练与学习者记忆)。
+| 复习教练 | 开始学习会话（跨会话记忆生成开场白）→ 优先复习盲区与到期知识点 → 出题判分（missing 知识点给往年原题自测；thin/covered 从考点词所在段落出题，挖空考点词本身；可选 LLM 出选择题/简答题并判分）→ Leitner 盒子更新掌握度、答错记错题 | `coach.html` |
+| 我的学习记忆 | 掌握度卡片（含 revision 变化轨迹）、错题本、复习计划、会话小结，全部存在本机 PowerContext 里（应用数据库里只有名字哈希） | `memory.html` |
+| 使用记录 | 检索/导入/分析/答题自动记事件，区分真实使用与验证脚本（auto）；按天统计（按浏览器时区）、累计学习时长按学习会话计算（30 分钟无事件视为结束）、CSV/JSON 导出（CSV 带 BOM，Excel 打开不乱码） | `usage.html` |
 
 ### 界面截图
 
@@ -36,6 +36,8 @@ ExamRadar 用 seekdb 的**混合检索**（BM25 关键词 + 向量语义，RRF �
 | ![盲区展开](docs/images/radar-t04.png) | 盲区第一名 t04：判定理由、关联试题 |
 | ![导入](docs/images/import.png) | 导入页：上传与资料列表 |
 | ![使用记录](docs/images/usage.png) | 使用记录：统计与导出 |
+| ![复习教练](docs/images/coach.png) | 复习教练：学习会话、出题与判分（盒号变化、记忆 artifact） |
+| ![我的记忆](docs/images/memory.png) | 我的记忆：掌握度卡片与 revision 轨迹、错题、复习计划 |
 
 （截图文件名清单见 `docs/images/README.md`。）
 
@@ -52,7 +54,7 @@ flowchart LR
     end
 
     APP -- "MySQL 协议 (pymysql)\n建表 / 混合检索 JSON / 使用事件" --> SEEK
-    APP -- "HTTP (httpx)\n健康检查（M3 后：记忆读写）" --> PC
+    APP -- "HTTP (httpx)\n健康检查 / 学习者记忆读写" --> PC
 ```
 
 三个服务，各管一件事：
@@ -64,16 +66,28 @@ flowchart LR
 | `documents` 表：文件元信息、SHA256、块数 | 导入去重、资料列表 | `app/examradar/seekdb.py`（`ensure_tables` / `import_document` / `get_documents`） |
 | `chunks` 表：切块正文、标题路径/页码/题号/分值、512 维向量（VECTOR 索引）+ 全文索引（IK 分词） | 问笔记（`DBMS_HYBRID_SEARCH`：BM25+向量 RRF，SQL 在库内生成执行）、覆盖雷达的考点词证据与试题归属 | `app/examradar/seekdb.py`（`hybrid_search`）、`app/examradar/routes/search.py` |
 | `coverage_runs` / `coverage_items` 表：每次覆盖分析的输入与逐知识点结果 | 雷达页"载入上次分析"、`GET /api/coverage/latest` | `app/examradar/coverage.py`、`routes/coverage.py` |
-| `usage_events` 表：检索/导入/分析事件（source 区分 real/auto） | 使用记录统计与导出 | `app/examradar/routes/usage.py` |
+| `usage_events` 表：检索/导入/分析/答题/会话事件（source 区分 real/auto） | 使用记录统计与导出 | `app/examradar/routes/usage.py` |
+| `learning_sessions` / `quiz_questions` 表：学习会话（开始/最后事件/结束，只存名字哈希）与每道题的题面、判分、盒号变化 | 累计学习时长（按会话）、教练页"继续上次会话" | `app/examradar/learning_store.py` |
 
 ### PowerContext——学习者记忆（存什么、用在哪）
 
-当前（M3 前）只做健康检查（`app/examradar/pc_client.py`）。规划中它存储**学习者**维度的数据：
-掌握度卡片（Leitner 盒子）、错题、复习计划、会话小结，出题前按知识点召回历史错题。
-它自带**嵌入式 seekdb**（数据在 compose 的 `pc-data` 卷），与应用用的 seekdb 服务互不相干，
+学习者维度的记忆全部存在 PowerContext 里（每个学习者 × 课程一个 Scope，按幂等键创建；
+应用数据库里只有名字的 sha256 前 8 位，导出的使用记录不含名字）：
+
+| 记忆 | kind / handle | 标签 | 写入时机 | 读取时机 |
+| --- | --- | --- | --- | --- |
+| 掌握度卡片 | `mastery`，handle `mastery-<topic_id>` | `examradar` `type-mastery` `topic-<id>` | 每次判分后 upsert（If-Match 替换，revision 即变化轨迹） | 会话开始、出题选题 |
+| 错题 | `mistake`（`/v1/memory/remember` 追加） | `examradar` `type-mistake` `topic-<id>` | 答错时 | 出题前 `context/prepare` 按知识点召回（"你之前在这里错过"） |
+| 复习计划 | `plan`，handle `review-plan` | `examradar` `type-plan` **`bootstrap-context`** | 每次判分后与会话结束时更新；**首行就是下次开场白** | 新会话 `context/bootstrap`（带 `bootstrap-context` 标签的记忆自动返回） |
+| 会话小结 | `session`（remember 追加） | `examradar` `type-session` | 会话结束 | "我的记忆"页 |
+
+PowerContext 自带**嵌入式 seekdb**（数据在 compose 的 `pc-data` 卷），与应用用的 seekdb 服务互不相干，
 所以 compose 里 PowerContext 不依赖 seekdb 服务（`docker-compose.yml` 内有注释说明原因）。
 
-<!-- 会话 10：M3 合并后本节补充实际读写接口、记忆类型表和代码位置。 -->
+相关代码：`app/examradar/pc_client.py`（HTTP 客户端，每次调用留请求/响应摘要日志）、
+`coach.py`（出题/判分/记忆编排）、`mastery.py`（Leitner 递推与记忆文本格式）、
+`routes/sessions.py`（会话开始/结束）、`routes/quiz.py`（出题/判分）、`routes/memory.py`（记忆页数据）。
+PowerContext 不可达时优雅降级：出题判分照常，页面提示"记忆服务暂不可用"。
 
 ### 判定算法说明（为什么覆盖判定可信）
 
@@ -167,6 +181,7 @@ python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18800
 | `SEEKDB_DATABASE` | examradar | 应用使用的库名（自动创建） |
 | `SEEKDB_TEST_DATABASE` | examradar_test | 集成测试专用库（`EXAMRADAR_IT=1` 时使用，不碰开发库） |
 | `POWERCONTEXT_URL` | http://127.0.0.1:18801 | PowerContext 地址（容器内为 `http://powercontext:8000`） |
+| `POWERCONTEXT_TIMEOUT_SECONDS` | 8.0 | PowerContext 单次请求超时；超时/连接失败时出题判分照常（优雅降级） |
 | `APP_HOST` / `APP_PORT` | 127.0.0.1 / 18800 | 应用监听地址与端口；compose 里 `APP_PORT` 同时是宿主机映射端口 |
 | `CORS_ORIGINS` | http://localhost:18800 | 允许的跨域来源，逗号分隔 |
 | `EMBEDDING_PROVIDER` | local | `local`（fastembed 本地 ONNX）或 `openai`（OpenAI 兼容 embeddings API） |
@@ -174,12 +189,15 @@ python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18800
 | `EMBEDDING_DIM` | 512 | 向量维度，必须与模型一致 |
 | `EMBEDDING_QUERY_INSTRUCTION` | 空 | BGE 查询指令前缀。默认关闭：实测对短中文术语查询有害（DEVLOG 会话 03） |
 | `EMBEDDING_BASE_URL` / `EMBEDDING_API_KEY` | 空 | 仅 `EMBEDDING_PROVIDER=openai` 时需要 |
-| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | 空 | 可选 LLM（M3 出题/判分增强；不配置走规则路径） |
+| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | 空 | 可选 LLM（出题/判分增强，OpenAI 兼容端点，如本机 Ollama `http://127.0.0.1:11434/v1`）；不配置走规则路径（填空题 + 往年原题自测） |
+| `LLM_NUM_CTX` | 8192 | Ollama 的 num_ctx 上下文窗口；同一模型每次传相同值避免重载 |
+| `LLM_MAX_CONTEXT_BYTES` | 6000 | 出题提示词里单段原文材料的截断字节数 |
+| `SESSION_IDLE_MINUTES` | 30 | 学习会话多少分钟无事件即视为结束（时长按最后一个事件计） |
+| `PC_CONTEXT_MAX_BYTES` | 2000 | `context/bootstrap` 与 `context/prepare` 取回的记忆字节数上限 |
 | `COVERAGE_TERM_RATIO_COVERED` | 0.5 | covered 要求的考点词找到比例 |
 | `COVERAGE_SUPPORT_CHARS` | 280 | covered 要求的支撑正文字数 |
 | `COVERAGE_MIN_BODY_CHARS` | 50 | 正文短于该值的块（目录页等）不算证据 |
-| `USAGE_SESSION_GAP_MINUTES` / `USAGE_MINUTES_PER_EVENT` | 30 / 1.0 | 学习时长估算参数（M3 前无真实会话，按事件估算） |
-| `LEITNER_INTERVALS` | 1,2,4,7,14 | Leitner 复习间隔（天，M3 使用） |
+| `LEITNER_INTERVALS` | 1,2,4,7,14 | Leitner 复习间隔（天，1–5 号盒子） |
 | `SEEKDB_HOST_PORT` | 10800 | compose：seekdb 宿主机映射端口 |
 | `POWERCONTEXT_HOST_PORT` | 18801 | compose：PowerContext 宿主机映射端口 |
 | `HF_ENDPOINT` | https://huggingface.co | compose：向量模型构建期下载源（国内可设 `https://hf-mirror.com`） |
@@ -224,16 +242,38 @@ python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18800
 **彻底清空重来**
 `docker compose down -v && docker compose up -d --build`。
 
-## 9. 里程碑与后续功能（M3：复习教练与学习者记忆）
+## 9. 复习教练与学习者记忆（M3）
 
-<!-- 会话 10：M3 合并后本节改为实际功能介绍（接口、命令、截图）。 -->
+复习教练把"雷达发现的盲区"变成可执行的复习闭环：
 
-M3（会话 07 开发中，本节先按 `docs/PLAN.md` 写规划）将补上"复习教练"闭环：
+1. **开始学习会话**（`coach.html` 或首页"开始复习"卡片）：按学习者 × 课程在 PowerContext
+   建 Scope；`context/bootstrap` 取回复习计划（首行即开场白，如"上次你在『函数依赖与范式
+   （3NF、BCNF）』上错了 2 次，先复习它"）；第一次使用时 bootstrap 为空。
+2. **选题优先级**：到期复习项 > 覆盖盲区（thin/missing 按盲区分排序）> 其余（按考试权重）。
+3. **出题**（题目一律带出处）：
+   - **missing 知识点**：学生资料里没有原文，给**往年原题自测**（会/模糊/不会三档自评），
+     提示"笔记里没有这部分，建议先补"；
+   - **thin / covered 知识点**：只从**找到考点词的段落**里出题，保证题目原文确实属于这个
+     知识点；规则路径出填空题，**挖空优先考点词本身**；配置 LLM 时出选择题/简答题
+     （JSON 校验后才入库，简答由 LLM 判分并给出误区描述，失败自动回退规则路径）。
+   - 出题前 `context/prepare` 召回该知识点的历史错题，页面上以"你之前在这里错过"展示。
+4. **判分与记忆**：答对盒子 +1（最多 5）、答错回 1 号盒；掌握度卡片 upsert（revision 即
+   变化轨迹）、答错写错题记忆、复习计划每次判分后更新。
+5. **结束会话**：会话小结入记忆；关掉页面时 `pagehide` + `sendBeacon` 也能结束；
+   30 分钟无事件自动视为结束。
+6. **我的记忆**（`memory.html`）：掌握度卡片（含每张卡的 revision 轨迹）、错题本、复习计划、
+   会话小结、bootstrap 校验，以及 PowerContext 请求/响应摘要日志。
 
-- **出题与判分**：针对薄弱知识点（优先盲区和到期复习项）出题，题目带出处；判分后按 Leitner 盒子更新掌握度，答错记错题；
-- **学习者记忆**（PowerContext）：掌握度卡片、错题、复习计划跨会话保存；新会话首页出现"上次你…"个性化提示；进入知识点时召回历史错题；
-- **记忆页面**：查看掌握度（含复习历史）和错题本；
-- 配置上新增的 `.env` 项届时随 `.env.example` 一并给出。
+**API**：`POST /api/sessions/start`、`POST /api/sessions/end`（兼容 sendBeacon 的
+text/plain）、`GET /api/coach/status`、`POST /api/quiz/next`、`POST /api/quiz/answer`、
+`GET /api/memory`。请求带 `X-ExamRadar-Source: auto` 时使用记录记为 auto。
+
+**隐私**：应用数据库（seekdb）里只存名字的 sha256 前 8 位；明文名字只进本机 PowerContext
+的 Scope 标题；使用记录导出不含学习者名字。
+
+**验证**：`docs/VALIDATION.md` §8（手动样例，含 PowerContext 记忆核对）；
+`scripts/e2e_verify.py` 的"复习教练"步骤（新学习者 → 答错 → 答对 → 结束 → 新会话开场白，
+并逐项核对 PowerContext 读写与掌握度 revision 历史）。
 
 ## 许可证
 

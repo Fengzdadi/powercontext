@@ -66,6 +66,11 @@ services:
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-zh-v1.5}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-512}
+      # M3：可选 LLM（出题/判分增强；未配置走规则路径）与 PowerContext 超时
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      POWERCONTEXT_TIMEOUT_SECONDS: ${POWERCONTEXT_TIMEOUT_SECONDS:-8.0}
       # HF_HUB_OFFLINE=1 也在镜像 ENV 里设置：模型已在构建时下载进镜像，
       # 运行时禁止任何 huggingface.co 访问
     ports:

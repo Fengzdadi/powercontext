@@ -25,7 +25,10 @@ from .pc_client import (
     PowerContextClient, PowerContextUnavailable, bootstrap_opening_line,
     parse_prepared_content,
 )
-from .seekdb import get_connection, hybrid_search, insert_usage_event
+from .seekdb import (
+    get_connection, get_coverage_chunks, hybrid_search, insert_usage_event,
+)
+from .syllabus import normalize_for_match
 from . import coverage as coverage_mod
 from . import learning_store
 
@@ -41,10 +44,16 @@ SELF_RATINGS = ["会", "模糊", "不会"]
 def coverage_snapshot(course_id: str) -> Optional[dict]:
     """读最近一次覆盖分析。**只调用 coverage.get_latest()**。
 
-    用到的字段（合并时对照）：
-    - 顶层：run_id, course_id, created_at, topics[].{id,name,keywords}
-    - items[]：topic_id, topic_name, keywords, coverage_level, coverage_score,
-      exam_weight, exam_questions[].question_no, blind_spot_score
+    会话 05 覆盖引擎的字段（对照 DEVLOG 会话 10 任务说明）：
+    - 顶层：run_id, course_id, created_at, config, topics[].{id,name,keywords}
+    - items[]（已按 blind_spot_score 降序）：
+      topic_id, topic_name, keywords, coverage_level, coverage_score,
+      support_chunks, support_chars,
+      terms[].{term,aliases,found,chunks[{doc,page,heading}]},
+      best_evidence（missing 时为 null）,
+      exam_weight, exam_questions[].{question_no,points,similarity,matched_terms,content},
+      blind_spot_score, reason
+    教练用到其中：判定等级与盲区（选题）、terms + exam_questions（出题）。
     """
     latest = coverage_mod.get_latest(course_id)
     if not latest:
@@ -66,9 +75,14 @@ def coverage_snapshot(course_id: str) -> Optional[dict]:
             "keywords": item.get("keywords") or base.get("keywords") or [],
             "coverage_level": item.get("coverage_level"),
             "coverage_score": item.get("coverage_score"),
+            "support_chunks": item.get("support_chunks") or 0,
+            "support_chars": item.get("support_chars") or 0,
+            "terms": item.get("terms") or [],
+            "best_evidence": item.get("best_evidence"),
             "exam_weight": item.get("exam_weight") or 0.0,
             "exam_questions": item.get("exam_questions") or [],
             "blind_spot_score": item.get("blind_spot_score") or 0.0,
+            "reason": item.get("reason"),
         })
     return {
         "run_id": latest.get("run_id"),
@@ -114,6 +128,40 @@ def _search_topic_chunks(course_id: str, topic: dict, top_k: int = 4) -> list[di
     for h in hits:
         h["document_name"] = doc_names.get(h.get("document_id"))
     return hits
+
+
+def _term_matched_chunks(course_id: str, topic: dict) -> list[dict]:
+    """找到考点词的段落——thin/covered 知识点的出题材料。
+
+    用覆盖判定同一套匹配规则（coverage.match_variant：单 token 连续出现、
+    多 token 严格多数），在全部资料块里找考点词出现的段落，保证出题的
+    原文确实属于这个知识点（不再用 hybrid 检索的召回结果——它可能召回
+    无关段落）。没有任何考点词找到（missing / 无覆盖数据）返回空列表。
+    排序：命中考点词多的段落在前，正文长的在前，同分按 chunk id。
+    """
+    found_terms = [t for t in (topic.get("terms") or []) if t.get("found")]
+    if not found_terms:
+        return []
+    rows = get_coverage_chunks(course_id, coverage_mod.COVERAGE_DOC_KINDS)
+    out = []
+    for r in rows:
+        content = r.get("content") or ""
+        norm_text = normalize_for_match((r.get("heading") or "") + "\n" + content)
+        hit_terms = [t for t in found_terms
+                     if any(coverage_mod.match_variant(norm_text, v)
+                            for v in [t.get("term")] + list(t.get("aliases") or [])
+                            if v)]
+        if not hit_terms:
+            continue
+        body_chars = len(coverage_mod.body_text(content))
+        out.append({
+            "id": r.get("id"), "content": content, "heading": r.get("heading"),
+            "page": r.get("page"), "document_name": r.get("doc_name"),
+            "question_no": None, "points": None,
+            "_hit_terms": len(hit_terms), "_body_chars": body_chars,
+        })
+    out.sort(key=lambda c: (-c["_hit_terms"], -c["_body_chars"], c["id"]))
+    return out
 
 
 def _doc_names(course_id: str) -> dict[int, str]:
@@ -206,7 +254,7 @@ _CHAPTER_TERM = re.compile(r"^第.{1,4}[章节讲]$")
 
 
 def _blank_candidates(topic: dict, content: str, heading: Optional[str]) -> list[str]:
-    """挖空候选术语：知识点关键词 > 原文里较长的字母术语 > 标题里的术语。
+    """挖空候选术语：找到的考点词本身 > 知识点关键词 > 原文里较长的字母术语。
 
     排除"第N章"这类结构词——挖空它们不构成有效复习。
     """
@@ -216,6 +264,12 @@ def _blank_candidates(topic: dict, content: str, heading: Optional[str]) -> list
         return (len(term) >= 2 and term not in seen
                 and not term.isdigit() and not _CHAPTER_TERM.match(term))
 
+    for t in topic.get("terms") or []:
+        if not t.get("found"):
+            continue
+        for variant in [t.get("term")] + list(t.get("aliases") or []):
+            if variant and _ok(variant) and variant in content:
+                seen.append(variant)
     for kw in topic.get("keywords") or []:
         if _ok(kw) and kw in content:
             seen.append(kw)

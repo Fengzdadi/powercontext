@@ -1002,3 +1002,70 @@ $ CSV 导出前 3 字节: efbbbf
 - M3 相关文档（复习教练、学习者记忆、PowerContext 读写核对、quiz/memory 截图、M3 配置项）：会话 10 合并后补齐，README/VALIDATION 已留 `<!-- 会话 10：… -->` 标记
 - `scripts/e2e_verify.py` 与 `docs/validation/e2e-report.md`：会话 08a 交付，本会话只写引用
 - `docs/DEPLOY.md` 变量表与 config.py 的同步：见 F-1，建议随会话 10 处理
+
+## 会话 10 — M3 合并与集成：复习教练接会话 05 覆盖结果、导航/使用记录/文档收尾（2026-10-29）
+
+**参与者**：产品负责人（任务输入）、Qoder（集成与验证）
+**任务**：把会话 07 的 M3（复习教练、学习者记忆、学习会话）与会话 05–08b 的工作集成到 `eco-qoder` 分支。开发栈（seekdb 10800 / PowerContext 18801）全程未动；本会话只使用 18800（开发服务器）与 18805–18807（examradar-ci 栈）。
+
+### A. 做了什么
+
+1. **合并收尾检查**：config.py / index.html / ask.html 的自动合并结果人工核对；确认会话 07 代码未引用会话 05 已删除的旧覆盖字段（`effective_database`、旧覆盖分数字段）。发现并修复 `usage_session_gap_minutes` / `usage_minutes_per_event` 成为死配置（见下 4），从 config.py 删除。
+2. **coach 接会话 05 覆盖结果**（`app/examradar/coach.py`、`routes/quiz.py`）：
+   - `coverage_snapshot()` 映射会话 05 新字段：`terms[].{term,aliases,found,chunks}`、`best_evidence`、`support_chunks/support_chars/reason`，items 已按 `blind_spot_score` 降序（沿用 latest 排序，不重排）；
+   - 新增 `_term_matched_chunks(course_id, topic)`：用 `coverage.match_variant` 在全部资料块里找**考点词出现的段落**作为出题材料，替代原 hybrid 检索选材——保证 thin/covered 知识点的题目原文确实属于该知识点（修复 t04 出 GROUP 题材跑偏的问题）；无覆盖数据（topic 无 terms）时保留 hybrid 兜底；
+   - missing 知识点走往年原题自测（`make_self_test_question`）；挖空候选优先**找到的考点词本身**（term + aliases，要求 variant 在正文出现），其次 keywords / 拉丁术语 / 标题词。
+3. **导航统一**：7 个页面（index/import/ask/radar/coach/memory/usage）同一套导航，顺序"首页、导入资料、问笔记、覆盖雷达、复习教练、我的记忆、使用记录"；coach/memory 页补挂 source.js（`?source=auto` 跨页保持）；每页 viewport 后加内联空图标 `<link rel="icon" href="data:,">`，消除 favicon 404。
+4. **使用记录接学习会话**（`seekdb.py` / `config.py` / `test_usage.py` 重写）：`compute_usage_stats` 接收 learning_sessions 行，累计学习时长 = 各会话（ended_at or last_event_at）− started_at 之和，按 source 过滤（session_start 事件在 events 里才计）；answer/quiz 事件计入 `quiz_count` 与按天"答题"桶；`session_count` 按 session_start 事件计。删除事件间隔估算逻辑与 `USAGE_*` 两个死配置。导出（JSON/CSV）不含学习者明文——使用事件里只存 sha256 前 8 位哈希（`mastery.learner_hash`）。
+5. **`.env.example` 补 M3 配置**：`POWERCONTEXT_TIMEOUT_SECONDS`（含降级语义注释）、`SESSION_IDLE_MINUTES`、`PC_CONTEXT_MAX_BYTES`、`LLM_MAX_CONTEXT_BYTES`、LLM 节扩 Ollama 示例与 `LLM_NUM_CTX` 注释；删 USAGE 两项。`docker-compose.yml` app 服务透传 `LLM_*` 与 `POWERCONTEXT_TIMEOUT_SECONDS`（`${…:-}` 空串安全，`llm.configured` 要求 base_url 和 model 均非空）。
+6. **`scripts/e2e_verify.py` 加复习教练步骤**（`step_coach`，约 250 行）：新学习者（名字带时间戳，断言首会话 bootstrap 为空）→ t04 自测答"不会"（错，prepare 召回断言在第二题）→ 同知识点答对（盒 1→2、卡片 revision 递增）→ t08 填空答错（断言挖空即考点词）→ 结束 → 新会话开场白提到答错知识点（bootstrap ready）→ PC 直查（review-plan handle 一致、tags 含 bootstrap-context、t04 卡 revisions ≥2 且盒 1→盒 2）→ usage stats（quiz ≥3、session ≥1）→ 导出不含学习者明文。报告正文含两道题原文、PC 读写明细表（13 行：方向/接口/artifact/revision/标签）、revision 历史、prepare 召回错题。
+7. **文档补全**（删全部 `<!-- 会话 10：… -->` 标记）：
+   - README：功能表加复习教练/我的记忆两行、截图表加 coach.png/memory.png、架构图 PC 线改"健康检查 / 学习者记忆读写"、PowerContext 节重写为实际记忆类型表（4 种 kind/handle/标签/读写时机+代码位置）+ 优雅降级说明、seekdb 节加 learning_sessions/quiz_questions、配置表同步 M3 变量、第 9 节改实际功能介绍；
+   - VALIDATION：§5 学习时长措辞改"按学习会话计算"、§7 重写为完整 PowerContext 记忆核对（界面 + 8 步 curl 命令链 + 预期结果实测摘录 + PC 直查 handle/artifact/revisions/tags + 隐私核对）、§8 补 e2e 复习教练步骤说明；
+   - DEPLOY：变量表删旧阈值三项（`COVERAGE_T_COVERED`/`COVERAGE_T_THIN`/`COVERAGE_KW_SCALE`）换现行三项，补 M3 变量，删 SEEKDB_PASSWORD 行草稿疑问句（即会话 08b F-1/F-2 待办）；
+   - docs/images/README.md：加 coach.png / memory.png 两行（不用 quiz.png）。
+
+### B. t04 / t08 出题原文（实测，开发服务器 18800）
+
+t04（missing，盲区第一，25 分）走往年原题自测：
+
+```
+4.（15 分）设关系模式 R(A, B, C, D, E)，函数依赖集 F = { A→B, B→C, AD→E }。 （1）求 R 的所有候选码；（2）求属性集闭包 (A) +；（3）判断 R 最高属于第几范式，说明理由。
+```
+
+- 出处：`2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 第4题（15.0分）`；提示："笔记里没有这部分，建议先补。"
+
+t08（thin）填空题，挖空即考点词、出处为找到考点词的段落：
+
+```
+填空：SQL 标准定义了四个＿＿＿：读未提交、读已提交、可重复读、可串行化。（4 个字）
+```
+
+- 出处：`05-事务与并发控制.md · 第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快）`；正确答案：隔离级别（t08 的考点词）。
+
+### C. 验收结果
+
+| 验收项 | 结果 |
+| --- | --- |
+| `uv run pytest`（单测） | ✅ 213 passed, 28 skipped（基线 205 + 新增 8：t08 挖空考点词 2 条、`_term_matched_chunks` 3 条、会话时长/计数 3 条） |
+| `EXAMRADAR_IT=1 pytest -m integration` | ✅ 34 passed（与基线一致） |
+| CI 栈从零启动 | ✅ `docker compose -p examradar-ci --env-file .env.ci down -v` 后 `up -d --build`，三服务 healthy（app 18807 / powercontext 18806 / seekdb 18805） |
+| e2e 全绿 | ✅ `python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18807`：健康检查/导入/验收检索/覆盖雷达/复习教练 5 步 66 项检查全 ✅，报告写入 `docs/validation/e2e-report.md`（含两道题原文、PC 读写表 13 行、t04 卡 rev1→rev2 轨迹、prepare 召回错题） |
+| 浏览器验证（Playwright + Chrome，页面带 `?source=auto`） | ✅ 11/11：首页开始会话（首次无记忆提示）→ 教练页 Q1 t04 自测答"不会"（❌ + 盒 1→1 + 卡片/错题/计划 artifact id）→ Q2 t08 填空答对（盒 1→2）→ 结束会话（2 题 1 对）→ 新会话开场白"上次你在『函数依赖与范式…』上错了 1 次"→ 记忆页掌握度卡片 revision 轨迹（t04 2 个 revision、复习计划 rev 5）→ 导航进使用记录仍 auto、含本次会话时长（0.8 分钟）→ 无 JS 页面错误。截图存 `.cache/scratch/s10-*.png`（7 张） |
+| 导出无学习者名字 | ✅ e2e（6969 字节 JSON 无明文）与 VALIDATION §7 隐私核对（curl + Python 脚本）双重确认，`session_start` 事件 payload.learner 为 8 位哈希 |
+| VALIDATION 新加 curl 实测 | ✅ §7 全部命令对 18800 实际跑通（`sessions/start ×2`、`quiz/next ×3`、`quiz/answer ×2`、`sessions/end`、`/api/memory`、PC 四个直查、usage stats/export），实测输出与文档预期一致 |
+| 会话结束清理 | ✅ examradar-ci `down -v`（容器/网络/两卷全删）；18800 开发服务器已停（`curl` 连接拒绝）；`git status` 只有本会话改动 + harness 会话产物（dev-records/sessions/10-*） |
+
+### D. 遇到的问题和解决办法
+
+1. **t04（missing）出题材料跑偏**：会话 07 的 GROUP 出题用 hybrid 检索选材，t04 的"函数依赖"在语料里只在试卷题干出现，检索可能带回其他章节段落。改为 `_term_matched_chunks`（match_variant 全块扫描），missing 走 `make_self_test_question`、thin/covered 只从含考点词的段落出题；无覆盖数据时保留 hybrid 兜底。
+2. **`/api/memory` 中文 learner 名 curl 报 UnicodeEncodeError**：URL 查询串必须编码，文档命令写明"URL 编码的名字"（`urllib.parse.quote` 实测通过）。
+3. **e2e 导出类型坑（自查）**：`ctx.app.request` 返回已解析的 list 而非 str，`isinstance(export, str)` 分支会漏判；改为 `export if isinstance(export, str) else json.dumps(...)`。
+4. **docker-compose 空串透传**：`${LLM_BASE_URL:-}` 未配置时容器里是空串而非 None；核对 `llm.py` 的 `configured = bool(base_url and model)`，空串安全，保留透传。
+5. **浏览器脚本两次竞态**：点"下一题"/开始会话后未等新题目渲染就点旧题按钮（自评按钮与"开始学习会话"都含"会"字，`has-text('会')` 还会匹配错按钮）。改为 `text-is` 精确匹配 + `wait_for_function` 等待 `currentQuestion.question_id` 变化后操作，11/11 通过。
+6. **权限系统约束**（沿用会话 08b 经验）：shell cwd 持久化坑（`cd` 一律绝对路径）；重定向/管道被拒（验证写 `.cache/scratch/` Python 脚本执行，git 已忽略）；`rm` 不可用（临时文件留在 scratch，不清理仓库）。
+
+### E. 留给后续
+
+- `docs/images/` 的 coach.png / memory.png 截图文件本身待补（本会话截图在 `.cache/scratch/`，不入库；README 截图表已按文件名引用，补齐即生效）。
+- LLM 出题/判分路径（choice/short 题型、LLM 判分、误区分析）在有 `LLM_BASE_URL` 的环境下未实测，本会话验证的是无模型规则路径 + 自评路径。

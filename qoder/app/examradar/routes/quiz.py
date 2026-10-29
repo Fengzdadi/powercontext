@@ -20,10 +20,10 @@ from ..seekdb import insert_usage_event
 from .. import learning_store
 from ..coach import (
     MEMORY_NOTICE, SELF_RATINGS, _fetch_chunk, _search_topic_chunks,
-    build_review_plan_inputs, coverage_snapshot, grade_short_with_llm,
-    load_mastery_states, make_fill_question, make_llm_question,
-    make_self_test_question, remember_mistake, select_topic, update_review_plan,
-    upsert_mastery_card,
+    _term_matched_chunks, build_review_plan_inputs, coverage_snapshot,
+    grade_short_with_llm, load_mastery_states, make_fill_question,
+    make_llm_question, make_self_test_question, remember_mistake, select_topic,
+    update_review_plan, upsert_mastery_card,
 )
 
 router = APIRouter()
@@ -113,8 +113,18 @@ def quiz_next(req: QuizNextRequest,
 
     last_sig = _question_signature(last_q["payload"]) if last_q else None
 
+    def _topic_material_chunks() -> list[dict]:
+        """出题材料：thin/covered 只用找到考点词的段落（原文属于这个知识点）。
+
+        没有覆盖数据（topic 无 terms，例如按掌握度卡片轮转）时退回 hybrid 检索。
+        """
+        chunks = _term_matched_chunks(course_id, topic)
+        if not chunks and not topic.get("terms"):
+            chunks = _search_topic_chunks(course_id, topic)
+        return chunks
+
     def _rule_fill() -> Optional[dict]:
-        chunks = _search_topic_chunks(course_id, topic)
+        chunks = _topic_material_chunks()
         for chunk in chunks:
             q = make_fill_question(topic, chunk)
             if q and (last_sig is None or _question_signature(q) != last_sig):
@@ -146,7 +156,7 @@ def quiz_next(req: QuizNextRequest,
             else:
                 requested = "fill"
         if llm.configured and requested in ("choice", "short"):
-            chunks = _search_topic_chunks(course_id, topic)
+            chunks = _topic_material_chunks()
             payload = make_llm_question(llm, topic, chunks, history, requested,
                                         f"{topic['topic_id']} {topic['topic_name']}")
             if payload is not None:

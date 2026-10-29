@@ -3,7 +3,7 @@
 给评审手动执行的验证流程：从零导入示例课程《数据库系统原理》，逐项核对检索、覆盖雷达、使用记录的行为是否与设计真值一致。每个步骤都给出**界面操作**和等价的 **curl / CLI 命令**各一份，两种方式任选其一。
 
 - 设计真值（覆盖判定、题目归属、盲区排序的预期）见 `samples/course-db/README.md`
-- 本文档的全部命令已在开发服务器（127.0.0.1:18800）上实际执行通过，实际输出见 `docs/DEVLOG.md` 会话 08b
+- 本文档的全部命令已在开发服务器（127.0.0.1:18800）上实际执行通过，实际输出见 `docs/DEVLOG.md` 会话 08b（M2 部分）与会话 10（§7 记忆读写）
 - 最后有一节说明如何用 `scripts/e2e_verify.py` 把这些步骤一次跑完
 
 ## 0. 约定
@@ -208,8 +208,8 @@ uv run python -m examradar.cli sql "SELECT COUNT(*) AS runs FROM coverage_runs W
 ### 界面
 
 打开 http://127.0.0.1:18800/usage.html?source=auto （auto 模式下数据来源自动选 auto）。
-预期：概览卡片（检索/导入/分析次数、累计学习时长——M3 前为估算值）、按天趋势柱状图
-（按浏览器时区分天）、CSV/JSON 导出按钮。
+预期：概览卡片（检索/导入/分析/答题次数、会话数）、按天趋势柱状图
+（按浏览器时区分天）、累计学习时长（**按学习会话计算**：会话开始到最后一个事件，30 分钟无事件自动结束）、CSV/JSON 导出按钮。
 
 ### 命令
 
@@ -255,22 +255,139 @@ uv run python -m examradar.cli sql "SELECT COUNT(*) AS events FROM usage_events 
 
 ## 7. 核对 PowerContext 的记忆读写（M3：复习教练与学习者记忆）
 
-<!-- 会话 10：补全本节。M3 合并后核对以下内容（做什么，接口和命令届时补）：
-     - 会话开始时从 PowerContext 读回学习者记忆（掌握度/复习计划），首页出现个性化提示；
-     - 答题后掌握度卡片（mastery）更新、错题（mistake）写入；
-     - 出题前按知识点召回历史错题；
-     - 核对方式：应用侧 API 响应 + 直接查询 PowerContext 的记忆接口。 -->
+本节验证闭环：会话开始时从 PowerContext 读回学习者记忆、判分后掌握度（mastery）更新
+且错题（mistake）写入、出题前按知识点召回历史错题、下次会话开场白提到答错的知识点。
+核对方式：应用侧 API 响应 + 直接查询 PowerContext 的记忆接口（18801）。
 
-本节验证 PowerContext 的记忆读写是否生效：判分后掌握度是否更新、错题是否写入、
-下次会话是否能读回。<!-- 会话 10：M3 合并后补操作步骤、curl / CLI 命令和预期结果。 -->
+前提：第 2 步资料已导入、第 4 步覆盖分析已跑过（出题选题依赖覆盖结果）。
+以下命令把 `learner` 换成一个**没用过的新名字**（比如加时间戳），保证首次 bootstrap 为空；
+`scope_id`、`artifact_id`、`session_id` 每次运行都不同，以实际响应为准。
+
+### 界面
+
+打开 http://127.0.0.1:18800/coach.html?source=auto ，输入学习者名字开始会话。
+预期：开场先出盲区知识点的题；答错一题、答对一题后结束会话；**再开一次会话**，
+开场白出现"上次你在『…』上错了 1 次，先复习它"。
+再打开 http://127.0.0.1:18800/memory.html?source=auto 输入同一名字：
+掌握度卡片（含 revision 轨迹）、错题本、复习计划、会话小结、PowerContext 调用日志。
+
+### 命令（一条链跑完）
+
+```bash
+# 1) 开始会话（首次：bootstrap 为 empty，opening_line 为 null，盲区第一名是 t04）
+curl -s -X POST http://127.0.0.1:18800/api/sessions/start \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"learner": "验证记忆-<换新名字>", "course_id": "db101"}'
+# 记下响应里的 session_id 和 scope_id
+
+# 2) 出第 1 题（不指定 topic_id，自动选盲区第一名 t04 = missing → 往年原题自测）
+curl -s -X POST http://127.0.0.1:18800/api/quiz/next \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"session_id": "<session_id>"}'
+# 记下 question_id
+
+# 3) 自评"不会"（答错）：mastery 卡片创建（盒 1）、mistake 写入、复习计划首建
+curl -s -X POST http://127.0.0.1:18800/api/quiz/answer \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"question_id": "<question_id>", "self_rating": "不会"}'
+
+# 4) 指定 t08 出填空题并答对（expected_answer 见 quiz/next 响应）
+curl -s -X POST http://127.0.0.1:18800/api/quiz/next \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"session_id": "<session_id>", "topic_id": "t08", "question_type": "fill"}'
+curl -s -X POST http://127.0.0.1:18800/api/quiz/answer \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"question_id": "<question_id>", "answer": "隔离级别"}'
+
+# 5) 结束会话：写会话小结（session）+ 更新复习计划
+curl -s -X POST http://127.0.0.1:18800/api/sessions/end \
+  -H 'Content-Type: application/json' \
+  -d '{"session_id": "<session_id>", "source": "auto"}'
+
+# 6) 再开一次会话：opening_line 出现个性化提示，bootstrap status=ready
+curl -s -X POST http://127.0.0.1:18800/api/sessions/start \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"learner": "验证记忆-<同一个名字>", "course_id": "db101"}'
+
+# 7) 会话 2 里对 t04 出题：history / mistake_history 召回上次的错题
+curl -s -X POST http://127.0.0.1:18800/api/quiz/next \
+  -H 'Content-Type: application/json' -H 'X-ExamRadar-Source: auto' \
+  -d '{"session_id": "<新 session_id>", "topic_id": "t04"}'
+
+# 8) 记忆页 API（掌握度卡片含 revisions 轨迹、错题、复习计划、会话小结）
+curl -s "http://127.0.0.1:18800/api/memory?learner=<URL 编码的名字>&course_id=db101"
+```
+
+### 预期结果（应用侧，实测输出摘录）
+
+- **第 1 题（自动选题）**：`topic_id` 为 t04、`question_type` 为 `self`，
+  `question` 是期末试卷第 4 题原文（"4.（15 分）设关系模式 R(A, B, C, D, E)…"），
+  `source.label` 为 `2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 第4题（15.0分）`，
+  `hint` 为"笔记里没有这部分，建议先补。"——missing 知识点走往年原题自测；
+- **答错（自评"不会"）**：`correct=false`、`box_before=1`、`box_after=1`（答错留在 1 号盒）；
+  `mastery` 为新建卡片（`revision: 1`，正文含 `盒 1，答对 0 次 / 答错 1 次`）；
+  `mistake_memory` 为新错题（正文以 `【错题】t04 …` 开头）；
+  `review_plan` 首建，`opening` 为"上次你在『函数依赖与范式（3NF、BCNF）』上错了 1 次…"
+- **答对（t08 填空）**：`box_before=1`、`box_after=2`（Leitner 升盒），
+  `mistake_memory` 为 `null`（答对不写错题）；
+- **结束会话**：`summary_memory` 正文为"会话小结：时长 N 分钟，做题 2 道，正确率 50%，
+  薄弱点：函数依赖与范式（3NF、BCNF）（t04，错 1 次）"；`review_plan.revision` 递增；
+- **第 2 次开始会话**：`opening_line` 即复习计划的 `opening`；
+  `bootstrap.status` 为 `ready`，`items` 里有复习计划 artifact 的 id 和 revision；
+- **会话 2 出 t04 的题**：响应 `mistake_history` 里出现上次那条 `【错题】t04 …`，
+  且带 `citation.artifact_ref`（PowerContext 的引用格式）——出题前错题召回生效；
+- **`GET /api/memory`**：`mastery_cards` 两张（t04 盒 1、t08 盒 2，各含 `revisions` 数组）、
+  `mistakes` 一条、`review_plan`（`revisions` 有多次判分留下的历史）、
+  `session_summaries`、`pc_calls`（PowerContext 最近调用日志）。
+
+### 直接查 PowerContext（18801）
+
+用上面拿到的 `scope_id` 和 artifact id（`/api/memory` 或判分响应里都有）：
+
+```bash
+# 掌握度卡片的 handle：mastery-<topic_id> → artifact_id + 当前 revision
+curl -s "http://127.0.0.1:18801/v1/scopes/<scope_id>/artifact-handles/atomic-memory/mastery-t04"
+
+# 卡片正文（content.kind = mastery，text 首行"掌握度：…"）
+curl -s "http://127.0.0.1:18801/v1/scopes/<scope_id>/artifacts/atomic-memory/<artifact_id>"
+
+# revision 历史（每次判分后 upsert 都留一条）
+curl -s "http://127.0.0.1:18801/v1/scopes/<scope_id>/artifacts/atomic-memory/<artifact_id>/revisions"
+
+# 错题的标签：应为 ["examradar", "topic-t04", "type-mistake"]
+curl -s "http://127.0.0.1:18801/v1/scopes/<scope_id>/artifacts/atomic-memory/<错题 artifact_id>/tags"
+```
+
+预期：handle `mastery-t04` 指向的 artifact 与应用侧判分响应里 `mastery.artifact_id` 一致；
+错题 tags 含 `examradar`、`topic-t04`、`type-mistake`（按知识点打标签，
+`query_by_tags(["type-mastery"])` 就是记忆页掌握度卡片的取数方式）；复习计划的
+handle 是 `review-plan`，tags 含 `bootstrap-context`（下次会话 bootstrap 只带它）。
+
+### 隐私核对
+
+使用记录里不出现学习者名字（只存 sha256 前 8 位哈希）：
+
+```bash
+curl -s "http://127.0.0.1:18800/api/usage/export?course_id=db101&source=auto&format=json"
+```
+
+预期：JSON 里搜不到上面的学习者明文；`session_start` 事件的 `payload.learner`
+是 8 位哈希。累计学习时长按会话计算：`usage/stats` 的 `study_minutes` 随会话
+（开始到最后一个事件）增长，`session_count`/`quiz_count` 计入本次会话。
 
 ## 8. 一次跑完：端到端脚本
 
-以上步骤可以用 `scripts/e2e_verify.py` 自动跑一遍（导入 → 验收检索 → 覆盖分析 → 使用记录导出，全程带 auto 标记，并打印 seekdb 实际 SQL 与 PowerContext 请求日志）：
+以上步骤可以用 `scripts/e2e_verify.py` 自动跑一遍（导入 → 验收检索 → 覆盖分析 → **复习教练闭环** → 使用记录导出，全程带 auto 标记，并打印 seekdb 实际 SQL 与 PowerContext 请求日志）：
 
 ```bash
 python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18800
 ```
 
+其中复习教练一步：用带时间戳的新学习者名开始会话（断言 bootstrap 为空）→
+t04 自测题答"不会"（错）→ 同知识点答对（Leitner 盒 1→2、卡片 revision 递增）→
+t08 填空答错 → 结束会话 → **新会话**开场白提到答错的知识点（bootstrap ready）→
+直接查 PowerContext 核对 handle、tags、revision 历史 → 检查使用记录 quiz/session
+计数和导出里没有学习者明文。报告正文含两道题的原文、PowerContext 读写明细表
+（方向、接口、artifact id、revision、标签）和 prepare 召回的错题。
+
 报告写入 `docs/validation/e2e-report.md`。
-<!-- 会话 10：e2e 报告的 M3 部分（出题判分、掌握度更新、错题召回）由合并后补齐。 -->

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
@@ -560,32 +560,52 @@ def get_usage_stats(course_id: str, source: str = "real",
 
     tz_name is an IANA time zone name (e.g. America/New_York); daily
     buckets are computed with zoneinfo so DST transitions are correct.
+    Study minutes come from real learning sessions (M3), not from
+    event-gap estimation.
     """
     events = get_usage_events(course_id, source, limit=10000)
+    sessions = get_learning_session_rows(course_id)
     tz = ZoneInfo(tz_name)
-    stats = compute_usage_stats(events, tz, get_settings())
+    stats = compute_usage_stats(events, tz, get_settings(), sessions)
     stats["course_id"] = course_id
     stats["source"] = source
     return stats
 
 
-def compute_usage_stats(events: list[dict], tz: ZoneInfo, settings) -> dict:
-    """Pure statistics over a list of usage events (unit-testable).
+def get_learning_session_rows(course_id: str) -> list[dict]:
+    """Learning sessions of a course (written by learning_store; read here
+    for usage stats). Times are naive UTC, like every other table."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT session_id, started_at, last_event_at, ended_at "
+                "FROM learning_sessions WHERE course_id = %s",
+                (course_id,),
+            )
+            return cur.fetchall()
+    finally:
+        conn.close()
+
+
+def compute_usage_stats(events: list[dict], tz: ZoneInfo, settings,
+                        sessions: Optional[list[dict]] = None) -> dict:
+    """Pure statistics over usage events + learning sessions (unit-testable).
 
     `events` items carry an ISO-8601 `created_at` (UTC). Study minutes are
-    an estimate: events are clustered into study segments by an inactivity
-    gap, each segment lasting its time span plus a fixed minimum per event.
-    Real session durations arrive in M3.
+    the summed durations of real learning sessions: each session runs from
+    started_at to its last event (ended_at, or last_event_at while still
+    active — sessions with no event for session_idle_minutes count as
+    ended at their last event). A session belongs to the requested source
+    when its session_start event is in `events`.
     """
     search_count = sum(1 for e in events if e["event"] == "search")
     import_count = sum(1 for e in events if e["event"] == "import")
     analyze_count = sum(1 for e in events if e["event"] == "analyze")
-    quiz_count = sum(1 for e in events if e["event"] == "quiz")
+    quiz_count = sum(1 for e in events if e["event"] in ("answer", "quiz"))
 
-    sessions = set()
-    for e in events:
-        if e.get("session_id"):
-            sessions.add(e["session_id"])
+    session_ids = {e.get("session_id") for e in events
+                   if e["event"] == "session_start" and e.get("session_id")}
 
     timed = []
     for e in events:
@@ -599,37 +619,28 @@ def compute_usage_stats(events: list[dict], tz: ZoneInfo, settings) -> dict:
         if day_key not in daily:
             daily[day_key] = {"date": day_key, "search": 0, "import": 0,
                               "analyze": 0, "quiz": 0, "total": 0}
+        if e["event"] in ("answer", "quiz"):
+            daily[day_key]["quiz"] += 1
         daily[day_key][e["event"]] = daily[day_key].get(e["event"], 0) + 1
         daily[day_key]["total"] += 1
 
-    # estimated study time: cluster by inactivity gap
-    gap = timedelta(minutes=settings.usage_session_gap_minutes)
-    per_event = settings.usage_minutes_per_event
     study_minutes = 0.0
-    seg_start = seg_end = None
-    seg_events = 0
-
-    def close_segment():
-        nonlocal seg_start, seg_end, seg_events, study_minutes
-        if seg_start is not None:
-            span_min = (seg_end - seg_start).total_seconds() / 60.0
-            study_minutes += max(span_min, seg_events * per_event)
-        seg_start = seg_end = None
-        seg_events = 0
-
-    for dt, _e in timed:
-        if seg_end is not None and dt - seg_end > gap:
-            close_segment()
-        if seg_start is None:
-            seg_start = dt
-        seg_end = dt
-        seg_events += 1
-    close_segment()
+    for s in sessions or []:
+        sid = s.get("session_id")
+        if sid not in session_ids:
+            continue
+        started, last = s.get("started_at"), s.get("ended_at") or s.get("last_event_at")
+        if isinstance(started, str):
+            started = datetime.fromisoformat(started)
+        if isinstance(last, str):
+            last = datetime.fromisoformat(last)
+        if isinstance(started, datetime) and isinstance(last, datetime):
+            study_minutes += max(0.0, (last - started).total_seconds()) / 60.0
 
     daily_list = sorted(daily.values(), key=lambda d: d["date"])
 
     return {
-        "session_count": len(sessions),
+        "session_count": len(session_ids),
         "search_count": search_count,
         "import_count": import_count,
         "analyze_count": analyze_count,

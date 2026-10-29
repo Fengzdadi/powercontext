@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""ExamRadar 端到端验证脚本（会话 08a，里程碑 M4）。
+"""ExamRadar 端到端验证脚本（会话 08a 建立，会话 10 加入复习教练一步）。
 
-按验证样例逐步执行：健康检查 → 导入样例资料 → 6 条验收检索 → 覆盖雷达。
+按验证样例逐步执行：健康检查 → 导入样例资料 → 6 条验收检索 → 覆盖雷达 →
+复习教练（学习会话 + 出题判分 + PowerContext 记忆）。
 每一步写进 Markdown 报告（默认 docs/validation/e2e-report.md），全部通过
 退出码为 0，否则为 1。只用标准库；所有请求带 X-ExamRadar-Source: auto。
-
-会话 10 注意：STEPS 表里预留了"复习教练"一步的位置（M3 合并后加入）。
 """
 from __future__ import annotations
 
@@ -692,8 +691,6 @@ def step_coverage(ctx: Ctx) -> StepResult:
         res.checks.append(c)
     top_l, order_l = _check_blind_spot(items_l, "latest", by_position=False)
     res.checks.append(top_l)
-    # 会话 05b 正在修 get_latest() 的排序（当前按 topic_id 排）：照实记录。
-    order_l.detail += "（已知问题：会话 05b 修复中，latest 现按 topic_id 排序）"
     res.checks.append(order_l)
 
     # 报告正文：判定与归属总表
@@ -729,7 +726,281 @@ def step_coverage(ctx: Ctx) -> StepResult:
 
 
 # ===========================================================================
-# 步骤表（会话 10：在"覆盖雷达"之后加"复习教练"一步，M3 合并后）
+# 步骤 5：复习教练（会话 10 加入；examradar-ci 栈不配大模型，走无模型路径：
+# missing 知识点往年原题自测 + thin 知识点考点词填空）
+# ===========================================================================
+
+SELF_RATINGS = ["会", "模糊", "不会"]
+
+
+def _pc_revision_texts(pc: HttpClient, scope_id: str,
+                       artifact_id: str) -> list[tuple[int, str]]:
+    """掌握度卡片的 revision 历史：[(revision, text), ...] 升序。"""
+    data = pc.get(
+        f"/v1/scopes/{scope_id}/artifacts/atomic-memory/{artifact_id}/revisions")
+    out = []
+    for it in data.get("items") or []:
+        rev = it.get("revision")
+        if rev is None:
+            continue
+        rev_data = pc.get(
+            f"/v1/scopes/{scope_id}/artifacts/atomic-memory/"
+            f"{artifact_id}/revisions/{rev}")
+        content = rev_data.get("content") or {}
+        out.append((int(rev), content.get("text") or rev_data.get("text") or ""))
+    out.sort()
+    return out
+
+
+def step_coach(ctx: Ctx) -> StepResult:
+    res = StepResult("复习教练")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    learner = f"e2e教练{ts}"
+
+    status = ctx.app.get("/api/coach/status")
+    pc_ok = bool((status.get("powercontext") or {}).get("ok"))
+    res.checks.append(Check(
+        "/api/coach/status：PowerContext 可用", pc_ok,
+        f"llm configured={bool((status.get('llm') or {}).get('configured'))}"
+        f"（CI 栈不配大模型，走无模型路径）",
+    ))
+
+    # ---- 会话 1：新学习者，bootstrap 必须为空 ----
+    s1 = ctx.app.post_json("/api/sessions/start",
+                           {"learner": learner, "course_id": COURSE_ID})
+    scope_id = s1.get("scope_id") or ""
+    res.checks.append(Check(
+        "新学习者开始会话：scope 已建、bootstrap 为空",
+        bool(scope_id)
+        and (s1.get("bootstrap") is None or not (s1.get("bootstrap") or {}).get("items"))
+        and s1.get("opening_line") is None,
+        f"scope_id={scope_id[:12]}…，bootstrap items="
+        f"{(s1.get('bootstrap') or {}).get('items') or []}",
+    ))
+    sid1 = s1.get("session_id") or ""
+
+    # ---- 第 1 题：自动选题应为盲区第一 t04（missing → 往年原题自测）----
+    q1 = ctx.app.post_json("/api/quiz/next", {"session_id": sid1})
+    res.checks.append(Check(
+        "第 1 题自动选题 = 盲区第一 t04，missing 走往年原题自测",
+        q1.get("topic_id") == BLIND_SPOT_TOP_TOPIC
+        and q1.get("question_type") == "self"
+        and "笔记里没有" in (q1.get("hint") or "")
+        and "期末试卷" in ((q1.get("source") or {}).get("label") or "")
+        and q1.get("self_ratings") == SELF_RATINGS,
+        f"topic={q1.get('topic_id')}，题型={q1.get('question_type')}，"
+        f"出处={((q1.get('source') or {}).get('label') or '')[:60]}",
+    ))
+    q1_text = (q1.get("question") or "").strip()
+
+    # ---- 自测答错（不会）：box 1→1，写错题记忆 ----
+    a1 = ctx.app.post_json("/api/quiz/answer",
+                           {"question_id": q1["question_id"],
+                            "self_rating": "不会"})
+    m1 = a1.get("mastery") or {}
+    res.checks.append(Check(
+        "自测答错（不会）：correct=False，盒 1→1，错题记忆已写",
+        a1.get("correct") is False and a1.get("box_before") == 1
+        and a1.get("box_after") == 1
+        and bool((a1.get("mistake_memory") or {}).get("artifact_id")),
+        f"卡片 artifact={m1.get('artifact_id')} rev={m1.get('revision')}，"
+        f"错题 artifact={(a1.get('mistake_memory') or {}).get('artifact_id')}",
+    ))
+
+    # ---- 第 2 题：同知识点再答对（会）：prepare 应召回刚才的错题 ----
+    q2 = ctx.app.post_json("/api/quiz/next",
+                           {"session_id": sid1, "topic_id": BLIND_SPOT_TOP_TOPIC})
+    a2 = ctx.app.post_json("/api/quiz/answer",
+                           {"question_id": q2["question_id"], "self_rating": "会"})
+    m2 = a2.get("mastery") or {}
+    mistake_hist = q2.get("mistake_history") or []
+    res.checks.append(Check(
+        "context/prepare 召回上次答错的错题（「你之前在这里错过」材料）",
+        bool(mistake_hist) and any("【错题】" in (h.get("text") or "")
+                                   for h in mistake_hist),
+        f"召回 {len(mistake_hist)} 条，第一条："
+        f"{((mistake_hist[0].get('text') or '')[:50]) if mistake_hist else '—'}",
+    ))
+    res.checks.append(Check(
+        "同知识点答对（会）：盒 1→2，卡片 revision 递增",
+        a2.get("correct") is True and a2.get("box_before") == 1
+        and a2.get("box_after") == 2
+        and bool(m2.get("artifact_id"))
+        and int(m2.get("revision") or 0) > int(m1.get("revision") or 0),
+        f"卡片 artifact={m2.get('artifact_id')}，rev "
+        f"{m1.get('revision')}→{m2.get('revision')}",
+    ))
+
+    # ---- 第 3 题：thin 知识点（t08）考点词填空，故意答错 ----
+    q3 = ctx.app.post_json("/api/quiz/next",
+                           {"session_id": sid1, "question_type": "fill"})
+    src3 = (q3.get("source") or {}).get("label") or ""
+    res.checks.append(Check(
+        "第 3 题自动选题 = t08（thin），填空题出考点词所在段落",
+        q3.get("topic_id") == "t08" and q3.get("question_type") == "fill"
+        and "＿＿＿" in (q3.get("question") or "")
+        and "05-事务" in src3,
+        f"topic={q3.get('topic_id')}，出处={src3[:60]}",
+    ))
+    a3 = ctx.app.post_json("/api/quiz/answer",
+                           {"question_id": q3["question_id"],
+                            "answer": "完全不会"})
+    res.checks.append(Check(
+        "填空题挖空的是考点词本身（判分回执里的正确答案）",
+        a3.get("correct") is False
+        and a3.get("expected_answer") in ("隔离级别", "MVCC"),
+        f"expected_answer={a3.get('expected_answer')}（来自 t08 的考点词）",
+    ))
+
+    # ---- 结束会话 ----
+    e1 = ctx.app.post_json("/api/sessions/end", {"session_id": sid1})
+    res.checks.append(Check(
+        "结束会话：3 题 1 对，时长按最后事件计，会话小结入记忆",
+        e1.get("questions_asked") == 3 and e1.get("questions_correct") == 1
+        and (e1.get("duration_seconds") or 0) >= 0
+        and bool((e1.get("summary_memory") or {}).get("artifact_id")),
+        f"duration={e1.get('duration_seconds')}s，"
+        f"小结 artifact={(e1.get('summary_memory') or {}).get('artifact_id')}",
+    ))
+
+    # ---- 会话 2：开场白提到上次答错的知识点 ----
+    s2 = ctx.app.post_json("/api/sessions/start",
+                           {"learner": learner, "course_id": COURSE_ID})
+    opening = s2.get("opening_line") or ""
+    res.checks.append(Check(
+        "新会话开场白提到上次答错的知识点（复习计划首行）",
+        "错" in opening and ("函数依赖与范式" in opening
+                             or "隔离级别与 MVCC" in opening),
+        opening[:80] or "（空）",
+    ))
+    res.checks.append(Check(
+        "会话 2 bootstrap 就绪（复习计划带 bootstrap-context 标签）",
+        (s2.get("bootstrap") or {}).get("status") == "ready"
+        and bool((s2.get("bootstrap") or {}).get("items")),
+        f"bootstrap items={len(((s2.get('bootstrap') or {}).get('items') or []))}",
+    ))
+
+    # ---- PowerContext 直接核对：计划 handle / 标签 / 卡片 revision 历史 ----
+    handle = ctx.pc.get(
+        f"/v1/scopes/{scope_id}/artifact-handles/atomic-memory/review-plan")
+    plan_artifact = ((handle.get("artifact") or handle) or {}).get("artifact_id")
+    plan_info = e1.get("review_plan") or {}
+    res.checks.append(Check(
+        "复习计划 handle 指向会话结束时更新的 artifact",
+        bool(plan_artifact) and plan_artifact == plan_info.get("artifact_id"),
+        f"handle→{plan_artifact}，结束会话写入 rev={plan_info.get('revision')}",
+    ))
+    tags = ctx.pc.get(
+        f"/v1/scopes/{scope_id}/artifacts/atomic-memory/{plan_artifact}/tags"
+    ).get("tags") or []
+    res.checks.append(Check(
+        "复习计划标签含 bootstrap-context（新会话开场白来源）",
+        "bootstrap-context" in tags,
+        f"tags={tags}",
+    ))
+    card_artifact = m2.get("artifact_id")
+    revs = _pc_revision_texts(ctx.pc, scope_id, card_artifact)
+    res.checks.append(Check(
+        "掌握度卡片（t04）revision 历史：盒 1 → 盒 2 轨迹可见",
+        len(revs) >= 2 and "盒 1" in revs[0][1] and "盒 2" in revs[-1][1],
+        f"{len(revs)} 个 revision：" + "；".join(
+            f"rev{r}→{_first_box(t)}" for r, t in revs),
+    ))
+
+    # ---- 使用记录：答题事件与会话时长入账，导出无学习者名字 ----
+    stats = ctx.app.get(
+        f"/api/usage/stats?course_id={COURSE_ID}&source=auto&tz=UTC")
+    res.checks.append(Check(
+        "使用记录（auto）：本次 3 次答题入账，会话数 ≥ 1",
+        (stats.get("quiz_count") or 0) >= 3 and (stats.get("session_count") or 0) >= 1,
+        f"答题 {stats.get('quiz_count')} 次，会话 {stats.get('session_count')} 个，"
+        f"累计学习时长 {stats.get('study_minutes')} 分钟",
+    ))
+    export = ctx.app.request(
+        "GET", f"/api/usage/export?course_id={COURSE_ID}&source=auto&format=json")
+    export_text = export if isinstance(export, str) \
+        else json.dumps(export, ensure_ascii=False)
+    res.checks.append(Check(
+        "使用记录导出（JSON）不含学习者名字（只有 8 位哈希）",
+        export is not None and learner not in export_text,
+        f"导出 {len(export_text)} 字节，未出现「{learner}」",
+    ))
+
+    # ---- 报告正文：题目原文 + PC 读写清单 + revision 历史 ----
+    lines = ["复习教练全程（无大模型路径；学习者每次运行都用新名字，"
+             "保证首会话 bootstrap 为空）：", ""]
+    lines.append(f"- 学习者：{learner}（usage_events 里只有其 sha256 前 8 位哈希）")
+    lines.append(f"- 会话 1：{sid1}，3 题（t04 自测答错 → t04 自测答对 → "
+                 f"t08 填空答错），1 对；结束后新会话开场白：{opening}")
+    lines += ["", "t04（missing）往年原题自测题目原文：", "",
+              "```", q1_text, "```", ""]
+    lines.append(f"- 出处：{(q1.get('source') or {}).get('label')}")
+    lines.append(f"- 提示：{q1.get('hint')}")
+    lines += ["", "t08（thin）填空题原文（挖空的是考点词，出处为找到考点词的段落）：",
+              "", "```", (q3.get("question") or ""), "```", ""]
+    lines.append(f"- 出处：{src3}；正确答案：{a3.get('expected_answer')}（t08 的考点词）")
+
+    lines += ["", "这一路对 PowerContext 的关键读写"
+                  "（接口、artifact id、revision、标签；由应用 API 响应与脚本"
+                  "直接核对汇总）：", "",
+              "| 方向 | 接口 | artifact / 说明 | revision / 标签 |",
+              "| --- | --- | --- | --- |"]
+    mistake1 = a1.get("mistake_memory") or {}
+    mistake3 = a3.get("mistake_memory") or {}
+    summary = e1.get("summary_memory") or {}
+    rw = [
+        ("写", "POST /v1/scopes（幂等 key examradar:learner:…）", scope_id, "Scope"),
+        ("读", "POST /v1/context/bootstrap（会话 1 开始）", "—（空，第一次复习）", "items=[]"),
+        ("读", "POST /v1/context/prepare（t04 出题前）", "—（尚无错题）", "history=[]"),
+        ("写", "POST artifacts + PUT tags + PUT handle（t04 掌握度卡片）",
+         m1.get("artifact_id"), f"rev {m1.get('revision')}；tags examradar/"
+         f"type-mastery/topic-t04"),
+        ("写", "POST /v1/memory/remember + PUT tags（t04 错题）",
+         mistake1.get("artifact_id"), f"rev {mistake1.get('revision')}；"
+         f"tags examradar/type-mistake/topic-t04"),
+        ("读", "POST /v1/context/prepare（t04 再出题前）",
+         mistake1.get("artifact_id"), f"召回错题 {len(mistake_hist)} 条"),
+        ("写", "PUT artifacts（If-Match，t04 卡片）", m2.get("artifact_id"),
+         f"rev {m2.get('revision')}（盒 1→2）"),
+        ("写", "POST artifacts + tags + handle（t08 掌握度卡片）",
+         (a3.get("mastery") or {}).get("artifact_id"),
+         f"rev {(a3.get('mastery') or {}).get('revision')}"),
+        ("写", "POST /v1/memory/remember + PUT tags（t08 错题）",
+         mistake3.get("artifact_id"), f"rev {mistake3.get('revision')}"),
+        ("写", "PUT artifacts（If-Match，复习计划）", plan_info.get("artifact_id"),
+         f"rev {plan_info.get('revision')}；tags {','.join(tags)}"),
+        ("写", "POST /v1/memory/remember + PUT tags（会话小结）",
+         summary.get("artifact_id"), f"rev {summary.get('revision')}"),
+        ("读", "POST /v1/context/bootstrap（会话 2 开始）",
+         plan_info.get("artifact_id"), "开场白 = 计划首行"),
+        ("读", "GET artifact-handles / tags / revisions（脚本核对）",
+         plan_info.get("artifact_id"), f"handle→rev {plan_info.get('revision')}"),
+    ]
+    for direction, api, artifact, note in rw:
+        lines.append(f"| {direction} | {api} | {artifact} | {note} |")
+
+    lines += ["", f"掌握度卡片（t04，{card_artifact}）revision 历史：", ""]
+    for r, text in revs:
+        lines.append(f"- rev {r}：{text.splitlines()[0]}")
+    if mistake_hist:
+        lines += ["", "context/prepare 召回的错题（第 2 题出题前）：", ""]
+        for h in mistake_hist[:3]:
+            lines.append(f"- {((h.get('text') or '').splitlines() or ['—'])[0]}")
+    res.body = "\n".join(lines) + "\n"
+
+    ctx.app.post_json("/api/sessions/end", {"session_id": s2.get("session_id")})
+    return res
+
+
+def _first_box(text: str) -> str:
+    for line in text.splitlines():
+        if "盒" in line:
+            return line.strip()
+    return text[:40] or "（空）"
+
+
+# ===========================================================================
+# 步骤表
 # ===========================================================================
 
 STEPS: list[tuple[str, Callable[[Ctx], StepResult]]] = [
@@ -737,7 +1008,7 @@ STEPS: list[tuple[str, Callable[[Ctx], StepResult]]] = [
     ("导入样例资料", step_import),
     ("验收检索", step_search),
     ("覆盖雷达", step_coverage),
-    # ("复习教练", step_coach),  # 会话 10 加（M3 功能合并后）
+    ("复习教练", step_coach),
 ]
 
 

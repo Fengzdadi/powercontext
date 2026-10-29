@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>使用记录 — 考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
 <script src="/static/js/source.js"></script>
@@ -16,6 +17,8 @@
 <a href="/import.html">导入资料</a>
 <a href="/ask.html">问笔记</a>
 <a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
 <a href="/usage.html">使用记录</a>
 </nav>
 </div>
@@ -98,7 +101,7 @@ function renderStats(data) {
   html += statBox('总事件数', data.total_events);
   html += statBox('累计学习时长', fmtStudyTime(data.study_minutes));
   html += '</div>';
-  html += `<p style="margin-top:12px;font-size:13px;color:#888">数据来源: ${data.source === 'real' ? '真实使用' : '开发/测试'} | 课程: ${escapeHtml(data.course_id)} | 时区: ${escapeHtml(data.tz || 'UTC')}（按天统计与学习时长按此时区计算；真实会话时长将在 M3 接入，当前为按事件间隔的估算）</p>`;
+  html += `<p style="margin-top:12px;font-size:13px;color:#888">数据来源: ${data.source === 'real' ? '真实使用' : '开发/测试'} | 课程: ${escapeHtml(data.course_id)} | 时区: ${escapeHtml(data.tz || 'UTC')}（按天统计按此时区计算；累计学习时长按学习会话计算——会话开始到最后一个事件，30 分钟无事件视为结束）</p>`;
   html += '</div>';
 
   if (data.daily && data.daily.length) {
