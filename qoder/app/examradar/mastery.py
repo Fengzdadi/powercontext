@@ -168,11 +168,11 @@ def build_opening_line(wrong_recent: list[tuple[str, str, int]],
                        due_today: list[tuple[str, str]],
                        blind_missing: list[tuple[str, str, float]]) -> str:
     """开场白，例如：
-    上次你在『隔离级别与 MVCC』上错了 2 次，先复习它；『B+树与哈希索引』今天到期；
+    你在『隔离级别与 MVCC』上累计错了 2 次，先复习它；『B+树与哈希索引』今天到期；
     『函数依赖与范式』往年考 25 分但笔记里没有。
 
-    同一个知识点只出现一次：既错了又是盲区的合并成一句
-    （『X』上错了 N 次（往年考 25 分但笔记里没有））。
+    次数取自掌握度卡片的累计答错数（不是上一次会话的）。同一个知识点只出现一次：
+    既错了又是盲区的合并成一句（『X』上累计错了 N 次（往年考 25 分但笔记里没有））。
     """
     blind_by_tid = {tid: (name, weight) for tid, name, weight in blind_missing}
     parts: list[str] = []
@@ -186,10 +186,10 @@ def build_opening_line(wrong_recent: list[tuple[str, str, int]],
 
     if wrong_recent:
         tid, name, count = wrong_recent[0]
-        parts.append(f"上次你在『{name}』上错了 {count} 次，先复习它{_blind_note(tid)}")
+        parts.append(f"你在『{name}』上累计错了 {count} 次，先复习它{_blind_note(tid)}")
         mentioned.add(tid)
         for tid, name, count in wrong_recent[1:3]:
-            parts.append(f"『{name}』错了 {count} 次{_blind_note(tid)}")
+            parts.append(f"『{name}』累计错了 {count} 次{_blind_note(tid)}")
             mentioned.add(tid)
     for tid, name in due_today[:3]:
         if tid in mentioned:

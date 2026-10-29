@@ -1362,3 +1362,39 @@ t08（thin）填空题，挖空即考点词、出处为找到考点词的段落�
 | 浏览器验证（1440×900，`?source=auto`） | ✅ 掌握度卡片表表头与日期单元格全部单行（Range 行框数全为 1）；截图 `.cache/scratch/s10b-memory-1440.png`、`s10b-memory-table.png`，Read 复核过 |
 | e2e | ✅ `docker compose -p examradar-ci --env-file .env.ci up -d --build` 后 `python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18807` 5 步 66 项检查全 ✅，报告写入 `docs/validation/e2e-report.md`；复习教练步骤与新出题顺序兼容，脚本零改动 |
 | 会话结束清理 | ✅ examradar-ci `down -v`（容器/网络/两卷全删，`ps` 为空）；18800 开发服务器已停；`git status` 只有本会话改动 + harness 会话产物（`dev-records/sessions/10b-*`，未改动） |
+
+---
+
+## 会话 10c — 开场白"累计"说法与复习教练文档修订（2026-10-29）
+
+**参与者**：产品负责人（任务输入）、Qoder（修复与验证）
+**模型**：GLM-5.3。开发栈（seekdb 10800 / PowerContext 18801）全程未动；本会话只用 18800（开发服务器）与 18805–18807（examradar-ci 栈）。
+
+### A. 做了什么
+
+1. **开场白次数说法改为"累计"（`mastery.build_opening_line`）**：次数取自掌握度卡片的累计答错数（`build_review_plan_inputs` 里 `state.wrong`），旧说法"上次你在『X』上错了 N 次"与数据不符（上一次会话可能只错 1 次）。改为：
+   - 首句："你在『X』上累计错了 N 次，先复习它"；
+   - 其余："『Y』累计错了 M 次"；
+   - 会话 10b 的盲区括注（"往年考 N 分但笔记里没有"）与"今天到期"合并逻辑不变；
+   - 无记录兜底句"上次没有留下复习记录…"不动（这里"上次"指上次会话，语义正确）。
+   **不迁移已有数据**：已有学习者的复习计划记忆存在 PowerContext 里，要等下一次判分才会按新说法重写，故不做迁移。
+2. **`README.md` 复习教练一节**：标题去"9."（与其他二级标题一致）；开场白例子按新说法并注明"次数是掌握度卡片上的累计答错数"；选题优先级第 2 条补会话 10b 的三条实现（同一知识点隔 2 道别的题再出、计划池先轮一遍再回到答错的、自测题在几道往年原题之间轮换）。
+3. **`docs/VALIDATION.md` §7**：界面预期与 `review_plan.opening` 两处例子改新说法；第 1 题 `source.label` 改为会话 10b 之后的实际输出 `2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 15 分`；整条命令链在 18800 实测重跑一遍（见 D 节），其余预期摘录与实际输出全部一致，未再改动。
+4. **测试**：改 `test_mastery.py` 里 3 处旧说法断言（roundtrip / parts / merged）；新增 2 条单测：`test_opening_line_counts_are_cumulative_wording`（累计措辞 + 不出现"上次"）、`test_opening_line_counts_match_mastery_cumulative_wrong`（`build_review_plan_inputs` 传入累计答错数，开场白原样带出）。`test_m3_integration.py` / `test_pc_client.py` 里的"上次你在…"只是 PC roundtrip 夹具文本，不测生成措辞，保留不动。`scripts/e2e_verify.py` 只断言开场白含"错"和知识点名，天然兼容，零改动。
+
+### B. 遇到的问题和解决办法
+
+1. **使用导出的 `session_start` 事件字段名**：核对隐私时先按 `event_type` 找事件为空——导出的字段名是 `event` 不是 `event_type`，payload 是 JSON 字符串。改对后确认 `payload.learner` 为 8 位哈希（`b73c74c9`），导出全文不含学习者明文。
+2. **PC 直查响应形状**：handle 响应的 artifact 在 `artifact` 键下、revisions 在 `items` 数组里，第一次按平铺结构解析报错，修正后四项直查（mastery-t04 handle / 卡片正文 / revisions / 错题 tags）全部与文档预期一致。
+
+### C. 验收结果
+
+| 验收项 | 结果 |
+| --- | --- |
+| `uv run pytest`（单测） | ✅ 225 passed, 28 skipped（基线 223 + 新增 2） |
+| `export EXAMRADAR_IT=1 && uv run pytest -m integration` | ✅ 34 passed |
+| 新增单测（累计说法） | ✅ 2 条通过；开场白不出现"上次……错了"，次数与 `build_review_plan_inputs` 传入的累计答错数一致 |
+| 新学习者 3 次会话（`10c三次同学012820`，开发库 18800，第 1、2 次各答错 t04 一次，第 3 次只开始会话） | ✅ 第 2 次开场白："你在『函数依赖与范式（3NF、BCNF）』上累计错了 1 次，先复习它（往年考 25 分但笔记里没有）；『关系模型与关系代数』往年考 5 分但笔记里没有"；第 3 次开场白：同句式，t04 为"累计错了 2 次"——累计数 1 → 2，与会话次数一致 |
+| §7 命令链在开发服务器实测 | ✅ 8 步全跑通（start×2 / next×3 / answer×2 / end / memory / PC 四项直查 / 隐私导出），输出与新写预期一致；`source.label` 实测 `… · 第4题 · 15 分` |
+| e2e | ✅ `docker compose -p examradar-ci --env-file .env.ci up -d --build` 三服务 healthy 后，`python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18807` 5 步全部 ✅（66 项检查），报告写入 `docs/validation/e2e-report.md`，开场白为新说法："你在『隔离级别与 MVCC』上累计错了 1 次，先复习它；…" |
+| 会话结束清理 | ✅ examradar-ci `down -v`（容器/网络/两卷全删，`ps` 为空）；18800 开发服务器已停（curl 连接拒绝，exit=7）；`git status` 只有本会话改动 + harness 会话产物（`dev-records/sessions/10c-*`） |

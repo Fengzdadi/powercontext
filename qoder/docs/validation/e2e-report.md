@@ -1,6 +1,6 @@
 # ExamRadar 端到端验证报告
 
-- 时间：2026-10-29 05:15:06 UTC
+- 时间：2026-10-29 05:30:52 UTC
 - 应用地址：http://127.0.0.1:18807
 - PowerContext 地址：http://127.0.0.1:18806
 - 课程：db101（samples/course-db）
@@ -207,26 +207,26 @@ analyze 判定总表（对照 samples/course-db/README.md 设计真值）：
 | 检查项 | 结果 | 说明 |
 | --- | --- | --- |
 | /api/coach/status：PowerContext 可用 | ✅ | llm configured=False（CI 栈不配大模型，走无模型路径） |
-| 新学习者开始会话：scope 已建、bootstrap 为空 | ✅ | scope_id=scp_637m5htz…，bootstrap items=[] |
+| 新学习者开始会话：scope 已建、bootstrap 为空 | ✅ | scope_id=scp_5s1gq5e6…，bootstrap items=[] |
 | 第 1 题自动选题 = 盲区第一 t04，missing 走往年原题自测 | ✅ | topic=t04，题型=self，出处=2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 15 分 |
-| 自测答错（不会）：correct=False，盒 1→1，错题记忆已写 | ✅ | 卡片 artifact=art_9d35bebd2a044a81bd0bc71292f2427e rev=1，错题 artifact=art_226b7083b4b949fcbea5d84c7143185c |
+| 自测答错（不会）：correct=False，盒 1→1，错题记忆已写 | ✅ | 卡片 artifact=art_f018cc3f45134000902f138e761eb81b rev=1，错题 artifact=art_6cd1c342f20a4126b486941346972399 |
 | context/prepare 召回上次答错的错题（「你之前在这里错过」材料） | ✅ | 召回 1 条，第一条：【错题】t04 函数依赖与范式（3NF、BCNF）：题目「4.（15 分）设关系模式 R(A, B, |
-| 同知识点答对（会）：盒 1→2，卡片 revision 递增 | ✅ | 卡片 artifact=art_9d35bebd2a044a81bd0bc71292f2427e，rev 1→2 |
+| 同知识点答对（会）：盒 1→2，卡片 revision 递增 | ✅ | 卡片 artifact=art_f018cc3f45134000902f138e761eb81b，rev 1→2 |
 | 第 3 题自动选题 = t08（thin），填空题出考点词所在段落 | ✅ | topic=t08，出处=05-事务与并发控制.md · 第5章 事务与并发控制（课堂笔记） > 5.5 隔离级别（只记了个大概，课上讲得快） |
 | 填空题挖空的是考点词本身（判分回执里的正确答案） | ✅ | expected_answer=隔离级别（来自 t08 的考点词） |
-| 结束会话：3 题 1 对，时长按最后事件计，会话小结入记忆 | ✅ | duration=0.0s，小结 artifact=art_f49f1f228055473689d41491f56aab99 |
-| 新会话开场白提到上次答错的知识点（复习计划首行） | ✅ | 上次你在『隔离级别与 MVCC』上错了 1 次，先复习它；『函数依赖与范式（3NF、BCNF）』错了 1 次（往年考 25 分但笔记里没有）；『关系模型与关系代 |
+| 结束会话：3 题 1 对，时长按最后事件计，会话小结入记忆 | ✅ | duration=0.0s，小结 artifact=art_777f2a46bf6042378218ed0acbc788a1 |
+| 新会话开场白提到上次答错的知识点（复习计划首行） | ✅ | 你在『隔离级别与 MVCC』上累计错了 1 次，先复习它；『函数依赖与范式（3NF、BCNF）』累计错了 1 次（往年考 25 分但笔记里没有）；『关系模型与关 |
 | 会话 2 bootstrap 就绪（复习计划带 bootstrap-context 标签） | ✅ | bootstrap items=1 |
-| 复习计划 handle 指向会话结束时更新的 artifact | ✅ | handle→art_1cb94ae3650948a49e6f24b0c5910b19，结束会话写入 rev=4 |
+| 复习计划 handle 指向会话结束时更新的 artifact | ✅ | handle→art_8ee6f1f7f65b496daf34390669210241，结束会话写入 rev=4 |
 | 复习计划标签含 bootstrap-context（新会话开场白来源） | ✅ | tags=['bootstrap-context', 'examradar', 'type-plan'] |
 | 掌握度卡片（t04）revision 历史：盒 1 → 盒 2 轨迹可见 | ✅ | 2 个 revision：rev1→掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 1，答对 0 次 / 答错 1 次，下次复习 2026-10-30；rev2→掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 2，答对 1 次 / 答错 1 次，下次复习 2026-10-31 |
 | 使用记录（auto）：本次 3 次答题入账，会话数 ≥ 1 | ✅ | 答题 3 次，会话 2 个，累计学习时长 0.0 分钟 |
-| 使用记录导出（JSON）不含学习者名字（只有 8 位哈希） | ✅ | 导出 6957 字节，未出现「e2e教练20261029051504」 |
+| 使用记录导出（JSON）不含学习者名字（只有 8 位哈希） | ✅ | 导出 6957 字节，未出现「e2e教练20261029053050」 |
 
 复习教练全程（无大模型路径；学习者每次运行都用新名字，保证首会话 bootstrap 为空）：
 
-- 学习者：e2e教练20261029051504（usage_events 里只有其 sha256 前 8 位哈希）
-- 会话 1：cd5ef7a0918a415f，3 题（t04 自测答错 → t04 自测答对 → t08 填空答错），1 对；结束后新会话开场白：上次你在『隔离级别与 MVCC』上错了 1 次，先复习它；『函数依赖与范式（3NF、BCNF）』错了 1 次（往年考 25 分但笔记里没有）；『关系模型与关系代数』往年考 5 分但笔记里没有
+- 学习者：e2e教练20261029053050（usage_events 里只有其 sha256 前 8 位哈希）
+- 会话 1：b12ad7c681b44674，3 题（t04 自测答错 → t04 自测答对 → t08 填空答错），1 对；结束后新会话开场白：你在『隔离级别与 MVCC』上累计错了 1 次，先复习它；『函数依赖与范式（3NF、BCNF）』累计错了 1 次（往年考 25 分但笔记里没有）；『关系模型与关系代数』往年考 5 分但笔记里没有
 
 t04（missing）往年原题自测题目原文：
 
@@ -249,21 +249,21 @@ t08（thin）填空题原文（挖空的是考点词，出处为找到考点词�
 
 | 方向 | 接口 | artifact / 说明 | revision / 标签 |
 | --- | --- | --- | --- |
-| 写 | POST /v1/scopes（幂等 key examradar:learner:…） | scp_637m5htz2jx43yr5f9sq9pcqvs | Scope |
+| 写 | POST /v1/scopes（幂等 key examradar:learner:…） | scp_5s1gq5e69vt93d4g6brmnt6s04 | Scope |
 | 读 | POST /v1/context/bootstrap（会话 1 开始） | —（空，第一次复习） | items=[] |
 | 读 | POST /v1/context/prepare（t04 出题前） | —（尚无错题） | history=[] |
-| 写 | POST artifacts + PUT tags + PUT handle（t04 掌握度卡片） | art_9d35bebd2a044a81bd0bc71292f2427e | rev 1；tags examradar/type-mastery/topic-t04 |
-| 写 | POST /v1/memory/remember + PUT tags（t04 错题） | art_226b7083b4b949fcbea5d84c7143185c | rev 1；tags examradar/type-mistake/topic-t04 |
-| 读 | POST /v1/context/prepare（t04 再出题前） | art_226b7083b4b949fcbea5d84c7143185c | 召回错题 1 条 |
-| 写 | PUT artifacts（If-Match，t04 卡片） | art_9d35bebd2a044a81bd0bc71292f2427e | rev 2（盒 1→2） |
-| 写 | POST artifacts + tags + handle（t08 掌握度卡片） | art_8669e9a7629c4926897487f0890a526c | rev 1 |
-| 写 | POST /v1/memory/remember + PUT tags（t08 错题） | art_79623f08c97b44498f55b0dc9e67b1c5 | rev 1 |
-| 写 | PUT artifacts（If-Match，复习计划） | art_1cb94ae3650948a49e6f24b0c5910b19 | rev 4；tags bootstrap-context,examradar,type-plan |
-| 写 | POST /v1/memory/remember + PUT tags（会话小结） | art_f49f1f228055473689d41491f56aab99 | rev 1 |
-| 读 | POST /v1/context/bootstrap（会话 2 开始） | art_1cb94ae3650948a49e6f24b0c5910b19 | 开场白 = 计划首行 |
-| 读 | GET artifact-handles / tags / revisions（脚本核对） | art_1cb94ae3650948a49e6f24b0c5910b19 | handle→rev 4 |
+| 写 | POST artifacts + PUT tags + PUT handle（t04 掌握度卡片） | art_f018cc3f45134000902f138e761eb81b | rev 1；tags examradar/type-mastery/topic-t04 |
+| 写 | POST /v1/memory/remember + PUT tags（t04 错题） | art_6cd1c342f20a4126b486941346972399 | rev 1；tags examradar/type-mistake/topic-t04 |
+| 读 | POST /v1/context/prepare（t04 再出题前） | art_6cd1c342f20a4126b486941346972399 | 召回错题 1 条 |
+| 写 | PUT artifacts（If-Match，t04 卡片） | art_f018cc3f45134000902f138e761eb81b | rev 2（盒 1→2） |
+| 写 | POST artifacts + tags + handle（t08 掌握度卡片） | art_e48c6c9a87244cbbb6418bfe008c28ae | rev 1 |
+| 写 | POST /v1/memory/remember + PUT tags（t08 错题） | art_754095354ff44b31bb88516c83fb245c | rev 1 |
+| 写 | PUT artifacts（If-Match，复习计划） | art_8ee6f1f7f65b496daf34390669210241 | rev 4；tags bootstrap-context,examradar,type-plan |
+| 写 | POST /v1/memory/remember + PUT tags（会话小结） | art_777f2a46bf6042378218ed0acbc788a1 | rev 1 |
+| 读 | POST /v1/context/bootstrap（会话 2 开始） | art_8ee6f1f7f65b496daf34390669210241 | 开场白 = 计划首行 |
+| 读 | GET artifact-handles / tags / revisions（脚本核对） | art_8ee6f1f7f65b496daf34390669210241 | handle→rev 4 |
 
-掌握度卡片（t04，art_9d35bebd2a044a81bd0bc71292f2427e）revision 历史：
+掌握度卡片（t04，art_f018cc3f45134000902f138e761eb81b）revision 历史：
 
 - rev 1：掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 1，答对 0 次 / 答错 1 次，下次复习 2026-10-30
 - rev 2：掌握度：函数依赖与范式（3NF、BCNF）（t04）—— 盒 2，答对 1 次 / 答错 1 次，下次复习 2026-10-31
