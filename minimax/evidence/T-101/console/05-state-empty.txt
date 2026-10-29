@@ -1,0 +1,9 @@
+$ ./sdd state T-101
+# 任务状态：T-101（工程 campus-library）
+
+- PowerContext Scope：`sddctx/campus-library/T-101` → 不存在
+- 记录数：0
+
+PowerContext 中没有这个任务的记录（空状态）。
+
+# exit code: 0

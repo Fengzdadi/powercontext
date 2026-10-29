@@ -30,7 +30,7 @@
 | 约束（被目标条目引用） | API-004 整数查询参数 | `project/specs/api.md:40-47` |
 | 约束（被目标条目引用） | CAT-004 分页 | `project/specs/catalog.md:40-49` |
 | 约束（被目标条目引用） | DATA-001 副本状态 | `project/specs/data.md:5-19` |
-| 同一接口的已实现条目 | CAT-001、CAT-002、CAT-003、CAT-006 | `project/specs/catalog.md` |
+| 同一接口的已实现条目 | CAT-001、CAT-002、CAT-003、CAT-006（CAT-002、CAT-003 同时被任务检索命中，上下文把它们列在 1.2 约束中） | `project/specs/catalog.md` |
 
 规格条目的格式和追溯约定见 [`project/specs/README.md`](../../project/specs/README.md)。
 

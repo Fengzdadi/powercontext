@@ -1,0 +1,319 @@
+{
+  "project": "campus-library",
+  "task_id": "T-101",
+  "scope_title": "sddctx/campus-library/T-101",
+  "scope_id": "scp_2tjzbxszf0g05wwpsqkkvp1hxb",
+  "empty": false,
+  "records": 5,
+  "contract": {
+    "source_id": "T-101/contract/001",
+    "position": 1,
+    "schema": "powercontext.work-contract.v1",
+    "trust": "untrusted_input",
+    "objective": "T-101 图书检索增加可借状态和出版年份筛选：读者反馈在图书检索里找不到“现在就能借到的书”，也没办法按出版年份缩小范围。\n请为图书检索接口 GET /books 增加两个筛选条件：\n1. 可借状态筛选：查询参数 available，为 true 时只返回至少有一本在架副本、现在就能借到的图书，为 false 时只返回暂时借不到的图书；\n2. 出版年份区间筛选：查询参数 year_from、year_to，按出版年份筛选，包含两端，可以只给其中一个。\n参数值不合法时按统一的错误格式返回 400。新条件可以和现有的关键词、分类条件组合使用。",
+    "facts": [
+      {
+        "text": "目标规格：CAT-007 可借状态筛选（待实现，specs/catalog.md:61-78，修订 r1）",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "目标规格：CAT-008 出版年份区间筛选（待实现，specs/catalog.md:80-90，修订 r1）",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "必须遵守的约束：API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "需要修改：library/api/handlers.py::list_books, library/catalog.py::search_books",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "目标测试：15 个测试函数（tests/test_api_books_filters.py）",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "必须保持：不带新参数时，GET /books 的结果、排序和分页与修改前完全一致",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "必须保持：关键词 q、分类 category、排序 sort、分页 page/page_size 的现有行为和错误提示保持不变",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "必须保持：所有筛选条件在排序和分页之前生效，total 是筛选后的总数",
+        "basis": "declared",
+        "evidence": []
+      },
+      {
+        "text": "必须保持：图书详情、借阅、归还、续借、罚款等其他接口的行为不变",
+        "basis": "declared",
+        "evidence": []
+      }
+    ],
+    "in_scope": [
+      "修改 library/api/handlers.py::list_books",
+      "修改 library/catalog.py::search_books",
+      "只允许修改实现代码：library/**/*.py"
+    ],
+    "exclusions": [
+      "不修改只读路径 specs/**",
+      "不修改只读路径 tests/**",
+      "不修改只读路径 sdd.toml",
+      "不修改只读路径 pyproject.toml",
+      "不删除断言、不跳过测试、不修改测试预期"
+    ],
+    "completion_criteria": [
+      "修改前：目标测试因功能未实现而失败（断言失败，不是导入错误、夹具错误等环境问题），回归测试全部通过",
+      "修改后：同一组目标测试全部通过",
+      "修改后：回归测试（全部非目标测试）全部通过，规格和测试文件没有被修改"
+    ],
+    "authorization_notes": [
+      "代码修改由 MiniMax 开发助手完成（MiniMax-M3.1-Flash，https://api.minimax.cn/anthropic）；sddctx 只负责提供上下文、执行助手发起的工具调用和运行测试"
+    ],
+    "open_questions": []
+  },
+  "latest_outcome": {
+    "source_id": "T-101/outcome/004-verify-after",
+    "position": 5,
+    "status": "succeeded",
+    "summary": "任务完成：修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改",
+    "done": [
+      "生成任务上下文（seekdb 导入批次 #1，上下文 sha256 d8ab69aefe74）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个",
+      "修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed",
+      "MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 12 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+25 −3 行，差异 sha256 d9cd48a07415）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed",
+      "修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改"
+    ],
+    "checks": [
+      {
+        "name": "上下文来源核对",
+        "status": "passed",
+        "details": "上下文引用的 81 处来源与工程文件逐行比对，一致 81 处"
+      },
+      {
+        "name": "修改前目标测试因功能未实现而失败",
+        "status": "passed",
+        "details": "25 个用例中失败 25 个，其中断言失败 25 个；环境类问题（导入、夹具、收集错误）0 个；退出码 1；日志 runs/T-101/tests/before/target.log"
+      },
+      {
+        "name": "修改前回归测试全部通过",
+        "status": "passed",
+        "details": "91 passed, 0 failed，exit 0；日志 runs/T-101/tests/before/regression.log"
+      },
+      {
+        "name": "修改后目标测试全部通过",
+        "status": "passed",
+        "details": "25 passed, 0 failed，exit 0（修改前同一组 25 个用例全部失败）；日志 runs/T-101/tests/after/target.log"
+      },
+      {
+        "name": "修改后回归测试全部通过",
+        "status": "passed",
+        "details": "91 passed, 0 failed，exit 0（修改前 91 passed）；日志 runs/T-101/tests/after/regression.log"
+      },
+      {
+        "name": "规格和测试没有被修改",
+        "status": "passed",
+        "details": "只读路径 specs/**, tests/**, sdd.toml, pyproject.toml 修改前后的指纹一致"
+      },
+      {
+        "name": "修改只涉及实现代码",
+        "status": "passed",
+        "details": "修改的文件：library/api/handlers.py, library/catalog.py"
+      },
+      {
+        "name": "被测代码就是 MiniMax 开发记录中的修改",
+        "status": "passed",
+        "details": "快照差异 sha256 d9cd48a07415，开发记录 d9cd48a07415（runs/T-101/develop/session-20261029-020605.json）"
+      }
+    ],
+    "todo": [],
+    "machine": {
+      "steps_done": [
+        "context",
+        "verify-before",
+        "develop",
+        "verify-after"
+      ],
+      "target_specs": [
+        "CAT-007",
+        "CAT-008"
+      ],
+      "constraint_specs": [
+        "API-002",
+        "API-003",
+        "API-004",
+        "CAT-002",
+        "CAT-003",
+        "CAT-004",
+        "DATA-001"
+      ],
+      "sibling_specs": [
+        "CAT-001",
+        "CAT-006"
+      ],
+      "spec_revisions": {
+        "CAT-007": "d2fefa4d8922",
+        "CAT-008": "ebfa50ed0e07",
+        "API-002": "d4b49d7b2746",
+        "API-003": "6a8bdde45e7a",
+        "API-004": "70a4acc9a6d1",
+        "CAT-002": "bc4e1756b76d",
+        "CAT-003": "f9a6be074caa",
+        "CAT-004": "dfd175ed5d97",
+        "DATA-001": "6f3f4ab02184"
+      },
+      "to_change": [
+        "library/api/handlers.py::list_books",
+        "library/catalog.py::search_books"
+      ],
+      "target_tests": [
+        "tests/test_api_books_filters.py::test_available_true_returns_only_books_with_copies_on_shelf",
+        "tests/test_api_books_filters.py::test_available_false_returns_only_books_without_copies_on_shelf",
+        "tests/test_api_books_filters.py::test_available_accepts_true_spellings",
+        "tests/test_api_books_filters.py::test_available_accepts_false_spellings",
+        "tests/test_api_books_filters.py::test_invalid_available_value_is_rejected",
+        "tests/test_api_books_filters.py::test_year_range_is_inclusive",
+        "tests/test_api_books_filters.py::test_single_year_range",
+        "tests/test_api_books_filters.py::test_year_from_alone",
+        "tests/test_api_books_filters.py::test_year_to_alone",
+        "tests/test_api_books_filters.py::test_non_integer_year_is_rejected",
+        "tests/test_api_books_filters.py::test_year_from_after_year_to_is_rejected",
+        "tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_category",
+        "tests/test_api_books_filters.py::test_filters_apply_before_pagination",
+        "tests/test_api_books_filters.py::test_filters_apply_before_sorting",
+        "tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns"
+      ],
+      "regression_files": [
+        "tests/test_api_books.py",
+        "tests/test_api_loans.py",
+        "tests/test_api_params.py",
+        "tests/test_catalog_search.py",
+        "tests/test_loans.py"
+      ],
+      "import_run": 1,
+      "context_sha256": "d8ab69aefe74bf3bdc1b60d97232ee8cd9468ed43f7c07ddb6aa976a7b36f839",
+      "v": 1,
+      "task": "T-101",
+      "step": "verify-after",
+      "recorded_at": "2026-10-29T02:07:21.982+00:00",
+      "verify_before": {
+        "tree_sha": "8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009",
+        "target": {
+          "exit_code": 1,
+          "total": 25,
+          "passed": 0,
+          "failed": 25,
+          "errors": 0,
+          "skipped": 0,
+          "assertion_failures": 25,
+          "other_problems": [],
+          "code_version": "f94b65358bb9",
+          "tree_sha": "8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009",
+          "log": "runs/T-101/tests/before/target.log"
+        },
+        "regression": {
+          "exit_code": 0,
+          "total": 91,
+          "passed": 91,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertion_failures": 0,
+          "other_problems": [],
+          "code_version": "f94b65358bb9",
+          "tree_sha": "8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009",
+          "log": "runs/T-101/tests/before/regression.log"
+        }
+      },
+      "develop": {
+        "mode": "live",
+        "model": "MiniMax-M3.1-Flash",
+        "endpoint": "https://api.minimax.cn/anthropic",
+        "session": "runs/T-101/develop/session-20261029-020605.json",
+        "context": "runs/T-101/develop/context-20261029-020605.md",
+        "context_sha256": "5a064c521bbca604481c1d071da1110f4470467e40e59400f896050c6d580388",
+        "turns": 12,
+        "edits": 2,
+        "status": "finished",
+        "changed_files": [
+          "library/api/handlers.py",
+          "library/catalog.py"
+        ],
+        "diff_sha256": "d9cd48a07415c93f8c7a55d63b9c8c22901543c8e91afc920f982e89214f6d39",
+        "patch": "runs/T-101/change.patch",
+        "usage": {
+          "input_tokens": 32461,
+          "output_tokens": 4987,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 256000
+        }
+      },
+      "verify_after": {
+        "tree_sha": "79552c806854628e63bf541d8dc69886786063a2aa904bdb3e1cbf33a724f404",
+        "target": {
+          "exit_code": 0,
+          "total": 25,
+          "passed": 25,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertion_failures": 0,
+          "other_problems": [],
+          "code_version": "f94b65358bb9",
+          "tree_sha": "79552c806854628e63bf541d8dc69886786063a2aa904bdb3e1cbf33a724f404",
+          "log": "runs/T-101/tests/after/target.log"
+        },
+        "regression": {
+          "exit_code": 0,
+          "total": 91,
+          "passed": 91,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertion_failures": 0,
+          "other_problems": [],
+          "code_version": "f94b65358bb9",
+          "tree_sha": "79552c806854628e63bf541d8dc69886786063a2aa904bdb3e1cbf33a724f404",
+          "log": "runs/T-101/tests/after/regression.log"
+        }
+      }
+    }
+  },
+  "history": [
+    {
+      "position": 2,
+      "source_id": "T-101/outcome/001-context",
+      "step": "context",
+      "status": "partial",
+      "summary": "已生成任务上下文：目标 CAT-007, CAT-008；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试函数 15 个"
+    },
+    {
+      "position": 3,
+      "source_id": "T-101/outcome/002-verify-before",
+      "step": "verify-before",
+      "status": "partial",
+      "summary": "修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed"
+    },
+    {
+      "position": 4,
+      "source_id": "T-101/outcome/003-develop",
+      "step": "develop",
+      "status": "partial",
+      "summary": "MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 12 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+25 −3 行，差异 sha256 d9cd48a07415）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed"
+    },
+    {
+      "position": 5,
+      "source_id": "T-101/outcome/004-verify-after",
+      "step": "verify-after",
+      "status": "succeeded",
+      "summary": "任务完成：修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改"
+    }
+  ]
+}

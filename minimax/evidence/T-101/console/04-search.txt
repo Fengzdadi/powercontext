@@ -1,0 +1,13 @@
+$ ./sdd search 可借 在架 副本 出版年份 筛选 --kind spec --size 8
+DBMS_HYBRID_SEARCH（IK 全文 + 向量，RRF）在 ['spec'] 中检索“可借 在架 副本 出版年份 筛选”：8 条
+| # | 片段 | RRF | 全文名次/分数 | 向量名次/分数 | 位置 |
+|---|---|---|---|---|---|
+| 1 | `spec:CAT-008` CAT-008 出版年份区间筛选 | 0.0328 | 1 / 44.998 | 1 / 0.611 | specs/catalog.md:80-90 |
+| 2 | `spec:CAT-007` CAT-007 可借状态筛选 | 0.0315 | 1 / 44.998 | 6 / 0.573 | specs/catalog.md:61-78 |
+| 3 | `spec:DATA-001` DATA-001 副本状态 | 0.0315 | 3 / 17.623 | 4 / 0.603 | specs/data.md:5-19 |
+| 4 | `spec:CAT-003` CAT-003 排序 | 0.0313 | 5 / 4.673 | 3 / 0.607 | specs/catalog.md:29-38 |
+| 5 | `spec:LOAN-001` LOAN-001 借阅前置条件 | 0.0303 | 7 / 2.62 | 5 / 0.593 | specs/loans.md:5-14 |
+| 6 | `spec:LOAN-003` LOAN-003 借期 | 0.0161 | - / - | 2 / 0.611 | specs/loans.md:26-34 |
+| 7 | `spec:CAT-002` CAT-002 分类筛选 | 0.0156 | 4 / 14.38 | - / - | specs/catalog.md:18-27 |
+| 8 | `spec:CAT-006` CAT-006 检索结果条目 | 0.0152 | 6 / 3.403 | - / - | specs/catalog.md:51-59 |
+# exit code: 0

@@ -1,0 +1,3 @@
+$ ./sdd context T-101 --quiet
+上下文已保存：runs/T-101/context.md（以及 .json）；目标规格 CAT-007, CAT-008；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试函数 15 个
+# exit code: 0

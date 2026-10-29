@@ -136,8 +136,10 @@ cd minimax
   检索主要依靠 IK 全文检索和追溯关系，向量起补充作用。
 - PowerContext 使用默认的 SQLite 存储（PowerContext 1.4.1 的 OceanBase 后端要求 MySQL 用户租户，seekdb 单机版不满足）。
 - 一个任务对应一个 PowerContext Scope（标题 `sddctx/<工程>/<任务>`），PowerContext 没有删除接口；要从空状态重新开始，执行 `./sdd reset`。
-- MiniMax 的输出不确定，每次实时运行生成的补丁可能不同（本仓库多次运行都通过了全部测试，见 evidence/T-101/README.md）；
-  评审按开发记录核对（`check-record`）。记录中思考内容只保存前 4000 字的摘要，签名不保存。
+- MiniMax 的输出不确定，每次实时运行生成的补丁可能不同。`evidence/T-101` 的完整运行和另外 5 次实时运行
+  （`MiniMax-M3.1-Flash` 3 次、`MiniMax-M3` 2 次，`scripts/trials.sh`）都通过了全部测试，写出了 4 种不同的补丁，见
+  [evidence/T-101/README.md](evidence/T-101/README.md)；评审按开发记录核对（`check-record`）。
+  记录中思考内容只保存前 4000 字的摘要，签名不保存。
 - 代码切分基于 Python `ast`，只支持 Python 工程；规格需要遵守 `specs/README.md` 的条目格式（`### ID 标题` + 状态/接口/关联）。
 - PowerContext 没有开启认证，所有端口只绑定 127.0.0.1，按单机单用户使用设计。
 - `spec-update-demo` 会临时修改 `project/specs/catalog.md`，运行期间不要同时编辑这个文件。

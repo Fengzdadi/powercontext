@@ -1,0 +1,11 @@
+$ ./sdd run T-101 --stop-after verify-before
+从 PowerContext 读回任务 T-101：Scope scp_2tjzbxszf0g05wwpsqkkvp1hxb，2 条记录；最新 T-101/outcome/001-context（partial）；已完成步骤 context
+[context] 跳过：PowerContext 记录 T-101/outcome/001-context 显示已完成
+[verify before] 目标测试函数 15 个（来自 PowerContext 记录 T-101/outcome/001-context），工程 runs/T-101/snapshots/before
+  目标测试：0 passed, 25 failed，exit 1；断言失败 25，其他问题 0；日志 runs/T-101/tests/before/target.log
+  回归测试（全部非目标测试）：91 passed, 0 failed，exit 0；日志 runs/T-101/tests/before/regression.log
+  [通过] 修改前目标测试因功能未实现而失败：25 个用例中失败 25 个，其中断言失败 25 个；环境类问题（导入、夹具、收集错误）0 个；退出码 1；日志 runs/T-101/tests/before/target.log
+  [通过] 修改前回归测试全部通过：91 passed, 0 failed，exit 0；日志 runs/T-101/tests/before/regression.log
+  已写入 PowerContext：T-101/outcome/002-verify-before（状态 partial）
+按 --stop-after verify-before 停止。重新运行 run 时会从 PowerContext 读回进度，从下一步继续
+# exit code: 0

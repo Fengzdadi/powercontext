@@ -1,0 +1,8 @@
+$ ./sdd run T-101
+从 PowerContext 读回任务 T-101：Scope scp_2tjzbxszf0g05wwpsqkkvp1hxb，5 条记录；最新 T-101/outcome/004-verify-after（succeeded）；已完成步骤 context, verify-before, develop, verify-after
+[context] 跳过：PowerContext 记录 T-101/outcome/001-context 显示已完成
+[verify-before] 跳过：PowerContext 记录 T-101/outcome/002-verify-before 显示已完成
+[develop] 跳过：PowerContext 记录 T-101/outcome/003-develop 显示已完成
+[verify-after] 跳过：PowerContext 记录 T-101/outcome/004-verify-after 显示已完成
+任务 T-101 全部步骤已完成：任务完成：修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
+# exit code: 0

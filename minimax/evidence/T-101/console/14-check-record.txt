@@ -1,0 +1,12 @@
+$ ./sdd check-record T-101
+核对 MiniMax 开发记录 runs/T-101/develop/session-20261029-020605.json：
+  [通过] 记录对应本任务 — 记录中的任务 T-101
+  [通过] 记录包含提供给 MiniMax 的上下文 — 首条消息中的上下文 20062 字符，sha256 5a064c521bbc，记录值 5a064c521bbc
+  [通过] 记录来自 MiniMax 接口 — 接口 https://api.minimax.cn/anthropic/v1/messages，模型 MiniMax-M3.1-Flash
+  [通过] 每一轮都有 MiniMax 的真实响应 — 12 轮，模型 MiniMax-M3.1-Flash，接口 https://api.minimax.cn/anthropic/v1/messages，Token 用量 {'input_tokens': 32461, 'output_tokens': 4987, 'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 256000}
+  [通过] 修改由 MiniMax 的工具调用完成 — 成功的 edit_file/write_file 调用 2 次
+  [通过] 没有写入只读路径 — 只读违规 无
+  [通过] 重放修改调用得到记录中的最终差异 — 重放 2 次修改，差异 sha256 d9cd48a07415，记录 d9cd48a07415
+  [通过] 提交的代码差异与开发记录一致 — runs/T-101/change.patch sha256 d9cd48a07415
+结果：8/8 项通过
+# exit code: 0

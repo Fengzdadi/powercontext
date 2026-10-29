@@ -1,0 +1,116 @@
+$ ./sdd up
+ Image sddctx-minimax/sddctx:1.0.0 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.43kB done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 719B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.12-slim-bookworm
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/4] FROM docker.io/library/python:3.12-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e
+#5 resolve docker.io/library/python:3.12-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 37B done
+#6 DONE 0.0s
+
+#7 [2/4] COPY requirements.txt /tmp/requirements.txt
+#7 CACHED
+
+#8 [3/4] RUN pip install --no-cache-dir --index-url "https://pypi.org/simple" -r /tmp/requirements.txt && rm /tmp/requirements.txt
+#8 CACHED
+
+#9 [4/4] WORKDIR /workspace
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 exporting manifest sha256:75461eea0c14a48166c16729cdd61e97cf963bc1ceaf1ac0ee527a79b9f9a55f
+#10 exporting manifest sha256:75461eea0c14a48166c16729cdd61e97cf963bc1ceaf1ac0ee527a79b9f9a55f done
+#10 exporting config sha256:1a3263e83136e17302af85f21176c0cbaf467ace8acf7be95dd19e0d7b0fe361 done
+#10 exporting attestation manifest sha256:093f881bdb848a5e4d537af035bcb3dca9bbafe5cd9f38580106dc439d61e124 0.0s done
+#10 exporting manifest list sha256:eb2593d8e8c52aababba13ef4622bd7f122d4c02fb4b5a86bb0e426971821d6f 0.0s done
+#10 naming to docker.io/sddctx-minimax/sddctx:1.0.0 done
+#10 unpacking to docker.io/sddctx-minimax/sddctx:1.0.0 done
+#10 DONE 0.1s
+
+#11 resolving provenance for metadata file
+#11 DONE 0.0s
+ Image sddctx-minimax/sddctx:1.0.0 Built 
+ Image sddctx-minimax/powercontext:1.4.1 Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 817B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile:
+#2 transferring dockerfile: 1.14kB done
+#2 DONE 0.6s
+
+#3 [internal] load metadata for docker.io/library/python:3.11-slim-bookworm
+#3 DONE 0.3s
+
+#4 [internal] load .dockerignore
+#4 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/2] FROM docker.io/library/python:3.11-slim-bookworm@sha256:94a8fee35252d06ab75856f15f12c7bae67b10e8a6da93c7fded82b2610926cd
+#5 resolve docker.io/library/python:3.11-slim-bookworm@sha256:94a8fee35252d06ab75856f15f12c7bae67b10e8a6da93c7fded82b2610926cd 0.0s done
+#5 DONE 0.1s
+
+#6 [2/2] RUN pip install --no-cache-dir --index-url "https://pypi.org/simple" "powercontext[cli,server]==1.4.1"     && groupadd --gid 10001 powercontext     && useradd --uid 10001 --gid powercontext --home-dir /data --no-create-home --shell /usr/sbin/nologin powercontext     && mkdir -p /data && chown powercontext:powercontext /data
+#6 CACHED
+
+#7 exporting to image
+#7 exporting layers done
+#7 exporting manifest sha256:1e50b0fb372ed2e7d689e8e4bdb1d9987790f8353ba1de2a28bff0a6b5192f83 done
+#7 exporting config sha256:4a3aaaf634000fbd67c0e8940340924b621657120eef4546254f68a4e5ad7b0b done
+#7 exporting attestation manifest sha256:d1eed51d77d620f65e9635688c1e40bb7c845ac2c909dd0e02266bdf8465eef4 0.0s done
+#7 exporting manifest list sha256:c21131f5622121e16ddbefa789e58a88fde355842432159806603d1bc21f757e 0.0s done
+#7 naming to docker.io/sddctx-minimax/powercontext:1.4.1 done
+#7 unpacking to docker.io/sddctx-minimax/powercontext:1.4.1 done
+#7 DONE 0.2s
+
+#8 resolving provenance for metadata file
+#8 DONE 0.0s
+ Image sddctx-minimax/powercontext:1.4.1 Built 
+ Volume sddctx-minimax_seekdb-data Creating 
+ Volume sddctx-minimax_seekdb-data Creating 
+ Network sddctx-minimax_default Creating 
+ Network sddctx-minimax_default Creating 
+ Volume sddctx-minimax_powercontext-data Creating 
+ Volume sddctx-minimax_powercontext-data Creating 
+ Volume sddctx-minimax_seekdb-data Created 
+ Volume sddctx-minimax_seekdb-data Created 
+ Volume sddctx-minimax_powercontext-data Created 
+ Volume sddctx-minimax_powercontext-data Created 
+ Network sddctx-minimax_default Created 
+ Network sddctx-minimax_default Created 
+ Container sddctx-minimax-seekdb-1 Creating 
+ Container sddctx-minimax-powercontext-1 Creating 
+ Container sddctx-minimax-powercontext-1 Created 
+ Container sddctx-minimax-seekdb-1 Created 
+ Container sddctx-minimax-powercontext-1 Starting 
+ Container sddctx-minimax-seekdb-1 Starting 
+ Container sddctx-minimax-powercontext-1 Started 
+ Container sddctx-minimax-seekdb-1 Started 
+ Container sddctx-minimax-seekdb-1 Waiting 
+ Container sddctx-minimax-powercontext-1 Waiting 
+ Container sddctx-minimax-seekdb-1 Healthy 
+ Container sddctx-minimax-powercontext-1 Healthy 
+NAME                            IMAGE                                       COMMAND                  SERVICE        CREATED         STATUS                   PORTS
+sddctx-minimax-powercontext-1   sddctx-minimax/powercontext:1.4.1           "powercontext server…"   powercontext   7 seconds ago   Up 5 seconds (healthy)   127.0.0.1:18900->8000/tcp
+sddctx-minimax-seekdb-1         oceanbase/seekdb:1.4.0-100000172026082615   "/root/start.sh"         seekdb         7 seconds ago   Up 5 seconds (healthy)   127.0.0.1:10900->2881/tcp
+# exit code: 0
