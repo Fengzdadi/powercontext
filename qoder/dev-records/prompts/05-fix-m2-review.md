@@ -103,7 +103,7 @@ DEVLOG 里写了"雷达页、使用记录页在浏览器里可用 ✅ 页面已�
 
 ## 工作方式
 
-- 本会话用的模型是 Auto。
+- 本会话用的模型是 GLM-5.3。
 - **`uv` 命令一律在 `qoder/app/` 下运行**（`cd app && uv run ...`）。在 `qoder/` 下运行时，uv 会向上找到本仓库之外的另一个项目，用它的虚拟环境：会话 04 的 `uv run pytest` 用的就是那里的 Python 3.13，不是本项目的 3.12。
 - **开发服务器**：Bash 设为后台运行（run_in_background），命令是 `cd app && .venv/bin/python -m uvicorn examradar.main:app --host 127.0.0.1 --port 18800`，末尾不要加 `&`。然后用 `curl -s http://127.0.0.1:18800/api/health` 确认它起来了。结束时用 PID 结束它。
 - **浏览器验证**：可以沿用会话 03 用 Python 标准库驱动 Chrome DevTools 协议的办法，也可以把 `playwright` 加进 dev 依赖组，用本机 Chrome（`channel="chrome"`，不需要下载浏览器）。页面都带 `?source=auto` 打开。截图存到 `qoder/.cache/scratch/`，用 Read 查看。
