@@ -1,0 +1,71 @@
+# sddctx（MiniMax × OceanBase：SDD 上下文模块）的运行环境：seekdb + PowerContext + sddctx 命令行。
+# 一般通过 ./sdd 使用（见 README.md）：./sdd up → ./sdd import → ./sdd run T-101 ……
+# 宿主机端口只绑定 127.0.0.1，默认 seekdb 10900、PowerContext 18900，可在 .env 中修改。
+name: sddctx-minimax
+
+services:
+  seekdb:
+    image: oceanbase/seekdb:1.4.0-100000172026082615
+    environment:
+      ROOT_PASSWORD: ${SEEKDB_ROOT_PASSWORD:?先执行 cp .env.example .env（./sdd up 会自动复制）}
+      MEMORY_LIMIT: ${SEEKDB_MEMORY_LIMIT:-2G}
+      CPU_COUNT: "2"
+      DATAFILE_SIZE: 1G
+      LOG_DISK_SIZE: 2G
+    volumes:
+      - seekdb-data:/var/lib/seekdb
+    ports:
+      - "127.0.0.1:${SDD_SEEKDB_HOST_PORT:-10900}:2881"
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h127.0.0.1 -P2881 -uroot -p\"$$ROOT_PASSWORD\" -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+    restart: unless-stopped
+
+  powercontext:
+    build:
+      context: ./services/powercontext
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        POWERCONTEXT_VERSION: "1.4.1"
+    image: sddctx-minimax/powercontext:1.4.1
+    volumes:
+      - powercontext-data:/data
+    ports:
+      - "127.0.0.1:${SDD_POWERCONTEXT_HOST_PORT:-18900}:8000"
+    restart: unless-stopped
+
+  # 命令行容器：./sdd <子命令> 即 docker compose run --rm sddctx <子命令>
+  sddctx:
+    build:
+      context: ./sddctx
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    image: sddctx-minimax/sddctx:1.0.0
+    profiles: ["cli"]
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ./:/workspace
+    environment:
+      SDD_SEEKDB_HOST: seekdb
+      SDD_SEEKDB_PORT: "2881"
+      SDD_SEEKDB_USER: root
+      SDD_SEEKDB_PASSWORD: ${SEEKDB_ROOT_PASSWORD:?先执行 cp .env.example .env（./sdd up 会自动复制）}
+      SDD_SEEKDB_DATABASE: ${SDD_SEEKDB_DATABASE:-sdd}
+      SDD_POWERCONTEXT_URL: http://powercontext:8000
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      MINIMAX_REGION: ${MINIMAX_REGION:-cn}
+      MINIMAX_BASE_URL: ${MINIMAX_BASE_URL:-}
+      MINIMAX_MODEL: ${MINIMAX_MODEL:-MiniMax-M3.1-Flash}
+      SDD_CODE_VERSION: ${SDD_CODE_VERSION:-unknown}
+    depends_on:
+      seekdb:
+        condition: service_healthy
+      powercontext:
+        condition: service_healthy
+
+volumes:
+  seekdb-data:
+  powercontext-data:

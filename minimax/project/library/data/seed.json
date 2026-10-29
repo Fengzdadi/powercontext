@@ -1,0 +1,61 @@
+{
+  "books": [
+    {"id": "B001", "isbn": "9787115428028", "title": "Python 编程：从入门到实践", "author": "Eric Matthes", "category": "cs", "year": 2016, "price_cents": 8900},
+    {"id": "B002", "isbn": "9787115454157", "title": "流畅的 Python", "author": "Luciano Ramalho", "category": "cs", "year": 2015, "price_cents": 13900},
+    {"id": "B003", "isbn": "9787111544937", "title": "深入理解计算机系统", "author": "Randal E. Bryant", "category": "cs", "year": 2003, "price_cents": 13900},
+    {"id": "B004", "isbn": "9787111637301", "title": "数据库系统概念", "author": "Abraham Silberschatz", "category": "cs", "year": 2019, "price_cents": 12900},
+    {"id": "B005", "isbn": "9787111407010", "title": "算法导论", "author": "Thomas H. Cormen", "category": "cs", "year": 1990, "price_cents": 12800},
+    {"id": "B006", "isbn": "9787020002207", "title": "红楼梦", "author": "曹雪芹", "category": "lit", "year": 1791, "price_cents": 5980},
+    {"id": "B007", "isbn": "9787020090006", "title": "围城", "author": "钱锺书", "category": "lit", "year": 1947, "price_cents": 3900},
+    {"id": "B008", "isbn": "9787506365437", "title": "活着", "author": "余华", "category": "lit", "year": 1993, "price_cents": 2500},
+    {"id": "B009", "isbn": "9787536692930", "title": "三体", "author": "刘慈欣", "category": "lit", "year": 2008, "price_cents": 2300},
+    {"id": "B010", "isbn": "9787544253994", "title": "百年孤独", "author": "加西亚·马尔克斯", "category": "lit", "year": 1967, "price_cents": 5500},
+    {"id": "B011", "isbn": "9787108009821", "title": "万历十五年", "author": "黄仁宇", "category": "hist", "year": 1981, "price_cents": 3600},
+    {"id": "B012", "isbn": "9787508647357", "title": "人类简史", "author": "尤瓦尔·赫拉利", "category": "hist", "year": 2011, "price_cents": 6800},
+    {"id": "B013", "isbn": "9787101003048", "title": "史记", "author": "司马迁", "category": "hist", "year": 1959, "price_cents": 12500},
+    {"id": "B014", "isbn": "9787040295665", "title": "数学分析", "author": "华东师范大学数学系", "category": "math", "year": 2010, "price_cents": 4590},
+    {"id": "B015", "isbn": "9787115422941", "title": "具体数学", "author": "Ronald L. Graham", "category": "math", "year": 1989, "price_cents": 9900},
+    {"id": "B016", "isbn": "9787115390592", "title": "线性代数应该这样学", "author": "Sheldon Axler", "category": "math", "year": 2015, "price_cents": 6900}
+  ],
+  "copies": [
+    {"id": "C001", "book_id": "B001", "barcode": "LIB-000001", "status": "on_shelf"},
+    {"id": "C002", "book_id": "B001", "barcode": "LIB-000002", "status": "on_loan"},
+    {"id": "C003", "book_id": "B002", "barcode": "LIB-000003", "status": "on_loan"},
+    {"id": "C004", "book_id": "B002", "barcode": "LIB-000004", "status": "on_loan"},
+    {"id": "C005", "book_id": "B003", "barcode": "LIB-000005", "status": "on_shelf"},
+    {"id": "C006", "book_id": "B004", "barcode": "LIB-000006", "status": "repair"},
+    {"id": "C007", "book_id": "B005", "barcode": "LIB-000007", "status": "on_shelf"},
+    {"id": "C008", "book_id": "B005", "barcode": "LIB-000008", "status": "on_shelf"},
+    {"id": "C009", "book_id": "B006", "barcode": "LIB-000009", "status": "lost"},
+    {"id": "C010", "book_id": "B006", "barcode": "LIB-000010", "status": "on_shelf"},
+    {"id": "C011", "book_id": "B007", "barcode": "LIB-000011", "status": "on_loan"},
+    {"id": "C012", "book_id": "B008", "barcode": "LIB-000012", "status": "on_shelf"},
+    {"id": "C013", "book_id": "B009", "barcode": "LIB-000013", "status": "on_loan"},
+    {"id": "C014", "book_id": "B009", "barcode": "LIB-000014", "status": "repair"},
+    {"id": "C015", "book_id": "B010", "barcode": "LIB-000015", "status": "on_shelf"},
+    {"id": "C016", "book_id": "B011", "barcode": "LIB-000016", "status": "on_shelf"},
+    {"id": "C017", "book_id": "B012", "barcode": "LIB-000017", "status": "lost"},
+    {"id": "C018", "book_id": "B014", "barcode": "LIB-000018", "status": "on_shelf"},
+    {"id": "C019", "book_id": "B014", "barcode": "LIB-000019", "status": "on_loan"},
+    {"id": "C020", "book_id": "B015", "barcode": "LIB-000020", "status": "on_loan"},
+    {"id": "C021", "book_id": "B016", "barcode": "LIB-000021", "status": "on_shelf"}
+  ],
+  "members": [
+    {"id": "M001", "name": "张三", "kind": "student", "active": true},
+    {"id": "M002", "name": "李四", "kind": "student", "active": true},
+    {"id": "M003", "name": "王老师", "kind": "staff", "active": true},
+    {"id": "M004", "name": "赵六", "kind": "student", "active": false},
+    {"id": "M005", "name": "钱七", "kind": "student", "active": true}
+  ],
+  "loans": [
+    {"id": "L001", "copy_id": "C002", "member_id": "M001", "borrowed_on": "2026-09-20", "due_on": "2026-10-20", "returned_on": null, "renewals": 0},
+    {"id": "L002", "copy_id": "C003", "member_id": "M002", "borrowed_on": "2026-09-01", "due_on": "2026-10-01", "returned_on": null, "renewals": 0},
+    {"id": "L003", "copy_id": "C004", "member_id": "M003", "borrowed_on": "2026-09-10", "due_on": "2026-11-09", "returned_on": null, "renewals": 0},
+    {"id": "L004", "copy_id": "C011", "member_id": "M001", "borrowed_on": "2026-10-01", "due_on": "2026-10-31", "returned_on": null, "renewals": 0},
+    {"id": "L005", "copy_id": "C013", "member_id": "M002", "borrowed_on": "2026-10-05", "due_on": "2026-11-04", "returned_on": null, "renewals": 0},
+    {"id": "L006", "copy_id": "C019", "member_id": "M003", "borrowed_on": "2026-08-01", "due_on": "2026-09-30", "returned_on": null, "renewals": 0},
+    {"id": "L007", "copy_id": "C020", "member_id": "M005", "borrowed_on": "2026-10-10", "due_on": "2026-11-09", "returned_on": null, "renewals": 0},
+    {"id": "L008", "copy_id": "C005", "member_id": "M001", "borrowed_on": "2026-07-01", "due_on": "2026-07-31", "returned_on": "2026-08-05", "renewals": 0},
+    {"id": "L009", "copy_id": "C012", "member_id": "M002", "borrowed_on": "2026-06-01", "due_on": "2026-07-01", "returned_on": "2026-06-20", "renewals": 0}
+  ]
+}

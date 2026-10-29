@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sddctx"
+version = "1.0.0"
+description = "SDD 上下文模块：seekdb 检索工程资料，PowerContext 保存任务状态，MiniMax 开发助手完成代码修改"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["PyMySQL==1.2.3", "pytest==9.1.1"]
+
+[project.scripts]
+sddctx = "sddctx.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-p no:cacheprovider"
