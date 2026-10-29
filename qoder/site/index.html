@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考前雷达 ExamRadar — 期末复习覆盖雷达</title>
+<meta name="description" content="考前雷达 ExamRadar：把散落的笔记、课件和往年试卷变成一张考前覆盖雷达，找出分值最高、你却没记住的考点。">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%232456d6' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%232456d6' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23c0392b'/%3E%3C/svg%3E">
+<script>
+/* must live in <head>: image 404s can fire before main.js is executed */
+window.imgFallback = function (img) {
+  var box = img.parentElement;
+  if (!box || box.classList.contains("ph")) return;
+  box.classList.add("ph");
+  var name = img.getAttribute("data-filename") || img.getAttribute("src") || "";
+  box.innerHTML = '<div class="ph"><div class="frame">&#128444;</div>' +
+    '<div class="fname">' + String(name).replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</div>" +
+    '<div class="muted" style="font-size:12px;margin-top:4px">截图待提供</div></div>';
+};
+</script>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="radar-dot">&#9679;</span> 考前雷达 ExamRadar</a>
+    <div class="links">
+      <a class="nav-link" href="#problem">解决的问题</a>
+      <a class="nav-link" href="#features">核心功能</a>
+      <a class="nav-link" href="#architecture">技术分工</a>
+      <a class="nav-link" href="#experience">体验区</a>
+      <a class="nav-link" href="#qoder">开发过程</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>考前雷达<span class="en">EXAMRADAR</span></h1>
+      <p class="tagline">把散落的笔记、课件和往年试卷变成一张<b>考前覆盖雷达</b>：哪些考点往年分值最高、你的资料里却没记，考前一眼看清。</p>
+      <div class="btns">
+        <a class="btn primary" href="#experience">看示例雷达</a>
+        <a class="btn ghost" href="https://github.com/Fengzdadi/powercontext/tree/2026-competition-ecosystem/qoder" target="_blank" rel="noopener">代码仓库</a>
+      </div>
+    </div>
+    <figure class="hero-visual" style="margin:0">
+      <svg viewBox="0 0 420 300" role="img" aria-label="雷达示意图">
+        <defs>
+          <linearGradient id="sweep" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#2456d6" stop-opacity="0.35"/>
+            <stop offset="1" stop-color="#2456d6" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(210,150)">
+          <circle r="118" fill="none" stroke="#d6dfef"/>
+          <circle r="88" fill="none" stroke="#d6dfef"/>
+          <circle r="58" fill="none" stroke="#d6dfef"/>
+          <circle r="28" fill="none" stroke="#d6dfef"/>
+          <line x1="-118" y1="0" x2="118" y2="0" stroke="#d6dfef"/>
+          <line x1="0" y1="-118" x2="0" y2="118" stroke="#d6dfef"/>
+          <line x1="-83" y1="-83" x2="83" y2="83" stroke="#e3e8f0"/>
+          <line x1="-83" y1="83" x2="83" y2="-83" stroke="#e3e8f0"/>
+          <path d="M0,0 L0,-118 A118,118 0 0,1 84,-83 Z" fill="url(#sweep)"/>
+          <line x1="0" y1="0" x2="84" y2="-83" stroke="#2456d6" stroke-width="2"/>
+          <circle cx="84" cy="-83" r="6" fill="#c0392b"/>
+          <circle cx="-40" cy="-95" r="5" fill="#b8860b"/>
+          <circle cx="-105" cy="30" r="5" fill="#178a50"/>
+          <circle cx="30" cy="100" r="5" fill="#178a50"/>
+          <circle cx="0" cy="0" r="4" fill="#2456d6"/>
+        </g>
+      </svg>
+      <figcaption>覆盖雷达示意：红点 = 分值高且未覆盖的盲区</figcaption>
+    </figure>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap">
+    <h2 class="sec-title">解决的问题</h2>
+    <p class="sec-sub">大学生期末复习时，三个反复出现的痛点：</p>
+    <div class="pain-grid">
+      <div class="pain">
+        <div class="num">01</div>
+        <h3>资料散</h3>
+        <p>课堂笔记（Markdown）、老师的课件（PDF）、往年试卷（PDF）、拓展阅读的论文（中英文 PDF）分散在各处，想找“上次笔记里讲两阶段锁的那段”要翻半天。</p>
+      </div>
+      <div class="pain">
+        <div class="num">02</div>
+        <h3>不知道自己漏了什么</h3>
+        <p>老师公布了考试范围，但没人告诉你哪几章自己的笔记根本没记、哪些只记了一两句，而往年真题恰恰常考这些。</p>
+      </div>
+      <div class="pain">
+        <div class="num">03</div>
+        <h3>复习没有记性</h3>
+        <p>刷题工具不知道你上次错在哪，每次都从头来；错题本靠手抄，复习间隔全凭感觉。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="features">
+  <div class="wrap">
+    <h2 class="sec-title">核心功能</h2>
+    <p class="sec-sub">本地运行、无模型依赖：配置大模型时体验更好，不配置时全部功能依然完整可用。</p>
+
+    <div class="feature">
+      <div class="shot">
+        <div class="screenshot">
+          <img src="images/f1-import-ask.png" alt="导入资料与问笔记页面截图" data-filename="images/f1-import-ask.png" onerror="imgFallback(this)">
+        </div>
+      </div>
+      <div class="text">
+        <h3>导入资料 + 问笔记</h3>
+        <p>导入 Markdown、纯文本和 PDF 资料（笔记 / 课件 / 往年试卷 / 论文），切块入库后用混合检索问答。</p>
+        <ul>
+          <li>向量检索 + IK 全文检索，RRF 融合，中英文都能搜；</li>
+          <li>每条结果带出处：文件 · 第几页 · 标题路径；</li>
+          <li>配置大模型时生成带 [1][2] 引用的回答，未配置时直接展示带出处的原文段落。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot">
+        <div class="screenshot">
+          <img src="images/f2-coverage-radar.png" alt="考前覆盖雷达页面截图" data-filename="images/f2-coverage-radar.png" onerror="imgFallback(this)">
+        </div>
+      </div>
+      <div class="text">
+        <h3>考前覆盖雷达</h3>
+        <p>粘贴老师给的考试范围，对每个知识点在资料里找证据、做判定。</p>
+        <ul>
+          <li>逐个考点检索，判定已覆盖 / 薄弱 / 缺失，每个判定写明理由；</li>
+          <li>往年试卷按题归属到知识点，计算考试分值权重；</li>
+          <li>盲区按“分值 × 未覆盖”排序，最大的漏洞排最前。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot">
+        <div class="screenshot">
+          <img src="images/f3-review-coach.png" alt="复习教练出题判分页面截图" data-filename="images/f3-review-coach.png" onerror="imgFallback(this)">
+        </div>
+      </div>
+      <div class="text">
+        <h3>复习教练</h3>
+        <p>只从你自己的资料里出题，优先针对薄弱、缺失和到期复习的知识点。</p>
+        <ul>
+          <li>出题、判分都标明出自哪份资料哪一页；配置大模型时生成选择 / 填空 / 简答题，未配置时从笔记原句挖空，功能完整；</li>
+          <li>Leitner 间隔复习：5 个盒子、间隔 1 / 2 / 4 / 7 / 14 天，答对升级、答错回 1 号盒。</li>
+        </ul>
+        <p class="status-note">正在实现中（开发会话 07）。</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot">
+        <div class="screenshot">
+          <img src="images/f4-learner-memory.png" alt="学习者记忆页面截图" data-filename="images/f4-learner-memory.png" onerror="imgFallback(this)">
+        </div>
+      </div>
+      <div class="text">
+        <h3>学习者记忆</h3>
+        <p>越用越懂你：每次判分都写进长期记忆，下次打开从记忆开始。</p>
+        <ul>
+          <li>掌握度卡片：每次判分产生新的 revision，历次变化就是掌握度轨迹；</li>
+          <li>错题和复习计划自动记录，不用手抄；</li>
+          <li>新会话开场白，例如“上次你在 X 上错了 2 次，先复习这个”。</li>
+        </ul>
+        <p class="status-note">正在实现中（开发会话 07）。</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="shot">
+        <div class="screenshot">
+          <img src="images/f5-usage-log.png" alt="使用记录页面截图" data-filename="images/f5-usage-log.png" onerror="imgFallback(this)">
+        </div>
+      </div>
+      <div class="text">
+        <h3>使用记录</h3>
+        <p>真实记录每一次使用，数据可核对。</p>
+        <ul>
+          <li>学习会话、检索、覆盖分析、出题答题全程记录；</li>
+          <li>真实使用与开发测试数据分开统计，互不掺水；</li>
+          <li>可导出 CSV / JSON。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <h2 class="sec-title">seekdb 与 PowerContext 的分工</h2>
+    <p class="sec-sub">两个基础设施各管一件事：<b>seekdb 是课程知识库</b>，存资料、做检索；<b>PowerContext 是学习者的记忆</b>，存掌握度、错题和复习计划。两者都在主流程里真实起作用。</p>
+
+    <div class="arch-diagram">
+      <svg viewBox="0 0 900 240" role="img" aria-label="架构图：ExamRadar 编排 seekdb 和 PowerContext">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#8a94a6"/>
+          </marker>
+        </defs>
+        <rect x="20" y="90" width="150" height="60" rx="10" fill="#eaf0fd" stroke="#2456d6"/>
+        <text x="95" y="116" text-anchor="middle" font-size="15" fill="#1a3fa0" font-weight="600">学生</text>
+        <text x="95" y="138" text-anchor="middle" font-size="12" fill="#4a5568">导入资料 · 复习</text>
+
+        <rect x="250" y="80" width="190" height="80" rx="10" fill="#101a2e"/>
+        <text x="345" y="112" text-anchor="middle" font-size="15" fill="#fff" font-weight="600">考前雷达 ExamRadar</text>
+        <text x="345" y="136" text-anchor="middle" font-size="12" fill="#aab8d0">业务编排 · 无状态</text>
+
+        <rect x="560" y="10" width="320" height="95" rx="10" fill="#fff" stroke="#e3e8f0"/>
+        <text x="720" y="38" text-anchor="middle" font-size="14" fill="#1a2333" font-weight="600">seekdb（课程知识库）</text>
+        <text x="720" y="60" text-anchor="middle" font-size="12" fill="#4a5568">资料切块存储 · 混合检索 · 覆盖度打分 · 使用记录</text>
+        <text x="720" y="82" text-anchor="middle" font-size="12" fill="#8a94a6">MySQL 协议</text>
+
+        <rect x="560" y="135" width="320" height="95" rx="10" fill="#fff" stroke="#e3e8f0"/>
+        <text x="720" y="163" text-anchor="middle" font-size="14" fill="#1a2333" font-weight="600">PowerContext（学习者记忆）</text>
+        <text x="720" y="185" text-anchor="middle" font-size="12" fill="#4a5568">掌握度卡片 · 错题 · 复习计划 · 会话小结</text>
+        <text x="720" y="207" text-anchor="middle" font-size="12" fill="#8a94a6">HTTP</text>
+
+        <line x1="170" y1="120" x2="244" y2="120" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="440" y1="105" x2="554" y2="60" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="440" y1="135" x2="554" y2="180" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arrow)"/>
+      </svg>
+    </div>
+
+    <div class="table-scroll"><table class="info">
+      <tr><th class="wide"></th><th class="wide">seekdb = 课程知识库</th><th class="wide">PowerContext = 学习者的记忆</th></tr>
+      <tr>
+        <th>存什么</th>
+        <td>资料切块（documents / chunks 表：正文、标题路径、页码、试卷题号与分值、向量）；使用记录（usage_events 表）</td>
+        <td>每个学习者 × 课程一个 Scope；掌握度卡片、错题、复习计划、会话小结等原子记忆</td>
+      </tr>
+      <tr>
+        <th>在哪些功能起作用</th>
+        <td>导入资料、问笔记、覆盖雷达、使用记录</td>
+        <td>复习教练、学习者记忆、新会话开场白</td>
+      </tr>
+      <tr>
+        <th>怎么核对</th>
+        <td>检索走 <code>DBMS_HYBRID_SEARCH</code>（向量 + IK 全文，RRF 融合）；用 <code>DBMS_HYBRID_SEARCH.GET_SQL</code> 可以看到实际执行的 SQL，每条检索结果都带出处</td>
+        <td>每次判分产生新的 revision（掌握度变化轨迹）；记忆带标签（如 <code>type-mastery</code>、<code>bootstrap-context</code>）；会话开始 / 进入知识点走 <code>context/bootstrap</code> 和 <code>context/prepare</code> 两个上下文接口</td>
+      </tr>
+    </table></div>
+  </div>
+</section>
+
+<section class="alt" id="experience">
+  <div class="wrap">
+    <h2 class="sec-title">体验区：示例课程的覆盖雷达快照</h2>
+    <p class="sec-sub">数据来自样例课程《数据库系统原理》（示例课程资料包）的真实分析结果导出：对 10 个考试知识点逐个检索判定，往年试卷 11 道题、满分 100 分。点开盲区可以看到支撑判定的证据、出处和关联试题。</p>
+
+    <div class="snapshot-note">
+      这是<b>示例数据的静态快照</b>，覆盖判定和分数以导出文件为准；完整功能（导入自己的资料、粘贴自己的考试范围、出题复习）请在本地运行。Docker 一键启动命令见下方。
+    </div>
+
+    <div class="radar-layout">
+      <div>
+        <div id="radar-chart"></div>
+        <p id="radar-empty" class="muted" hidden style="font-size:14px">覆盖雷达数据暂时不可用（data/sample-coverage.json 缺失或为空）。</p>
+      </div>
+      <div class="radar-side">
+        <h3>怎么看这张图</h3>
+        <p class="meta" id="radar-meta"></p>
+        <div class="legend">
+          <span class="item"><span class="swatch" style="background:#2456d6"></span>覆盖度（0–1，越高复习越充分）</span>
+          <span class="item"><span class="swatch" style="background:#e67e22"></span>考试权重（按数据中最大分值归一化）</span>
+        </div>
+        <div class="legend">
+          <span class="item"><span class="badge covered">已覆盖</span></span>
+          <span class="item"><span class="badge thin">薄弱</span></span>
+          <span class="item"><span class="badge missing">缺失</span></span>
+        </div>
+        <p class="meta" id="radar-thresholds"></p>
+        <p style="font-size:13.5px;color:var(--ink-soft);margin:0">
+          <b>盲区</b> = 考试分值高 × 覆盖度低。下表按盲区分值从大到小排序；点任意一行展开判定理由、最强证据和关联的往年试题。
+        </p>
+      </div>
+    </div>
+
+    <div class="blind-list">
+      <div class="table-scroll"><table class="blind">
+        <thead>
+          <tr>
+            <th>知识点</th><th>覆盖判定</th><th class="num">覆盖度</th><th class="num">往年分值</th><th class="num">盲区分值</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="blind-tbody"></tbody>
+      </table></div>
+      <p id="blind-empty" class="muted" hidden style="font-size:14px">盲区清单数据暂时不可用。</p>
+    </div>
+
+    <h3 style="margin-top:44px">在本地运行完整功能</h3>
+    <div class="cmd-block">
+      <span class="cmt"># 在仓库的 qoder/ 目录下（需要 Docker）</span><br>
+      cp .env.example .env<br>
+      docker compose up -d --build<br>
+      bash scripts/load_sample.sh<br>
+      <span class="cmt"># 然后浏览器打开 http://127.0.0.1:18800</span>
+    </div>
+    <p class="cmd-links">
+      详细步骤见仓库的 <a href="https://github.com/Fengzdadi/powercontext/blob/2026-competition-ecosystem/qoder/README.md" target="_blank" rel="noopener">README</a> 和 <a href="https://github.com/Fengzdadi/powercontext/blob/2026-competition-ecosystem/qoder/docs/VALIDATION.md" target="_blank" rel="noopener">VALIDATION</a>（以部署文档 DEPLOY.md 为准）。
+    </p>
+  </div>
+</section>
+
+<section id="video">
+  <div class="wrap">
+    <h2 class="sec-title">演示视频</h2>
+    <p class="sec-sub">从导入资料到看雷达、做一道题的完整流程演示。</p>
+    <div class="video-box">
+      <video id="demo-video" hidden controls preload="metadata">
+        <source src="media/demo.mp4" type="video/mp4">
+      </video>
+      <div class="video-pending" id="video-pending">
+        <div class="film">&#127916;</div>
+        <div>视频即将上线</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="qoder">
+  <div class="wrap">
+    <h2 class="sec-title">Qoder 开发过程</h2>
+    <p class="sec-sub">本项目的需求拆解、技术设计、编码和调试由 <b>Qoder CLI</b>（qoderclicn 1.1.80，Qoder CN）完成；产品负责人负责写需求、提供样例数据和接口实测备忘、审阅和验收，不直接写应用代码。下表是每次 Qoder 会话的型号、轮数和 Credits 用量，数据来自仓库的 <code>dev-records/CREDITS.md</code>。</p>
+
+    <div class="sessions-table-wrap">
+      <table class="sessions">
+        <thead>
+          <tr><th>#</th><th>会话内容</th><th>模型</th><th class="num">轮数</th><th>耗时</th><th class="num">Credits</th></tr>
+        </thead>
+        <tbody id="sessions-body"></tbody>
+        <tfoot>
+          <tr class="total" id="sessions-total">
+            <td colspan="3">合计（<span id="total-rows">—</span> 条记录）</td>
+            <td class="num" id="total-turns">—</td>
+            <td></td>
+            <td class="num" id="total-credits">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="split-note">
+      <div class="split-card">
+        <h3>Qoder 负责</h3>
+        <ul>
+          <li>需求拆解与技术设计（PLAN）</li>
+          <li>全部应用代码的编写</li>
+          <li>调试与自测（单元测试、集成测试、浏览器验证）</li>
+        </ul>
+      </div>
+      <div class="split-card">
+        <h3>产品负责人负责</h3>
+        <ul>
+          <li>需求输入（产品简报）</li>
+          <li>样例课程资料与接口实测备忘</li>
+          <li>审阅与验收</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="cmd-links">
+      完整会话记录（每条模型消息、思考、工具调用）和关键截图见仓库的 <a href="https://github.com/Fengzdadi/powercontext/tree/2026-competition-ecosystem/qoder/dev-records" target="_blank" rel="noopener">dev-records/</a> 目录。
+    </p>
+  </div>
+</section>
+
+<section id="usage">
+  <div class="wrap">
+    <h2 class="sec-title">使用效果</h2>
+    <p class="sec-sub">只展示真实、可核对的使用数据，不拿开发测试数据充数。</p>
+
+    <div class="usage-card" id="usage-collecting">
+      <div class="icon">&#128202;</div>
+      <div style="font-size:16px">真实使用数据收集中</div>
+      <div style="font-size:13.5px;margin-top:8px">数据来源：应用内使用记录导出（真实使用与开发测试分开统计）</div>
+    </div>
+
+    <div id="usage-filled" hidden>
+      <div class="usage-stats" id="usage-stats"></div>
+      <p class="usage-src" id="usage-src"></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h4>考前雷达 ExamRadar</h4>
+        <p>期末复习覆盖雷达：资料导入、带出处的混合检索、覆盖判定、复习教练与学习者记忆。</p>
+        <p><a href="https://github.com/Fengzdadi/powercontext/tree/2026-competition-ecosystem/qoder" target="_blank" rel="noopener">github.com/Fengzdadi/powercontext</a></p>
+      </div>
+      <div>
+        <h4>许可证</h4>
+        <p>代码：Apache License 2.0</p>
+        <p>样例课程资料：CC BY 4.0（原创撰写，可自由转载修改，注明出处）</p>
+      </div>
+      <div>
+        <h4>第三方组件</h4>
+        <p>ECharts 5.6.1（Apache-2.0）</p>
+        <p>marked.js v15.0.12（MIT）</p>
+        <p>均从本地文件加载，本站无外部 CDN 请求。</p>
+      </div>
+    </div>
+    <div class="copy">本页为纯静态页面，数据文件在 site/data/ 下，可替换更新而无需改页面代码。</div>
+  </div>
+</footer>
+
+<script src="assets/echarts.min.js"></script>
+<script src="assets/marked.min.js"></script>
+<script src="assets/main.js"></script>
+</body>
+</html>

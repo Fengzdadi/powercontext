@@ -360,3 +360,83 @@
 - PowerContext 记忆模型（M3）
 - 出题与判分（M3）
 - 端到端验证脚本（M4）
+
+---
+
+## 会话 09 — 项目展示网站（2026-10-28）
+
+**参与者**：产品负责人（需求输入）、Qoder（实现与验证）。本会话只改 `site/`、`scripts/build_site_data.py` 和本 DEVLOG。
+
+### 完成内容
+
+纯静态网站，无构建步骤，之后用 Qoder Sites 发布 `site/` 目录：
+
+1. **页面结构**（`site/index.html` + `site/assets/style.css` + `site/assets/main.js`）：
+   - 首屏（一句话定位 + "看示例雷达"/"代码仓库"两个按钮）、解决的问题（三条痛点，来自 BRIEF §1）、核心功能（5 项，描述以 PLAN.md 为准，复习教练和学习者记忆标注"正在实现中，开发会话 07"）、seekdb 与 PowerContext 分工（SVG 架构图 + 三行对照表）、体验区、演示视频、Qoder 开发过程、使用效果、页脚（仓库链接、许可证、第三方组件）。
+2. **体验区**：ECharts 雷达图（覆盖度 + 考试权重两条系列，权重按数据中最大分值归一化）+ 盲区清单（按 `blind_spot_score` 降序，点行展开判定理由、最强证据、关联试题）。数据完全从 `site/data/sample-coverage.json` 渲染，页面不写死任何判定、分数或知识点名称；文件缺失或字段缺失时降级显示提示文案，不报错。
+3. **会话表**：`scripts/build_site_data.py`（仅标准库）解析 `dev-records/CREDITS.md` 表格生成 `site/data/qoder-sessions.json`（8 条记录、395 轮、778.65 Credits，与 CREDITS.md 累计列一致）；页面读 JSON 渲染表格和合计，不写死会话数。CREDITS.md 加行后重跑脚本即可更新。
+4. **使用效果**：新建 `site/data/usage-summary.json`，内容 `{"status": "collecting"}`，页面如实显示"真实使用数据收集中"。
+5. **占位机制**：5 张功能截图（文件不存在 → onerror 显示带文件名的占位框）；`media/demo.mp4` 不存在 → 显示"视频即将上线"，不出现坏的播放器（HEAD 探测成功才显示 `<video>`）。
+6. **本地库**：ECharts 5.6.1（Apache-2.0）和 marked.js v15.0.12（MIT）从 `app/static/lib/` 复制到 `site/assets/`，无任何外部 CDN 引用。`site/` 总计 1.1 MB（不含视频）。
+
+### 截图与视频的文件名约定（产品负责人之后提供）
+
+| 用途 | 路径 |
+| --- | --- |
+| 导入资料 + 问笔记 | `site/images/f1-import-ask.png` |
+| 考前覆盖雷达 | `site/images/f2-coverage-radar.png` |
+| 复习教练 | `site/images/f3-review-coach.png` |
+| 学习者记忆 | `site/images/f4-learner-memory.png` |
+| 使用记录 | `site/images/f5-usage-log.png` |
+| 演示视频 | `site/media/demo.mp4` |
+
+文件放进去即自动显示，无需改页面代码。
+
+### `sample-coverage.json` 页面用到的字段（后续换新导出时保这些字段即可）
+
+顶层：`course_id`、`created_at`、`topics[].{id,name}`、`config.{t_covered,t_thin}`、`items[]`。
+`items[]` 每项：`topic_id`、`topic_name`、`coverage_level`、`coverage_score`、`best_evidence.{content,heading,page,document_name,semantic_score,keyword_score}`、`exam_weight`、`exam_questions[].{question_no,points,similarity}`、`blind_spot_score`、`reason`。全部字段均可缺失（降级显示"—"或整块省略）。未用到：`run_id`、`topics[].keywords`、`config.kw_scale`、`exam_questions[].similarity` 之外的结构将来增加不影响现有渲染。
+
+### `usage-summary.json` 字段约定（产品负责人按真实导出填写）
+
+`status`（"collecting" 或其他值）、`usage_days`（使用天数）、`study_sessions`（学习会话数）、`questions_answered`（做题数）、`total_minutes`（累计学习时长，分钟）、`source`（数据来源，例如"使用记录导出"）、`exported_at`（导出时间）。`status` 不是 "collecting" 时页面显示四张统计卡和来源行。
+
+### 页面数字与仓库出处对照
+
+| 页面上的数字/事实 | 出处 |
+| --- | --- |
+| 示例课程 10 个知识点、11 道题、满分 100 分 | `samples/course-db/README.md` |
+| 覆盖度、分值、盲区分数、证据、判定理由、相似度 | `site/data/sample-coverage.json`（`GET /api/coverage/latest?course_id=db101` 原样导出） |
+| 判定阈值 covered ≥ 0.55 / thin ≥ 0.20 | 同上文件的 `config`（页面动态读取，不写死） |
+| 会话表 8 条记录、395 轮、778.65 Credits | `site/data/qoder-sessions.json` ← `dev-records/CREDITS.md` |
+| Leitner 5 盒、间隔 1/2/4/7/14 天 | `docs/PLAN.md` §6 |
+| qoderclicn 1.1.80、Qoder 负责范围 | `dev-records/README.md` |
+| ECharts 5.6.1、marked v15.0.12 | vendor 文件内的版本字符串 |
+| 代码 Apache-2.0、样例资料 CC BY 4.0 | `docs/BRIEF.md` §5、`samples/course-db/README.md` |
+
+### 验收结果
+
+| 验收项 | 结果 |
+| --- | --- |
+| 浏览器打开 http://127.0.0.1:18808/，桌面与 375px 各截图 | ✅ 截图存 `.cache/scratch/site-desktop.png`、`site-mobile.png`。目视核对未做：本会话环境里读取截图只能得到不可靠的文字描述（与页面内容完全不符），改为程序化断言：无横向溢出（375px 下 scrollWidth−clientWidth = 0）、雷达 canvas 尺寸正常（桌面 507×428、手机 333×338）、章节顺序与关键元素位置正确 |
+| 雷达和盲区清单用真实导出数据 | ✅ 断言首位盲区行 = "函数依赖与范式（3NF、BCNF）"、分值 25、盲区 12.3231，10 个知识点全部出现，均与 JSON 一致 |
+| 点开盲区能看到证据和试题 | ✅ 展开后含"判定理由 / 最强证据（02-SQL速记.md · 标题路径）/ 第 4 题 · 15 分、第 5 题 · 10 分"，桌面和 375px 均验证 |
+| 每个数字有出处 | ✅ 见上表 |
+| 无外部 CDN 请求 | ✅ Playwright `page.on("request")` 记录 30 条请求全部指向 127.0.0.1:18808；`external_requests` 为空。控制台仅 7 条预期 404（5 张待补截图 + demo.mp4 的 HEAD/预加载探测，即占位机制本身） |
+| 字段缺失降级 | ✅ 用路由拦截注入删减版 JSON：去 reason/blind_spot_score/config/topics、去某条证据和试题后页面正常渲染并显示"这条记录缺少证据与试题数据"；整个文件 404 时显示数据不可用提示、无 JS 报错 |
+| usage-summary 填充态 | ✅ 注入示例数据（12 天 / 20 次 / 86 题 / 415 分钟）四张统计卡和来源行正常显示 |
+
+### 遇到的问题和解决办法
+
+1. **明细行初始就是展开的**：盲区清单的 `<tr class="row-detail">` 生成时没加 `hidden`，首次点击反而是收起——降级测试暴露后补上 `hidden` 属性。
+2. **`onerror` 时机**：`imgFallback` 原在 main.js（body 末尾）定义，图片 404 可能在脚本执行前触发，报 "imgFallback is not defined"。改为在 `<head>` 里内联定义。
+3. **375px 横向溢出 258px**：盲区表和 seekdb/PowerContext 对照表在窄屏溢出，包一层 `overflow-x: auto` 的滚动容器解决。
+4. **命令权限限制**：`node --check`、带管道/重定向的 `ls`/`find`/`du` 组合被拒，JS 语法检查改由浏览器加载（pageerror 监听）覆盖。
+5. **移动端导航**：窄屏隐藏顶部导航链接（内容靠滚动到达），不影响可用性。
+
+### 未做（留给产品负责人/后续会话）
+
+- 5 张功能截图和 `media/demo.mp4` 待提供（占位机制已就位，放入文件即显示）。
+- `usage-summary.json` 待按真实使用记录导出填写（字段约定见上）。
+- Docker 命令块按简报写了 `cp .env.example .env`、`docker compose up -d --build`、`bash scripts/load_sample.sh`，**以会话 06 的 `docs/DEPLOY.md` 为准，合并后核对**；README / VALIDATION 的链接指向仓库 GitHub 对应路径，待这些文件合入后生效。
+- 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。

@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-10-29T03:34:15+00:00",
+  "source": "dev-records/CREDITS.md",
+  "rows": [
+    {
+      "id": "—",
+      "title": "CLI 权限参数探测（`--allowed-tools` 语法，不保存会话）",
+      "date": "2026-10-28",
+      "model": "Auto",
+      "turns": 1,
+      "duration": "<1 分钟",
+      "credits": 1.24
+    },
+    {
+      "id": "01",
+      "title": "需求拆解与技术设计",
+      "date": "2026-10-28",
+      "model": "Auto",
+      "turns": 12,
+      "duration": "4.3 分钟",
+      "credits": 8.09
+    },
+    {
+      "id": "02",
+      "title": "M1：工程骨架、资料导入、问笔记（混合检索）",
+      "date": "2026-10-28",
+      "model": "Auto",
+      "turns": 123,
+      "duration": "24.2 分钟",
+      "credits": 65.8
+    },
+    {
+      "id": "—",
+      "title": "模型单价探测：同一句\"只回复 OK\"分别发给 Auto 1.11、GLM-5.3 1.44、Kimi-K3.1-Pro 1.74、DeepSeek-V4-Pro 3.46、Qwen3.8-Max 6.66（不保存会话）",
+      "date": "2026-10-28",
+      "model": "5 个模型",
+      "turns": 5,
+      "duration": "<1 分钟",
+      "credits": 14.44
+    },
+    {
+      "id": "03",
+      "title": "修复 M1 审阅问题：检索排序调试、PDF 解析换 pypdfium2、原子导入、工程修正",
+      "date": "2026-10-28",
+      "model": "GLM-5.3",
+      "turns": 134,
+      "duration": "35.3 分钟",
+      "credits": 592.24
+    },
+    {
+      "id": "04",
+      "title": "M2：考前覆盖雷达、试题归属、使用记录页；修复会话 03 遗留问题",
+      "date": "2026-10-28",
+      "model": "Auto",
+      "turns": 119,
+      "duration": "19.5 分钟",
+      "credits": 88.45
+    },
+    {
+      "id": "05（中止）",
+      "title": "修复 M2 审阅问题，先用 Auto 启动；2 分钟后中止（还没改任何文件），改用 GLM-5.3 重跑。用量按逐条请求的 `usage.credits` 累加",
+      "date": "2026-10-28",
+      "model": "Auto",
+      "turns": null,
+      "duration": "2 分钟",
+      "credits": 8.39
+    },
+    {
+      "id": "—",
+      "title": "模型单价探测：Qwen3.8-Flash，同一句\"只回复 OK\"（不保存会话）；CLI 报告 0 Credits",
+      "date": "2026-10-28",
+      "model": "Qwen3.8-Flash",
+      "turns": 1,
+      "duration": "<1 分钟",
+      "credits": 0
+    }
+  ],
+  "totals": {
+    "rows": 8,
+    "turns": 395,
+    "credits": 778.65
+  }
+}
