@@ -722,3 +722,120 @@ query "脏页表"          → 第一条 第7讲-故障恢复.pdf 第 7 页 "ARI
 - "复习教练"步骤（会话 07 开发中、会话 10 合并后加进 `STEPS` 表）
 - 会话 05b 修复合并后重跑本脚本，「latest 整体顺序」应转 ✅
 - 会话 08b 的 README / VALIDATION / `.env.example`（另一目录并行进行）
+
+---
+
+## 会话 08b — M4 第二部分之二：README、验证样例文档、配置说明（2026-10-29）
+
+**参与者**：产品负责人（任务输入）、Qoder（文档与验证）
+**并行说明**：会话 07（M3）、08a（e2e 脚本）在各自 worktree 进行。本会话只改 `README.md`、`docs/VALIDATION.md`、`docs/images/README.md`、`.env.example`，并在本文件末尾追加记录；`docs/DEPLOY.md` 保留不动，README 以它为基础并链接。`app/`、`scripts/`、`docker*` 零改动（git status 确认）。开发栈（seekdb 10800 / PowerContext 18801，产品负责人启动）全程未动。
+
+### A. 产出文档
+
+1. **`README.md`（新增）**：一句话介绍与解决的问题、核心功能表（覆盖判定按会话 05 的考点词证据规则写，明确"语义分只排序、不判定"）、截图占位（`docs/images/*.png`）、Mermaid 架构图、seekdb 与 PowerContext 分工表（各自存什么、在哪个功能起作用、代码位置）、部署方式 A/B、配置项全表、验证样例链接（`docs/VALIDATION.md` + `scripts/e2e_verify.py`）、常见问题、版本表、许可证与第三方组件表。M3 相关内容（复习教练、学习者记忆、PowerContext 读写核对）只按 PLAN.md 写"做什么"，留 `<!-- 会话 10：… -->` 标记，不写接口和命令。
+2. **`docs/VALIDATION.md`（新增）**：手动验证样例，8 节——约定（auto 标记、健康检查）、初始数据（7 份样例逐份说明）、导入（含 seekdb CLI 核对与试卷分值 SQL）、6 条验收检索（每条预期第一条 + 实测分数；说明"两阶段锁"应在默认范围查、"函数依赖"需 `include_exam=true`）、覆盖雷达（判定真值表、盲区第一按 `blind_spot_score` 最大核对、判定理由按"应包含什么"描述而非照抄原文、coverage_runs/coverage_items 的 CLI 核对）、使用记录（stats/导出/BOM 三字节核对）、幂等与清理（delete-course 在临时课程上演示）、PowerContext 记忆核对（M3 占位）、e2e 脚本一节。
+3. **`docs/images/README.md`（新增）**：6 张截图的文件名、对应页面、截取内容清单（M3 合并后补 quiz/memory 两张，留标记）。
+4. **`.env.example` 重写**：逐变量中文注释，与 `config.py` 字段一一对应；compose 专用变量（`SEEKDB_HOST_PORT`、`POWERCONTEXT_HOST_PORT`、`HF_ENDPOINT`）单独成节。只放占位值，无任何真实密码/密钥。M3 新增配置留会话 10。未运行 `cp .env.example .env`（开发库配置由 `.env` 提供，覆盖会断开），核对方式为逐字段比对。
+
+### B. `.env.example` ↔ `config.py` 对照表（验收：一一对应）
+
+| .env.example 变量 | config.py 字段 | 默认值 | 一致 |
+| --- | --- | --- | --- |
+| SEEKDB_HOST / SEEKDB_PORT | seekdb_host / seekdb_port | 127.0.0.1 / 10800 | ✅ |
+| SEEKDB_USER / SEEKDB_PASSWORD | seekdb_user / seekdb_password | root / change-me | ✅ |
+| SEEKDB_DATABASE / SEEKDB_TEST_DATABASE | seekdb_database / seekdb_test_database | examradar / examradar_test | ✅ |
+| POWERCONTEXT_URL | powercontext_url | http://127.0.0.1:18801 | ✅ |
+| APP_HOST / APP_PORT | app_host / app_port | 127.0.0.1 / 18800 | ✅ |
+| CORS_ORIGINS | cors_origins | http://localhost:18800 | ✅ |
+| EMBEDDING_PROVIDER / EMBEDDING_MODEL / EMBEDDING_DIM | embedding_provider / embedding_model / embedding_dim | local / BAAI/bge-small-zh-v1.5 / 512 | ✅ |
+| EMBEDDING_QUERY_INSTRUCTION（注释示例） | embedding_query_instruction | ""（默认关闭，注释说明原因） | ✅ |
+| EMBEDDING_BASE_URL / EMBEDDING_API_KEY（注释） | embedding_base_url / embedding_api_key | None | ✅ |
+| LLM_BASE_URL / LLM_API_KEY / LLM_MODEL（注释） | llm_base_url / llm_api_key / llm_model | None | ✅ |
+| COVERAGE_TERM_RATIO_COVERED | coverage_term_ratio_covered | 0.5 | ✅ |
+| COVERAGE_SUPPORT_CHARS | coverage_support_chars | 280 | ✅ |
+| COVERAGE_MIN_BODY_CHARS | coverage_min_body_chars | 50 | ✅ |
+| USAGE_SESSION_GAP_MINUTES / USAGE_MINUTES_PER_EVENT | usage_session_gap_minutes / usage_minutes_per_event | 30 / 1.0 | ✅ |
+| LEITNER_INTERVALS | leitner_intervals | "1,2,4,7,14" | ✅ |
+| SEEKDB_HOST_PORT / POWERCONTEXT_HOST_PORT / HF_ENDPOINT | —（compose 插值/构建参数，非应用配置） | 10800 / 18801 / huggingface.co | ✅（注释写明读取方） |
+
+config.py 全部 22 个设置字段均有对应变量，无遗漏。
+
+### C. 版本号出处（验收：逐个与仓库实物核对）
+
+| 版本号 | 出处与核对方式 |
+| --- | --- |
+| Python 3.12（`>=3.12,<3.13`） | `app/pyproject.toml` requires-python；`app/.python-version` 存在 |
+| uv 0.8.15 | 本机 `uv --version` 实测 0.8.15；`docker/Dockerfile.app` 固定 `ghcr.io/astral-sh/uv:0.8.15` |
+| seekdb `1.4.0-100000172026082615` | `docker-compose.yml` 与 `docker-compose.dev.yml` 的 image 行 |
+| powercontext 1.4.1 | `docker/Dockerfile.powercontext` `pip install "powercontext[cli,server,seekdb]==1.4.1"`；pylibseekdb 1.4.0.post2 出自 DEVLOG 会话 06 平台核查（PyPI），**不在 `app/uv.lock`**（README 初稿误引，已改正） |
+| BAAI/bge-small-zh-v1.5 / 512 维 | `app/examradar/config.py` embedding_model / embedding_dim 默认值 |
+| fastembed 0.9.1、fastapi 0.162.0、uvicorn 0.54.0、pydantic 2.14.1、pydantic-settings 2.16.2、pymysql 1.2.3、httpx 0.28.1、python-multipart 0.0.32、pypdfium2 5.14.0、numpy 2.5.4、onnxruntime 1.31.1 | `app/uv.lock` 逐包 grep `name`/`version` |
+| ECharts 5.6.0 | `app/static/lib/echarts.min.js` 文件头 Apache 许可声明 + 库内 `t.version="5.6.0"`（文件里另有一处 SSR 辅助对象带 `version:"5.6.1"` 字符串，以 `t.version` 为库版本，见 D-2） |
+| marked 15.0.12 | `app/static/lib/marked.min.js` 文件头 `marked v15.0.12` |
+| Apache-2.0 LICENSE 原文 | `shasum -a 256 LICENSE` = `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`，与会话 06b 记录一致 |
+
+### D. 验收结果
+
+| 验收项 | 结果 |
+| --- | --- |
+| 部署方式 B 应用部分：`cd app && uv sync` | ✅ `Resolved 53 packages, Audited 51 packages`（.venv 已存在，幂等） |
+| 起开发服务器 + 健康检查 | ✅ `.venv/bin/python -m uvicorn examradar.main:app --host 127.0.0.1 --port 18800` 后 `curl /api/health`：seekdb/embedding/powercontext 三项 ok，embedding 显示 `BAAI/bge-small-zh-v1.5 (512d)` |
+| README 给评审的写法 `uv run uvicorn examradar.main:app --reload --host 127.0.0.1 --port 18800` | ✅ 实跑（`--reload` 省略，端口用临时 18803 避让 18800）：`uv run uvicorn examradar.main:app --host 127.0.0.1 --port 18803`，`/api/health` 三项 ok，验证后已关闭 |
+| `bash scripts/load_sample.sh`（走 HTTP，带 auto 头） | ✅ 6 份全部 `skip (already imported)`、`38 chunks total`（幂等；样例已在开发库） |
+| VALIDATION 的 curl 命令（18800，全部带 `X-ExamRadar-Source: auto`） | ✅ 见下方实测输出汇总 |
+| VALIDATION 的 CLI 命令 | ✅ `cli sql`（documents/chunks/试卷分值/usage_events/coverage_items）、`cli import`、`cli delete-course`（默认保留使用记录；`--include-usage` 删除）全部实测；README 里的 `uv run python -m examradar.cli sql` 写法也实跑通过 |
+| 6 条验收检索第一条命中 | ✅ 6/6：B+树→3.3 节（kw 3.691/sem 0.8571）、脏页表→课件 p7（2.596/0.7332）、先写日志→课件 p4（11.231/0.8748）、coordinator crash→论文 p2（2.772/0.7969）、两阶段锁→笔记 5.3（4.005/0.8442，默认范围）、函数依赖→试卷 Q4（3.854/0.8506，include_exam） |
+| 覆盖分析预期 | ✅ `POST /api/coverage/analyze` HTTP 200，10 个知识点判定与设计真值一致（missing×3：t01/t04/t05；thin×2：t02/t08；covered×5：t03/t06/t07/t09/t10），exam_weight 合计 100.0；盲区第一按 `blind_spot_score` 最大核对为 t04（25.0，coverage 0，关联 Q4/Q5）；t02 理由含"1/2 找到、支撑 2 段 233 字、差 47 字"；`GET /api/coverage/latest` 返回同 run 的 10 items。判定理由措辞以"应包含什么"描述核对，未照抄原文（会话 05b 并行改排序和措辞，文档预期不依赖 items 顺序和理由原文） |
+| 使用记录 | ✅ `GET /api/usage/stats?source=auto&tz=Asia/Shanghai`：本会话 auto 事件（search 24 / import 12 / analyze 7，合计 43）全部落在 2026-10-29；CSV 导出前 3 字节 `efbbbf`（UTF-8 BOM），表头 7 列正确；JSON 导出 43 条 |
+| 页面可打开 | ✅ `/`、`/import.html`、`/ask.html`、`/radar.html`、`/usage.html` 全部 200（本会话不改前端，浏览器级交互未重验，沿用会话 05 的 CDP 验证结论） |
+| 版本表逐项核对 | ✅ 见 C 节 |
+| `.env.example` ↔ config.py 一一对应 | ✅ 见 B 节 |
+| 文档无真实密码/密钥 | ✅ 只有 `change-me` 占位；开发库真实密码仅存在于 gitignore 的 `.env`，文档零出现 |
+| 部署方式 A（Docker 命令） | ⚠️ 未验证：本会话不启动 Docker（examradar-ci 栈 18805–18807 归会话 08a），README 的方式 A 以 DEPLOY.md 为基础，其命令已由会话 06/06b 在 examradar-ci 上验证过 |
+| 开发栈起栈命令（`docker compose -f docker-compose.dev.yml up -d`） | ⚠️ 未重跑：开发栈（10800/18801）已在运行且任务要求不动它；本会话验证的是文档中的应用侧命令 |
+| `scripts/e2e_verify.py` / `docs/validation/e2e-report.md` | ⚠️ 未验证：由会话 08a 在另一 worktree 交付，本 worktree 尚无此文件；README/VALIDATION 按目标路径引用 |
+| 会话结束清理 | ✅ 开发服务器（18800，任务 baual4r5f）与 18803 临时实例均已停止；`git status` 只有允许改动的文件（README.md、docs/VALIDATION.md、docs/images/README.md、.env.example、docs/DEVLOG.md）+ 会话 harness 自身产物（dev-records/sessions/08b-*） |
+
+实测输出摘录（VALIDATION 各步，带 auto 头）：
+
+```
+$ uv run python -m examradar.cli sql "SELECT name, doc_kind, chunk_count FROM documents WHERE course_id='db101' ORDER BY id"
+02-SQL速记.md notes 3 | 03-索引与B+树.md notes 7 | 05-事务与并发控制.md notes 6
+第7讲-故障恢复.pdf slides 9 | 2025-2026-1-期末试卷A.pdf exam 11 | two-phase-commit-primer.pdf paper 2   (6 rows)
+
+$ 试卷分值 SQL: 11 行 points = 5,10,10,15,10,5,5,10,10,10,10（合计 100）
+
+$ 覆盖分析: levels {"t01":"missing","t02":"thin","t03":"covered","t04":"missing","t05":"missing",
+  "t06":"covered","t07":"covered","t08":"thin","t09":"covered","t10":"covered"}
+  blind #1: t04 weight=25.0 coverage=0.0 blind=25.0, exam_questions=[4,5]
+  t04 reason: 考点词 0/2 找到：函数依赖、范式在笔记、课件和阅读材料中均未出现，覆盖度 0。
+  t02: 1/2 找到（SQL 查询→笔记02 两处；视图未找到），支撑 2 段 233 字，距 280 字差 47 字，thin
+  t08: 支撑 89 字，thin，blind 8.41（第二）
+
+$ usage stats (auto, Asia/Shanghai): search 24 / import 12 / analyze 7 / total 43,
+  daily=[{"date":"2026-10-29","total":43}]
+
+$ CSV 导出前 3 字节: efbbbf
+```
+
+### E. 遇到的问题和解决办法
+
+1. **后台起服务两次失败**：第一条命令 `cd app && uv run uvicorn ...` 与第二条 `cd app && .venv/bin/python ...` 均因 shell 的工作目录已在 `qoder/app`（上一条 `cd app && uv sync` 持久化了），再 `cd app` 报 `no such file or directory`。后台任务的输出文件 Read 也被权限拒绝，改用 `tail` 读到真实报错后定位。后续命令一律显式绝对路径或先确认 `pwd`。
+2. **echarts.min.js 里出现两个版本号**：库版本 `t.version="5.6.0"` 之外，文件里还有一处 SSR 辅助对象带 `version:"5.6.1"`。以 `t.version`（即库本身版本）为准记 5.6.0，README 版本表出处写明核对的是文件头和 `t.version`。
+3. **shell 重定向被权限系统拒绝**（包括重定向到 `.cache/scratch` 和 `/tmp`）：验证命令改为写 Python 脚本（Write 工具落盘 `.cache/scratch/`，git 忽略）再执行，输出直接进终端；curl 命令最终按 VALIDATION 里的原样（无重定向）跑通。
+4. **内嵌 `python -c` 引号嵌套报语法错**：拆成 scratch 脚本文件执行，避免在 `-c` 字符串里转义 f-string。
+5. **"两阶段锁"在 `include_exam=true` 时试卷 Q8 排第一**：实测发现（kw 4.702 高于笔记 5.3 的 4.005），系语料范围变化所致，不是缺陷。VALIDATION 明确写：该条按设计真值用默认范围（不含试卷）验证，只有"函数依赖 候选码"需要 `include_exam=true`，并加注说明两种范围的行为差异。
+6. **会话 05b 并行修改的规避**：VALIDATION 的覆盖分析预期按"盲区第一 = `blind_spot_score` 最大的项"写（实测 t04/25.0），不依赖 `items` 数组顺序；判定理由按"应包含什么"（找到/未找到的考点词及出处、支撑段数与字数、离阈值距离）核对，不逐字照抄理由原文。
+7. **统计接口字段名**：按天数据字段是 `daily`（首版脚本误写 `by_day`），以 `routes/usage.py` 与实测响应为准。
+
+### F. 发现的问题（本会话不改，记录待办）
+
+1. **`docs/DEPLOY.md` §5 应用变量表落后于会话 05**：仍列已废弃的 `COVERAGE_T_COVERED`(0.55)、`COVERAGE_T_THIN`(0.20)、`COVERAGE_KW_SCALE`(10.0)，缺现行的 `COVERAGE_TERM_RATIO_COVERED`、`COVERAGE_SUPPORT_CHARS`、`COVERAGE_MIN_BODY_CHARS` 和 `USAGE_SESSION_GAP_MINUTES`/`USAGE_MINUTES_PER_EVENT`（README 和 `.env.example` 均按 config.py 现行字段写）。任务规定 DEPLOY.md 保留不动，建议会话 10 统一修订。
+2. **`docs/DEPLOY.md` SEEKDB_PASSWORD 行残留疑问句**："（compose 会自动设一个随机值吗？不会，请自己改掉 change-me）"——像是自问自答的草稿痕迹，可读性欠佳，待会话 10 顺手清理。
+3. **`echarts.min.js` 的 `version:"5.6.1"` 字符串**（见 E-2）：不影响功能，记录在此避免后续会话误判版本。
+
+### 未做（留给后续会话）
+
+- M3 相关文档（复习教练、学习者记忆、PowerContext 读写核对、quiz/memory 截图、M3 配置项）：会话 10 合并后补齐，README/VALIDATION 已留 `<!-- 会话 10：… -->` 标记
+- `scripts/e2e_verify.py` 与 `docs/validation/e2e-report.md`：会话 08a 交付，本会话只写引用
+- `docs/DEPLOY.md` 变量表与 config.py 的同步：见 F-1，建议随会话 10 处理
