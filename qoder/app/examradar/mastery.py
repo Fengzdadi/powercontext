@@ -170,18 +170,37 @@ def build_opening_line(wrong_recent: list[tuple[str, str, int]],
     """开场白，例如：
     上次你在『隔离级别与 MVCC』上错了 2 次，先复习它；『B+树与哈希索引』今天到期；
     『函数依赖与范式』往年考 25 分但笔记里没有。
+
+    同一个知识点只出现一次：既错了又是盲区的合并成一句
+    （『X』上错了 N 次（往年考 25 分但笔记里没有））。
     """
+    blind_by_tid = {tid: (name, weight) for tid, name, weight in blind_missing}
     parts: list[str] = []
+    mentioned: set[str] = set()
+
+    def _blind_note(tid: str) -> str:
+        info = blind_by_tid.get(tid)
+        if not info:
+            return ""
+        return f"（往年考 {info[1]:g} 分但笔记里没有）"
+
     if wrong_recent:
         tid, name, count = wrong_recent[0]
-        parts.append(f"上次你在『{name}』上错了 {count} 次，先复习它")
+        parts.append(f"上次你在『{name}』上错了 {count} 次，先复习它{_blind_note(tid)}")
+        mentioned.add(tid)
         for tid, name, count in wrong_recent[1:3]:
-            parts.append(f"『{name}』错了 {count} 次")
+            parts.append(f"『{name}』错了 {count} 次{_blind_note(tid)}")
+            mentioned.add(tid)
     for tid, name in due_today[:3]:
-        parts.append(f"『{name}』今天到期")
+        if tid in mentioned:
+            continue
+        parts.append(f"『{name}』今天到期{_blind_note(tid)}")
+        mentioned.add(tid)
     for tid, name, weight in blind_missing[:2]:
-        weight_str = f"{weight:g}"
-        parts.append(f"『{name}』往年考 {weight_str} 分但笔记里没有")
+        if tid in mentioned:
+            continue
+        parts.append(f"『{name}』往年考 {weight:g} 分但笔记里没有")
+        mentioned.add(tid)
     if not parts:
         return "上次没有留下复习记录，从头开始按考试权重复习吧"
     return "；".join(parts)

@@ -214,16 +214,31 @@ def due_topics(mastery: dict[str, dict], today: Optional[date] = None) -> list[d
 # ------------------------------------------------------------------ 选题
 
 def select_topic(mastery: dict[str, dict], cov: Optional[dict],
-                 last_topic_id: Optional[str]) -> Optional[dict]:
-    """到期复习的 > 覆盖分析里的 thin/missing（按盲区分）> 其余（按考试权重）。"""
+                 recent_topic_ids: Optional[list[str]] = None,
+                 wrong_counts: Optional[dict[str, int]] = None) -> Optional[dict]:
+    """选题顺序：到期复习的 > 覆盖分析里的 thin/missing（按盲区分）> 其余。
+
+    recent_topic_ids 是本会话已出过题的知识点（按出题顺序，旧 → 新）：
+    - 最近 2 题出过的知识点不再出（同一知识点至少隔 2 道别的题）；
+    - 计划池里的知识点先各出一遍，再回到本会话答错的
+      （wrong_counts 按答错次数排序），最后才重复其余。
+    """
+    recent = list(recent_topic_ids or [])
+    last_two = set(recent[-2:])
+    asked = set(recent)
+    wrong_counts = wrong_counts or {}
+
     today = datetime.now(timezone.utc).date()
     due = [tid for tid, info in mastery.items()
            if info["state"].next_review
            and info["state"].next_review <= today]
     if due:
         due.sort(key=lambda tid: mastery[tid]["state"].next_review)
-        return {"topic_id": due[0], "topic_name": mastery[due[0]]["state"].topic_name,
-                "coverage_level": None, "source": "due"}
+        for tid in due:
+            if tid not in last_two:
+                return {"topic_id": tid,
+                        "topic_name": mastery[tid]["state"].topic_name,
+                        "coverage_level": None, "source": "due"}
 
     items = (cov or {}).get("items") or []
     if items:
@@ -231,14 +246,29 @@ def select_topic(mastery: dict[str, dict], cov: Optional[dict],
         pool = weak or items
         pool = sorted(pool, key=lambda it: -it["blind_spot_score"])
         for it in pool:
-            if it["topic_id"] != last_topic_id:
+            if it["topic_id"] not in asked:
+                return dict(it, source="coverage")
+        wrong_pool = sorted(
+            (it for it in pool if it["topic_id"] in wrong_counts),
+            key=lambda it: (-wrong_counts[it["topic_id"]],
+                            -it["blind_spot_score"]))
+        for it in wrong_pool:
+            if it["topic_id"] not in last_two:
+                return dict(it, source="coverage")
+        for it in pool:
+            if it["topic_id"] not in last_two:
                 return dict(it, source="coverage")
         return dict(pool[0], source="coverage")
 
     # 没有覆盖分析：从掌握度卡片轮转
     tids = sorted(mastery.keys())
+    for tid in tids:
+        if tid not in last_two:
+            return {"topic_id": tid,
+                    "topic_name": mastery[tid]["state"].topic_name,
+                    "coverage_level": None, "source": "mastery"}
     if tids:
-        tid = tids[0] if tids[0] != last_topic_id else tids[-1]
+        tid = tids[0] if tids[0] != (recent[-1] if recent else None) else tids[-1]
         return {"topic_id": tid, "topic_name": mastery[tid]["state"].topic_name,
                 "coverage_level": None, "source": "mastery"}
     return None
@@ -302,11 +332,17 @@ def _sentence_with(content: str, term: str) -> tuple[str, int]:
     return frag, frag.count(term)
 
 
-def make_fill_question(topic: dict, chunk: dict) -> Optional[dict]:
-    """从原文挖空关键术语出填空题，标明出处（文件 · 页 · 标题）。"""
+def make_fill_question(topic: dict, chunk: dict,
+                       used_terms: Optional[set[str]] = None) -> Optional[dict]:
+    """从原文挖空关键术语出填空题，标明出处（文件 · 页 · 标题）。
+
+    used_terms 是本会话这个知识点已经挖过的术语：优先换一个挖空点，
+    都挖过了才重复第一个可用的。
+    """
     content = chunk.get("content") or ""
     heading = chunk.get("heading")
     candidates = _blank_candidates(topic, content, heading)
+    fallback: Optional[dict] = None
     for term in candidates:
         fragment, occurrences = _sentence_with(content, term)
         if occurrences < 1:
@@ -316,7 +352,7 @@ def make_fill_question(topic: dict, chunk: dict) -> Optional[dict]:
             continue
         hint = f"（{len(term)} 个字）" if re.search(r"[\u4e00-\u9fff]", term) else ""
         source = _chunk_source(chunk)
-        return {
+        q = {
             "question_type": "fill",
             "topic_id": topic["topic_id"],
             "topic_name": topic["topic_name"],
@@ -328,7 +364,11 @@ def make_fill_question(topic: dict, chunk: dict) -> Optional[dict]:
             "llm_generated": False,
             "hint": None,
         }
-    return None
+        if fallback is None:
+            fallback = q
+        if term not in (used_terms or set()):
+            return q
+    return fallback
 
 
 def _chunk_source(chunk: dict) -> dict:
@@ -339,9 +379,17 @@ def _chunk_source(chunk: dict) -> dict:
         parts.append(f"第{chunk['page']}页")
     if chunk.get("heading"):
         parts.append(chunk["heading"])
-    if chunk.get("question_no"):
-        parts.append(f"第{chunk['question_no']}题"
-                     + (f"（{chunk['points']}分）" if chunk.get("points") else ""))
+    q_no = chunk.get("question_no")
+    if q_no:
+        points_str = (f"{float(chunk['points']):g} 分"
+                      if chunk.get("points") is not None else None)
+        if chunk.get("heading") == f"第{q_no}题":
+            # 试卷块的 heading 就是“第N题”，题号不写两遍，只补分值
+            if points_str:
+                parts.append(points_str)
+        else:
+            suffix = f"（{points_str}）" if points_str else ""
+            parts.append(f"第{q_no}题{suffix}")
     return {
         "label": " · ".join(parts),
         "document_name": chunk.get("document_name"),
@@ -352,17 +400,22 @@ def _chunk_source(chunk: dict) -> dict:
     }
 
 
-def make_self_test_question(topic: dict, course_id: str) -> Optional[dict]:
-    """missing 知识点：给往年原题自测，提示先补笔记。"""
-    for eq in topic.get("exam_questions") or []:
-        q_no = eq.get("question_no")
-        if q_no is None:
-            continue
-        chunk = _fetch_exam_chunk(course_id, q_no)
+def make_self_test_question(topic: dict, course_id: str,
+                            used_question_nos: Optional[list[int]] = None) -> Optional[dict]:
+    """missing 知识点：给往年原题自测，提示先补笔记。
+
+    同一知识点有多道往年原题（如 t04 的第 4、5 题）时在它们之间轮换：
+    优先出没出过的，都出过则出次数最少的（同次数按题号升序）。
+    """
+    used = list(used_question_nos or [])
+    eqs = [eq for eq in topic.get("exam_questions") or []
+           if eq.get("question_no") is not None]
+    eqs.sort(key=lambda eq: (used.count(eq["question_no"]), eq["question_no"]))
+    doc_names = _doc_names(course_id)
+    for eq in eqs:
+        chunk = _fetch_exam_chunk(course_id, eq["question_no"])
         if not chunk:
             continue
-        chunk["document_name"] = None
-        doc_names = _doc_names(course_id)
         chunk["document_name"] = doc_names.get(chunk.get("document_id"))
         return {
             "question_type": "self",

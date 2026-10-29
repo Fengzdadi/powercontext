@@ -105,6 +105,19 @@ _EXAM_Q_RE = re.compile(
     r"(\d+)\s*[.、．]\s*[（(]\s*(\d+(?:\.\d+)?)\s*分\s*[）)]"
 )
 
+# 大题标题行（“一、关系模型与 SQL（共 25 分）”）：属于下一题的题面，
+# 不能留在上一题的原文末尾。
+_EXAM_SECTION_TITLE_RE = re.compile(
+    r"^[一二三四五六七八九十]+\s*[、.．].*共\s*\d+(?:\.\d+)?\s*分"
+)
+
+
+def _strip_trailing_section_titles(content: str) -> str:
+    lines = content.split("\n")
+    while lines and _EXAM_SECTION_TITLE_RE.match(lines[-1].strip()):
+        lines.pop()
+    return "\n".join(lines).strip()
+
 
 def chunk_exam_pdf(raw_text: str, page_texts: list[str]) -> list[Chunk]:
     """Split an exam PDF by question number. Each question becomes one chunk
@@ -123,7 +136,7 @@ def chunk_exam_pdf(raw_text: str, page_texts: list[str]) -> list[Chunk]:
         pts = float(m.group(2))
         start = m.start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
-        content = full_text[start:end].strip()
+        content = _strip_trailing_section_titles(full_text[start:end].strip())
 
         page_num = None
         offset = 0

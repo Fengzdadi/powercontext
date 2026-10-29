@@ -105,6 +105,26 @@ class TestReviewPlan:
     def test_opening_line_empty(self):
         assert "复习" in build_opening_line([], [], [])
 
+    def test_opening_line_topic_mentioned_once(self):
+        """既错了又是盲区的知识点在开场白里合成一句，不出现两次。"""
+        line = build_opening_line(
+            wrong_recent=[("t04", "函数依赖与范式（3NF、BCNF）", 2)],
+            due_today=[],
+            blind_missing=[("t04", "函数依赖与范式（3NF、BCNF）", 25.0)])
+        assert line.count("函数依赖与范式") == 1
+        assert "错了 2 次" in line
+        assert "往年考 25 分但笔记里没有" in line
+
+    def test_opening_line_due_and_blind_merged(self):
+        line = build_opening_line(
+            wrong_recent=[("t08", "隔离级别与 MVCC", 1)],
+            due_today=[("t02", "SQL 查询")],
+            blind_missing=[("t02", "SQL 查询", 20.0),
+                           ("t04", "函数依赖与范式（3NF、BCNF）", 25.0)])
+        assert line.count("SQL 查询") == 1
+        assert "『SQL 查询』今天到期（往年考 20 分但笔记里没有）" in line
+        assert "『函数依赖与范式（3NF、BCNF）』往年考 25 分但笔记里没有" in line
+
 
 # ---------------------------------------------------------------- session text
 

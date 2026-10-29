@@ -111,6 +111,18 @@ class TestChunkExamPdf:
         total_points = sum(c.points for c in chunks)
         assert total_points == 100.0, f"Expected 100 total points, got {total_points}"
 
+    def test_trailing_section_title_not_in_question_content(self):
+        """大题标题（“三、……（共 50 分）”）不留在上一题的原文末尾。"""
+        text = """4.（15 分）求候选码。
+5.（10 分）分解为 BCNF。
+三、查询处理与事务（共 50 分）
+6.（5 分）为什么尽早执行选择？"""
+        chunks = chunk_exam_pdf("", [text])
+        q5 = [c for c in chunks if c.question_no == 5][0]
+        assert q5.content.strip().endswith("分解为 BCNF。")
+        assert "三、" not in q5.content
+        assert "共 50 分" not in q5.content
+
     def test_no_questions_fallback(self):
         text = "This is just a regular text without any question markers."
         chunks = chunk_exam_pdf("", [text])

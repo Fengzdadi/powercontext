@@ -95,10 +95,13 @@ function render(d) {
 
   html += '<div class="card"><h2>掌握度卡片</h2>';
   if (d.mastery_cards && d.mastery_cards.length) {
-    html += '<table><tr><th>知识点</th><th>盒号</th><th>对/错</th><th>下次复习</th><th>artifact</th><th>轨迹</th></tr>' +
+    html += '<table><tr><th>知识点</th><th style="white-space:nowrap">盒号</th>' +
+      '<th style="white-space:nowrap">对/错</th><th style="white-space:nowrap">下次复习</th><th>artifact</th><th>轨迹</th></tr>' +
       d.mastery_cards.map(c =>
         `<tr><td>${escapeHtml(c.topic_id)} ${escapeHtml(c.topic_name)}</td>` +
-        `<td>${c.box}</td><td>${c.correct}/${c.wrong}</td><td>${escapeHtml(c.next_review || '—')}</td>` +
+        `<td style="white-space:nowrap">${c.box}</td>` +
+        `<td style="white-space:nowrap">${c.correct}/${c.wrong}</td>` +
+        `<td style="white-space:nowrap">${escapeHtml(c.next_review || '—')}</td>` +
         `<td><code>${escapeHtml(c.artifact_id)}</code> rev ${c.revision}</td>` +
         `<td><details><summary>${c.revisions.length} 个 revision</summary><ol>` +
         c.revisions.map(rv => `<li>rev ${rv.revision}：${escapeHtml(firstLine(rv.text))}</li>`).join('') +

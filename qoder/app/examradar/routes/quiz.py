@@ -1,7 +1,9 @@
 """出题与判分路由：quiz/next、quiz/answer。
 
 出题优先级：到期复习 > 覆盖分析 thin/missing（按盲区分）> 其余；
-同一会话不连续重复同一道题。进入知识点前 context/prepare 召回历史错题。
+同一知识点至少隔 2 道别的题，计划池先轮一遍再回到答错的；
+自测题在同一知识点的多道往年原题之间轮换。
+进入知识点前 context/prepare 召回历史错题。
 """
 from __future__ import annotations
 
@@ -49,11 +51,6 @@ def _topic_from_cov(cov: Optional[dict], topic_id: str) -> Optional[dict]:
     return None
 
 
-def _question_signature(payload: dict) -> tuple:
-    return (payload.get("topic_id"), payload.get("chunk_id"),
-            payload.get("question_type"), payload.get("expected_answer"))
-
-
 def _public_payload(payload: dict) -> dict:
     out = dict(payload)
     out.pop("expected_answer", None)
@@ -85,8 +82,14 @@ def quiz_next(req: QuizNextRequest,
         except PowerContextUnavailable:
             memory_ok = False
 
-    last_q = learning_store.last_question_of_session(req.session_id)
-    last_topic_id = last_q["topic_id"] if last_q else None
+    session_qs = learning_store.session_questions(req.session_id)
+    last_q = session_qs[-1] if session_qs else None
+    recent_topic_ids = [h["topic_id"] for h in session_qs]
+    wrong_counts: dict[str, int] = {}
+    for h in session_qs:
+        if h.get("answered_at") and h.get("correct") == 0:
+            tid = h["topic_id"]
+            wrong_counts[tid] = wrong_counts.get(tid, 0) + 1
 
     if req.topic_id:
         topic = _topic_from_cov(cov, req.topic_id)
@@ -95,7 +98,7 @@ def quiz_next(req: QuizNextRequest,
             topic = {"topic_id": st.topic_id, "topic_name": st.topic_name,
                      "coverage_level": None, "keywords": []}
     else:
-        topic = select_topic(mastery, cov, last_topic_id)
+        topic = select_topic(mastery, cov, recent_topic_ids, wrong_counts)
     if not topic:
         return JSONResponse(
             {"error": "没有可选的知识点：请先导入资料并运行覆盖分析"}, status_code=409)
@@ -111,7 +114,18 @@ def quiz_next(req: QuizNextRequest,
         except PowerContextUnavailable:
             memory_ok = False
 
-    last_sig = _question_signature(last_q["payload"]) if last_q else None
+    # 本会话这个知识点已经用过的出题材料：自测题在多道原题之间轮换，
+    # 填空题优先换一个挖空点
+    topic_history = [h for h in session_qs
+                     if h["topic_id"] == topic["topic_id"]]
+    used_exam_nos = [
+        (h["payload"].get("source") or {}).get("question_no")
+        for h in topic_history if h["payload"].get("question_type") == "self"]
+    used_exam_nos = [n for n in used_exam_nos if n is not None]
+    used_terms = {
+        h["payload"].get("expected_answer")
+        for h in topic_history if h["payload"].get("question_type") == "fill"}
+    used_terms.discard(None)
 
     def _topic_material_chunks() -> list[dict]:
         """出题材料：thin/covered 只用找到考点词的段落（原文属于这个知识点）。
@@ -125,22 +139,23 @@ def quiz_next(req: QuizNextRequest,
 
     def _rule_fill() -> Optional[dict]:
         chunks = _topic_material_chunks()
+        fallback: Optional[dict] = None
         for chunk in chunks:
-            q = make_fill_question(topic, chunk)
-            if q and (last_sig is None or _question_signature(q) != last_sig):
+            q = make_fill_question(topic, chunk, used_terms)
+            if q is None:
+                continue
+            if fallback is None:
+                fallback = q
+            if q["expected_answer"] not in used_terms:
                 return q
-        for chunk in chunks:
-            q = make_fill_question(topic, chunk)
-            if q:
-                return q
-        return None
+        return fallback
 
     payload: Optional[dict] = None
     llm_used = False
 
     if topic.get("coverage_level") == "missing":
         # missing 知识点：学生资料里没有原文，给往年原题自测
-        payload = make_self_test_question(topic, course_id)
+        payload = make_self_test_question(topic, course_id, used_exam_nos)
         if payload is None:
             payload = _rule_fill()
     else:

@@ -89,6 +89,28 @@ class TestFillQuestion:
         if q is not None:
             assert q["expected_answer"] not in ("函数依赖", "3NF", "BCNF")
 
+    def test_fill_rotates_blank_when_term_used(self):
+        """同一会话里这个知识点已经挖过的术语不再挖，换下一个。"""
+        topic = {"topic_id": "t08", "topic_name": "隔离级别与 MVCC",
+                 "keywords": [],
+                 "terms": [
+                     {"term": "隔离级别", "aliases": [], "found": True},
+                     {"term": "MVCC", "aliases": ["多版本并发控制"],
+                      "found": True},
+                 ]}
+        chunk = make_chunk(
+            "隔离级别由低到高有读未提交、读已提交等；MVCC 通过快照实现读写不阻塞。",
+            heading="5.5 隔离级别")
+        q1 = coach.make_fill_question(topic, chunk)
+        assert q1["expected_answer"] == "隔离级别"
+        q2 = coach.make_fill_question(topic, chunk, {"隔离级别"})
+        assert q2 is not None
+        assert q2["expected_answer"] == "MVCC"
+        # 都挖过了才重复第一个可用的
+        q3 = coach.make_fill_question(topic, chunk, {"隔离级别", "MVCC"})
+        assert q3 is not None
+        assert q3["expected_answer"] == "隔离级别"
+
 
 class TestTermMatchedChunks:
     """thin/covered 知识点的出题材料 = 找到考点词的段落。"""
@@ -153,6 +175,54 @@ class TestSelfTestQuestion:
         assert "笔记里没有这部分" in q["hint"]
         assert "期末试卷A.pdf" in q["source"]["label"]
         assert "第4题" in q["source"]["label"]
+
+    def test_exam_source_label_no_duplicate_question_no(self, monkeypatch):
+        """试卷块的出处：题号不写两遍（heading 已是“第N题”），分值写“N 分”。"""
+        from decimal import Decimal
+        topic = {"topic_id": "t04", "topic_name": "函数依赖与范式（3NF、BCNF）",
+                 "keywords": [], "coverage_level": "missing",
+                 "exam_questions": [{"question_no": 4, "points": 15.0,
+                                     "similarity": 0.9}]}
+        monkeypatch.setattr(coach, "_fetch_exam_chunk", lambda course, qno: {
+            "id": 55, "content": "4.（15 分）求候选码。",
+            "heading": "第4题", "page": 1, "question_no": 4,
+            # DB 的 DECIMAL 列读回来是 Decimal：'15.0' 不能原样进出处
+            "points": Decimal("15.0"), "document_id": 9})
+        monkeypatch.setattr(coach, "_doc_names",
+                            lambda course: {9: "2025-2026-1-期末试卷A.pdf"})
+        q = coach.make_self_test_question(topic, "db101")
+        assert q is not None
+        label = q["source"]["label"]
+        assert label == "2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 15 分"
+        assert label.count("第4题") == 1
+
+    def test_self_test_rotates_between_past_exam_questions(self, monkeypatch):
+        """同一知识点的多道往年原题之间轮换：第 4 题出过，下次出第 5 题。"""
+        topic = {"topic_id": "t04", "topic_name": "函数依赖与范式（3NF、BCNF）",
+                 "keywords": [], "coverage_level": "missing",
+                 "exam_questions": [{"question_no": 4, "points": 15.0,
+                                     "similarity": 0.9},
+                                    {"question_no": 5, "points": 10.0,
+                                     "similarity": 0.8}]}
+
+        def fake_fetch(course, qno):
+            return {"id": 50 + qno,
+                    "content": f"{qno}.（10 分）第 {qno} 题原文。",
+                    "heading": f"第{qno}题", "page": 1, "question_no": qno,
+                    "points": 10.0, "document_id": 9}
+        monkeypatch.setattr(coach, "_fetch_exam_chunk", fake_fetch)
+        monkeypatch.setattr(coach, "_doc_names",
+                            lambda course: {9: "2025-2026-1-期末试卷A.pdf"})
+
+        q1 = coach.make_self_test_question(topic, "db101")
+        assert q1["source"]["question_no"] == 4
+        q2 = coach.make_self_test_question(topic, "db101", [4])
+        assert q2["source"]["question_no"] == 5
+        # 都出过一遍后回到出得少的（同次数按题号）
+        q3 = coach.make_self_test_question(topic, "db101", [4, 5])
+        assert q3["source"]["question_no"] == 4
+        q4 = coach.make_self_test_question(topic, "db101", [4, 5, 4])
+        assert q4["source"]["question_no"] == 5
 
     def test_no_exam_question_returns_none(self, monkeypatch):
         topic = {"topic_id": "t05", "topic_name": "查询处理与优化",
@@ -264,6 +334,24 @@ class TestLLMGrading:
 
 
 class TestSelectTopic:
+    POOL = [
+        {"topic_id": "t04", "topic_name": "范式", "keywords": [],
+         "coverage_level": "missing", "coverage_score": 0.0,
+         "exam_weight": 25.0, "exam_questions": [], "blind_spot_score": 22.5},
+        {"topic_id": "t08", "topic_name": "隔离级别", "keywords": [],
+         "coverage_level": "thin", "coverage_score": 0.3,
+         "exam_weight": 10.0, "exam_questions": [], "blind_spot_score": 8.4},
+        {"topic_id": "t02", "topic_name": "SQL", "keywords": [],
+         "coverage_level": "thin", "coverage_score": 0.3,
+         "exam_weight": 10.0, "exam_questions": [], "blind_spot_score": 7.9},
+        {"topic_id": "t01", "topic_name": "关系模型", "keywords": [],
+         "coverage_level": "thin", "coverage_score": 0.3,
+         "exam_weight": 10.0, "exam_questions": [], "blind_spot_score": 7.0},
+        {"topic_id": "t05", "topic_name": "查询处理", "keywords": [],
+         "coverage_level": "thin", "coverage_score": 0.3,
+         "exam_weight": 10.0, "exam_questions": [], "blind_spot_score": 6.0},
+    ]
+
     def test_due_first(self):
         mastery = {
             "t03": {"state": MasteryState("t03", "索引", box=2,
@@ -275,8 +363,17 @@ class TestSelectTopic:
                           "keywords": [], "coverage_level": "missing",
                           "coverage_score": 0.1, "exam_weight": 25.0,
                           "exam_questions": [], "blind_spot_score": 22.5}]}
-        topic = coach.select_topic(mastery, cov, last_topic_id=None)
+        topic = coach.select_topic(mastery, cov)
         assert topic["topic_id"] == "t03"
+
+    def test_due_within_two_questions_skipped(self):
+        mastery = {
+            "t03": {"state": MasteryState("t03", "索引", box=2,
+                                          next_review=date(2026, 10, 27))},
+        }
+        topic = coach.select_topic(mastery, {"items": self.POOL},
+                                   recent_topic_ids=["t03", "t08"])
+        assert topic["topic_id"] != "t03"
 
     def test_blind_spot_by_exam_weight(self):
         cov = {"items": [
@@ -289,11 +386,45 @@ class TestSelectTopic:
              "exam_weight": 10.0, "exam_questions": [],
              "blind_spot_score": 7.0},
         ]}
-        topic = coach.select_topic({}, cov, last_topic_id=None)
+        topic = coach.select_topic({}, cov)
         assert topic["topic_id"] == "t04"
 
     def test_no_data_returns_none(self):
-        assert coach.select_topic({}, None, None) is None
+        assert coach.select_topic({}, None) is None
+
+    def test_plan_topics_rotate_once_before_repeats(self):
+        """计划池里的知识点先各出一遍（按盲区分），再回到答错的。"""
+        recent: list[str] = []
+        wrong: dict[str, int] = {}
+        order = []
+        for _ in range(6):
+            t = coach.select_topic({}, {"items": self.POOL}, recent, wrong)
+            order.append(t["topic_id"])
+            recent.append(t["topic_id"])
+            wrong[t["topic_id"]] = wrong.get(t["topic_id"], 0) + 1
+        assert order[:5] == ["t04", "t08", "t02", "t01", "t05"]
+        # 轮完一遍后回到答错的（盲区最高的 t04）
+        assert order[5] == "t04"
+
+    def test_returns_to_most_wrong_topic(self):
+        """轮完一遍后，答错次数多的知识点先回来。"""
+        recent = ["t04", "t08", "t02", "t01", "t05"]
+        wrong = {"t04": 1, "t08": 2, "t02": 1, "t01": 1, "t05": 1}
+        t = coach.select_topic({}, {"items": self.POOL}, recent, wrong)
+        assert t["topic_id"] == "t08"
+
+    def test_same_topic_keeps_two_question_gap(self):
+        """刚出过的知识点至少隔 2 道别的题再出。"""
+        recent: list[str] = []
+        wrong: dict[str, int] = {}
+        order = []
+        for _ in range(10):
+            t = coach.select_topic({}, {"items": self.POOL}, recent, wrong)
+            order.append(t["topic_id"])
+            if len(order) >= 3:
+                assert order[-1] not in order[-3:-1], order
+            recent.append(t["topic_id"])
+            wrong[t["topic_id"]] = wrong.get(t["topic_id"], 0) + 1
 
 
 class TestCoverageSnapshotFields:

@@ -1069,3 +1069,67 @@ t08（thin）填空题，挖空即考点词、出处为找到考点词的段落�
 
 - `docs/images/` 的 coach.png / memory.png 截图文件本身待补（本会话截图在 `.cache/scratch/`，不入库；README 截图表已按文件名引用，补齐即生效）。
 - LLM 出题/判分路径（choice/short 题型、LLM 判分、误区分析）在有 `LLM_BASE_URL` 的环境下未实测，本会话验证的是无模型规则路径 + 自评路径。
+
+---
+
+## 会话 10b — 修复复习教练与我的记忆页的五个问题（2026-10-29）
+
+**参与者**：产品负责人（任务输入）、Qoder（修复与验证）
+**模型**：GLM-5.3。开发栈（seekdb 10800 / PowerContext 18801）全程未动；本会话只用 18800（开发服务器）与 18805–18807（examradar-ci 栈）。
+
+### A. 做了什么
+
+1. **出题顺序（`coach.select_topic` / `routes/quiz.py` / `learning_store.py`）**
+   - `select_topic` 签名从 `last_topic_id` 改为 `(recent_topic_ids, wrong_counts)`：本会话最近 2 题出过的知识点跳过（同一知识点至少隔 2 道别的题）；计划池（thin/missing 按盲区分）先各出一遍，再回到本会话答错的（答错次数降序、同次数按盲区分），最后才重复其余；到期复习同样受"隔 2 题"约束。
+   - quiz/next 改读 `learning_store.session_questions()`（新增，按 created_at 升序全量取本会话题目）拿出题历史。
+   - **自测题轮换**：`make_self_test_question(topic, course_id, used_question_nos)` 按已出次数升序、同次数按题号选往年原题——t04 第 4 题出过，下次出第 5 题。
+   - **填空挖空轮换**：`make_fill_question(…, used_terms)` 优先换一个没挖过的术语，都挖过了才重复第一个可用的。
+   - `learning_store`：quiz_questions 建表改 `DATETIME(3)` 并对旧表幂等 MODIFY——连续两题落在同一秒时秒级 DATETIME 排不出先后，轮换逻辑会读错历史。
+2. **出处题号去重 + 分值格式（`coach._chunk_source`）**：试卷块 heading 本身是"第N题"时不再重复追加题号，只补"15 分"（`float(points):g`——DB DECIMAL 读回是 Decimal，直接 `:g` 会输出 "15.0 分"）；非试卷块保持"第N题（15 分）"。
+3. **开场白去重（`mastery.build_opening_line`）**：按 topic_id 记录已提过的知识点，既错了又是盲区的合成一句——"上次你在『函数依赖与范式（3NF、BCNF）』上错了 2 次，先复习它（往年考 25 分但笔记里没有）"；"今天到期"同样可并盲区括注。
+4. **记忆页表格不折行（`static/memory.html`）**："盒号""对/错""下次复习"三列的表头和单元格加 `white-space:nowrap`，1440px 下不再折成两行。
+5. **切题去掉大题标题（`chunker.py`）**：新增 `_strip_trailing_section_titles`——大题标题行（"一、/二、…"开头且带"共 N 分"）不再留在上一题原文末尾（第 5 题曾带上"三、查询处理与事务（共 50 分）"）。
+6. **开发库重导试卷 + 重跑分析**（脚本 `.cache/scratch/s10b_reimport.py`）：删旧试卷文档（11 块）→ 重导（11 块）→ analyze run_id 10。第 4/5 题原文各自干净；10 个判定、11 道题归属全部仍与设计真值一致（t04/t01/t05 missing，t02/t08 thin，其余 covered；第 5 题→t04 10 分）；盲区池顺序 t04(25) > t08(8.41) > t02(7.92) > t01(5) > t05(5)。
+7. **e2e 脚本**：复习教练步骤的既有序列（t04→t04 指定→t08 填空）与新出题顺序天然兼容，零改动全绿。
+
+### B. 新增单测（10 条，`test_quizgen.py` / `test_mastery.py` / `test_chunker.py`）
+
+- 出题顺序：`test_plan_topics_rotate_once_before_repeats`（计划池先轮一遍再回到答错的）、`test_returns_to_most_wrong_topic`、`test_same_topic_keeps_two_question_gap`（10 连选题，任何题的知识点不出现在前两题里）、`test_due_within_two_questions_skipped`；
+- 自测题轮换：`test_self_test_rotates_between_past_exam_questions`（第4题→第5题→回到第4题）；
+- 出处：`test_exam_source_label_no_duplicate_question_no`（含 Decimal 分值）；
+- 开场白：`test_opening_line_topic_mentioned_once`、`test_opening_line_due_and_blind_merged`；
+- 填空轮换：`test_fill_rotates_blank_when_term_used`；
+- 切题：`test_trailing_section_title_not_in_question_content`。
+
+### C. 开发库 6 题实测（学习者 `10b验收同学011227`，全部答错/自评"不会"）
+
+| # | 知识点 | 题型 | 出处 |
+| --- | --- | --- | --- |
+| 1 | t04 函数依赖与范式（3NF、BCNF） | 自测（第4题） | 2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 15 分 |
+| 2 | t08 隔离级别与 MVCC | 填空 | 05-事务与并发控制.md · 第5章 … > 5.5 隔离级别（只记了个大概，课上讲得快） |
+| 3 | t02 SQL 查询与视图 | 填空 | 02-SQL速记.md · 第2章 SQL（速记，没整理完） > 基本查询 |
+| 4 | t01 关系模型与关系代数 | 自测（第1题） | 2025-2026-1-期末试卷A.pdf · 第1页 · 第1题 · 5 分 |
+| 5 | t05 查询处理与优化 | 自测（第6题） | 2025-2026-1-期末试卷A.pdf · 第2页 · 第6题 · 5 分 |
+| 6 | t04 函数依赖与范式（3NF、BCNF） | 自测（第5题） | 2025-2026-1-期末试卷A.pdf · 第1页 · 第5题 · 10 分 |
+
+计划池 5 个知识点先轮一遍（t04→t08→t02→t01→t05），第 6 题回到答错次数最多的 t04 且自测题从第 4 题轮换到第 5 题；结束会话（6 题 0 对）后新会话开场白："上次你在『函数依赖与范式（3NF、BCNF）』上错了 2 次，先复习它（往年考 25 分但笔记里没有）；『查询处理与优化』错了 1 次（往年考 5 分但笔记里没有）；『SQL 查询与视图』错了 1 次；『关系模型与关系代数』往年考 5 分但笔记里没有"——每个知识点只出现一次。
+
+### D. 遇到的问题和解决办法
+
+1. **quiz_next 变量遮蔽 bug（本次实测发现）**：选题历史与 prepare 召回的错题都叫 `history`，第二个赋值把题目历史覆盖了，第 4 题起 500（`KeyError: 'topic_id'`）。改名为 `session_qs` 后修复。
+2. **DB DECIMAL 读回 Decimal**：`f"{points:g}"` 对 Decimal 输出 "15.0"，与要求 "15 分" 不符——先 `float()` 再 `:g`，并补 Decimal 用例的单测。
+3. **秒级 DATETIME 排不出同秒两题的先后**：6 题实测里连续请求常落在同一秒，`created_at` 秒级精度导致"最近 2 题"计算错位——建表/幂等迁移改 `DATETIME(3)`（毫秒）。
+4. **表格"单行高"的验证方法**：行高被"知识点/artifact/轨迹"列撑到 71px，不能只看单元格高度——用 `Range.getClientRects().length` 逐单元格数行框，"盒号/对/错/下次复习"四列全部 1 行（截图 `.cache/scratch/s10b-memory-table.png` 已人工核对）。
+
+### E. 验收结果
+
+| 验收项 | 结果 |
+| --- | --- |
+| `uv run pytest`（单测） | ✅ 223 passed, 28 skipped（基线 213 + 新增 10） |
+| `export EXAMRADAR_IT=1 && uv run pytest -m integration` | ✅ 34 passed |
+| 新增单测（出题顺序 / 自测轮换 / 开场白） | ✅ 见 B 节 10 条，全部通过 |
+| 开发库重导试卷 + 重跑分析 | ✅ 10 个判定、11 道归属仍与设计真值一致；第 5 题原文不再带大题标题 |
+| 新学习者 6 题（全错/不会）实测 | ✅ 见 C 节表格；顺序、原题轮换、出处格式、开场白全部符合要求 |
+| 浏览器验证（1440×900，`?source=auto`） | ✅ 掌握度卡片表表头与日期单元格全部单行（Range 行框数全为 1）；截图 `.cache/scratch/s10b-memory-1440.png`、`s10b-memory-table.png`，Read 复核过 |
+| e2e | ✅ `docker compose -p examradar-ci --env-file .env.ci up -d --build` 后 `python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18807` 5 步 66 项检查全 ✅，报告写入 `docs/validation/e2e-report.md`；复习教练步骤与新出题顺序兼容，脚本零改动 |
+| 会话结束清理 | ✅ examradar-ci `down -v`（容器/网络/两卷全删，`ps` 为空）；18800 开发服务器已停；`git status` 只有本会话改动 + harness 会话产物（`dev-records/sessions/10b-*`，未改动） |

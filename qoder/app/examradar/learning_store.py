@@ -49,7 +49,7 @@ def ensure_learning_tables() -> None:
                     topic_name   VARCHAR(256) NOT NULL,
                     question_type VARCHAR(16) NOT NULL,
                     payload      TEXT NOT NULL,
-                    created_at   DATETIME NOT NULL,
+                    created_at   DATETIME(3) NOT NULL,
                     answered_at  DATETIME,
                     answer       TEXT,
                     correct      TINYINT,
@@ -58,6 +58,17 @@ def ensure_learning_tables() -> None:
                     INDEX idx_session (session_id)
                 ) ORGANIZATION HEAP
             """)
+            # 出题顺序逻辑需要按毫秒精度排序同一秒内的多道题
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT COLUMN_TYPE FROM information_schema.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() "
+                    "AND TABLE_NAME = 'quiz_questions' AND COLUMN_NAME = 'created_at'")
+                row = cur.fetchone()
+                if row and "datetime(3)" not in str(row.get("COLUMN_TYPE", "")).lower():
+                    cur.execute(
+                        "ALTER TABLE quiz_questions "
+                        "MODIFY created_at DATETIME(3) NOT NULL")
     finally:
         conn.close()
 
@@ -214,6 +225,23 @@ def last_question_of_session(session_id: str) -> Optional[dict]:
             return row
     finally:
         conn.close()
+
+
+def session_questions(session_id: str) -> list[dict]:
+    """本会话的全部题目（按出题顺序，旧 → 新），payload 已解析。"""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM quiz_questions WHERE session_id = %s "
+                "ORDER BY created_at ASC, id ASC", (session_id,))
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+    for row in rows:
+        if isinstance(row.get("payload"), str):
+            row["payload"] = json.loads(row["payload"])
+    return rows
 
 
 def session_question_stats(session_id: str) -> dict:
