@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>使用记录 — 考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/source.js"></script>
 </head>
 <body>
 <header>
@@ -15,6 +17,8 @@
 <a href="/import.html">导入资料</a>
 <a href="/ask.html">问笔记</a>
 <a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
 <a href="/usage.html">使用记录</a>
 </nav>
 </div>
@@ -47,12 +51,23 @@
 <script src="/static/lib/echarts.min.js"></script>
 <script>
 function getSourceHeader() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('source') === 'auto' ? 'auto' : 'real';
+  return window.examRadarSource ? window.examRadarSource() : 'real';
 }
 
-function getTzOffsetMinutes() {
-  return new Date().getTimezoneOffset();
+function getTzName() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch (e) {
+    return 'UTC';
+  }
+}
+
+function fmtStudyTime(minutes) {
+  if (minutes === null || minutes === undefined) return '—';
+  if (minutes < 60) return minutes + ' 分钟';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return m ? `${h} 小时 ${m} 分钟` : `${h} 小时`;
 }
 
 async function loadStats() {
@@ -61,13 +76,16 @@ async function loadStats() {
   const area = document.getElementById('stats-area');
   area.innerHTML = '<div class="card"><p>加载中...</p></div>';
   try {
-    const r = await fetch(`/api/usage/stats?course_id=${encodeURIComponent(cid)}&source=${source}&tz_offset_minutes=${getTzOffsetMinutes()}`);
+    const r = await fetch(`/api/usage/stats?course_id=${encodeURIComponent(cid)}&source=${source}&tz=${encodeURIComponent(getTzName())}`);
     const d = await r.json();
+    if (!r.ok) { area.innerHTML = `<div class="card"><span style="color:red">${escapeHtml(d.detail || '加载失败')}</span></div>`; return; }
     renderStats(d);
   } catch(e) {
     area.innerHTML = '<div class="card"><span style="color:red">加载失败</span></div>';
   }
 }
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
 function renderStats(data) {
   const area = document.getElementById('stats-area');
@@ -81,8 +99,9 @@ function renderStats(data) {
   html += statBox('分析次数', data.analyze_count);
   html += statBox('答题次数', data.quiz_count);
   html += statBox('总事件数', data.total_events);
+  html += statBox('累计学习时长', fmtStudyTime(data.study_minutes));
   html += '</div>';
-  html += `<p style="margin-top:12px;font-size:13px;color:#888">数据来源: ${data.source === 'real' ? '真实使用' : '开发/测试'} | 课程: ${data.course_id}</p>`;
+  html += `<p style="margin-top:12px;font-size:13px;color:#888">数据来源: ${data.source === 'real' ? '真实使用' : '开发/测试'} | 课程: ${escapeHtml(data.course_id)} | 时区: ${escapeHtml(data.tz || 'UTC')}（按天统计按此时区计算；累计学习时长按学习会话计算——会话开始到最后一个事件，30 分钟无事件视为结束）</p>`;
   html += '</div>';
 
   if (data.daily && data.daily.length) {
@@ -136,6 +155,10 @@ async function exportJSON() {
 }
 
 document.getElementById('source-select').addEventListener('change', loadStats);
+// when browsing in auto (dev/test) mode, the auto data is what we want to see
+if (getSourceHeader() === 'auto') {
+  document.getElementById('source-select').value = 'auto';
+}
 loadStats();
 </script>
 </body>

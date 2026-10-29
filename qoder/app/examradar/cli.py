@@ -124,8 +124,10 @@ def main():
     sql_cmd = sub.add_parser("sql", help="Run a SQL statement against seekdb and print a table")
     sql_cmd.add_argument("statement", help="SQL statement, e.g. \"SELECT ...\"")
 
-    dc = sub.add_parser("delete-course", help="Delete all data of a course")
+    dc = sub.add_parser("delete-course", help="Delete a course's materials and coverage analyses (usage_events are kept)")
     dc.add_argument("course", help="Course ID")
+    dc.add_argument("--include-usage", action="store_true",
+                    help="Also delete this course's usage_events (the usage log)")
 
     args = parser.parse_args()
     if args.command == "import":
@@ -133,9 +135,10 @@ def main():
     elif args.command == "sql":
         run_sql(args.statement)
     elif args.command == "delete-course":
-        counts = delete_course(args.course)
+        counts = delete_course(args.course, include_usage=args.include_usage)
         print(f"Deleted course {args.course}: " +
-              ", ".join(f"{t}={n}" for t, n in counts.items()))
+              ", ".join(f"{t}={n}" for t, n in counts.items()) +
+              (" (usage_events kept)" if not args.include_usage else ""))
     else:
         parser.print_help()
 

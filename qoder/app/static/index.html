@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/source.js"></script>
 </head>
 <body>
 <header>
@@ -15,11 +17,29 @@
 <a href="/import.html">导入资料</a>
 <a href="/ask.html">问笔记</a>
 <a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
 <a href="/usage.html">使用记录</a>
 </nav>
 </div>
 </header>
 <div class="container">
+<div class="card">
+<h2>开始复习</h2>
+<div class="form-row">
+<div>
+<label for="learner-name">你的名字</label>
+<input type="text" id="learner-name" placeholder="例如：验收同学">
+</div>
+<div>
+<label for="learner-course">课程 ID</label>
+<input type="text" id="learner-course" value="db101">
+</div>
+</div>
+<button class="btn" style="margin-top:12px" id="review-start-btn" onclick="startReview()">开始复习</button>
+<div id="opening-line" style="margin-top:12px"></div>
+<button class="btn" id="enter-coach-btn" style="display:none;margin-top:12px" onclick="enterCoach()">进入复习教练</button>
+</div>
 <div class="card">
 <h2>系统状态</h2>
 <div id="health">加载中...</div>
@@ -30,6 +50,8 @@
 <a href="/import.html">导入资料</a>
 <a href="/ask.html">问笔记</a>
 <a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
 <a href="/usage.html">使用记录</a>
 </div>
 </div>
@@ -78,8 +100,54 @@ function fmtLocalTime(iso) {
   const d = new Date(iso);
   return isNaN(d) ? iso : d.toLocaleString();
 }
+
+const SRC = new URLSearchParams(window.location.search).get('source') === 'auto' ? 'auto' : null;
+const HDRS = Object.assign({'Content-Type': 'application/json'}, SRC ? {'X-ExamRadar-Source': SRC} : {});
+
+function initReview() {
+  const saved = localStorage.getItem('examradar_learner');
+  if (saved) document.getElementById('learner-name').value = saved;
+  const course = localStorage.getItem('examradar_course');
+  if (course) document.getElementById('learner-course').value = course;
+}
+
+async function startReview() {
+  const learner = document.getElementById('learner-name').value.trim();
+  const course = document.getElementById('learner-course').value.trim();
+  const el = document.getElementById('opening-line');
+  if (!learner) { el.innerHTML = '<span style="color:#888">请先输入你的名字</span>'; return; }
+  const btn = document.getElementById('review-start-btn');
+  btn.disabled = true; btn.textContent = '开始中...';
+  try {
+    const r = await fetch('/api/sessions/start', {
+      method: 'POST', headers: HDRS,
+      body: JSON.stringify({learner, course_id: course})
+    });
+    const d = await r.json();
+    if (!r.ok) { el.innerHTML = '<span style="color:red">' + (d.error || '开始失败') + '</span>'; return; }
+    localStorage.setItem('examradar_learner', learner);
+    localStorage.setItem('examradar_course', course);
+    localStorage.setItem('examradar_session', d.session_id);
+    el.innerHTML = (d.memory_ok ? '' : '<div style="color:#c88000">记忆服务暂不可用</div>') +
+      (d.opening_line
+        ? '<div class="status ok">' + escapeHtml(d.opening_line) + '</div>'
+        : '<div class="status">这是你的第一次复习，还没有历史记忆。</div>');
+    document.getElementById('enter-coach-btn').style.display = '';
+  } catch (e) {
+    el.innerHTML = '<span style="color:red">网络错误: ' + escapeHtml(e.message) + '</span>';
+  }
+  btn.disabled = false; btn.textContent = '开始复习';
+}
+
+function enterCoach() {
+  window.location.href = '/coach.html' + (SRC ? '?source=auto' : '');
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
 checkHealth();
 loadDocs();
+initReview();
 </script>
 </body>
 </html>

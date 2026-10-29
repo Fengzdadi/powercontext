@@ -330,7 +330,7 @@ LEITNER_INTERVALS=1,2,4,7,14
 |------|----------|
 | `chunker` | MD 按标题切块保留 heading 路径；PDF 按页切块；块大小 [200,1000] 字符 |
 | `coverage` | mock hits → coverage_score 计算 + covered/thin/missing 判定 |
-| `mastery` | Leitner 递推（答对+1/答错-1/边界 1 和 5）；next_review |
+| `mastery` | Leitner 递推（答对 +1 最多 5；答错或"不会"回到 1 号盒）；next_review |
 | `scoring` | 选择精确匹配；填空忽略空白；无 LLM 简答返回参考答案 |
 | `pc_client` | mock HTTP → bootstrap/prepare/replace 参数 + 缺陷规避 |
 

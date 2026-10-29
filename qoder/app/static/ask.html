@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>问笔记 — 考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/source.js"></script>
 </head>
 <body>
 <header>
@@ -15,6 +17,8 @@
 <a href="/import.html">导入资料</a>
 <a href="/ask.html">问笔记</a>
 <a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
 <a href="/usage.html">使用记录</a>
 </nav>
 </div>
@@ -36,6 +40,7 @@
 </div>
 <label for="query-input">你的问题</label>
 <textarea id="query-input" rows="2" placeholder="例如：B+树插入时结点怎么分裂？"></textarea>
+<div id="llm-note" style="margin-top:6px;color:#888;font-size:0.9em"></div>
 <button class="btn" style="margin-top:12px" id="search-btn" onclick="doSearch()">检索</button>
 </div>
 <div id="results-area"></div>
@@ -44,10 +49,22 @@
 <script src="/static/lib/marked.min.js"></script>
 <script>
 const SHOW_FIRST = 5;
+let llmConfigured = false;
 
 function getSourceHeader() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('source') === 'auto' ? 'auto' : null;
+  return window.examRadarSource ? window.examRadarSource() : null;
+}
+
+async function checkLlm() {
+  try {
+    const r = await fetch('/api/coach/status');
+    const d = await r.json();
+    llmConfigured = !!(d.llm && d.llm.configured);
+    if (llmConfigured) {
+      const box = document.getElementById('llm-note');
+      if (box) box.textContent = 'AI 回答已启用（' + (d.llm.model || 'LLM') + '）：检索后自动生成带 [n] 引用的回答';
+    }
+  } catch (e) { /* ignore */ }
 }
 
 function sourceLine(item) {
@@ -64,7 +81,16 @@ function fmtScore(v, digits) {
 }
 
 function renderContent(text) {
-  return marked.parse(escapeHtml(text));
+  let html = marked.parse(escapeHtml(text || ''));
+  // CommonMark leaves **…** literal when the closing delimiter follows
+  // punctuation and precedes a CJK letter（"（redo）**来"）; fall back to
+  // <strong> for leftover pairs outside code/pre
+  if (html.includes('**')) {
+    html = html.replace(
+      /(<(?:code|pre)[\s\S]*?<\/(?:code|pre)>)|\*\*([^*\n]+?)\*\*/g,
+      (m, code, inner) => code ? code : '<strong>' + inner + '</strong>');
+  }
+  return html;
 }
 
 function resultHtml(item) {
@@ -96,6 +122,7 @@ async function doSearch() {
         course_id: document.getElementById('course-id').value,
         include_exam: document.getElementById('include-exam').checked,
         top_k: 10,
+        with_answer: llmConfigured,
       })
     });
     const d = await r.json();
@@ -103,7 +130,15 @@ async function doSearch() {
       area.innerHTML = '<div class="card"><p>没有找到相关结果</p></div>';
       return;
     }
-    let html = '<div class="card"><h2>检索结果</h2>';
+    let html = '';
+    if (d.llm_answer && d.llm_answer.answer) {
+      html += '<div class="card"><h2>AI 回答</h2><div class="content md">' +
+        marked.parse(escapeHtml(d.llm_answer.answer)) + '</div>' +
+        '<div class="meta">引用编号对应下方检索结果</div></div>';
+    } else if (d.llm_answer && d.llm_answer.error) {
+      html += '<div class="card status warn">AI 回答生成失败：' + escapeHtml(d.llm_answer.error) + '</div>';
+    }
+    html += '<div class="card"><h2>检索结果</h2>';
     html += d.results.slice(0, SHOW_FIRST).map(resultHtml).join('');
     html += `<div id="more-results" style="display:none">` +
       d.results.slice(SHOW_FIRST).map(resultHtml).join('') + `</div>`;
@@ -131,6 +166,7 @@ function escapeHtml(s) { const d = document.createElement('div'); d.textContent 
 document.getElementById('query-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSearch(); }
 });
+checkLlm();
 </script>
 </body>
 </html>

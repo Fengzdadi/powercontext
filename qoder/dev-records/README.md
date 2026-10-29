@@ -41,10 +41,20 @@
 | `03-fix-2-acceptance-summary.png` | 验收 | 会话 03 结尾：6 条验收检索全部第一条命中，测试全部通过 |
 | `04-m2-1-debug-exam-weights-zero.png` | 调试 | 会话 04：校准时所有试题权重都是 0，Qoder 逐步排查，发现校准脚本查试卷块时没有取 `embedding` 列 |
 | `04-m2-2-acceptance-summary.png` | 验收 | 会话 04 结尾：Qoder 如实标出没过的两项（覆盖判定 4/10、试题归属 10/11），交给会话 05 修复 |
+| `05-fix-1-support-threshold-margin.png` | 调试 | 会话 05：t02 的支撑字数离阈值只差 17 字，Qoder 把阈值从 250 调到 280，核对单测构造数据的余量，再跑校准确认判定不变 |
+| `05-fix-2-acceptance-summary.png` | 验收 | 会话 05 结尾：10 个判定、11 道题的归属与设计真值一致，盲区第一是 t04（25 分，覆盖度 0） |
+| `06-docker-1-check-wheel-platforms.png` | 设计 | 会话 06：为了让镜像在 amd64 和 arm64 上都能构建，Qoder 逐个核对 seekdb 镜像、PowerContext 和应用原生依赖的 wheel 平台 |
+| `06b-docker-fix-1-license-sha-and-layers.png` | 修复 | 会话 06b：Qoder 用 curl 下载 Apache-2.0 官方原文并核对 sha256，再改写 Dockerfile 的分层顺序 |
+| `05b-radar-order-1-acceptance-summary.png` | 验收 | 会话 05b 结尾：两个覆盖接口共用一个排序函数，盲区第一都是 t04；雷达标签只在"：""与""（"和空格处换行，浏览器量出 30 个 SVG 标签都在容器内 |
+| `07-m3-1-acceptance-summary.png` | 验收 | 会话 07 结尾：无模型全流程、本机 Ollama 出题、PowerContext 不可用时降级、30 分钟空闲结束会话都验证通过；顺手修了 `memory_ok` 误报和使用事件被误记成真实使用的问题 |
+| `08a-e2e-1-expected-red-check-and-report-fix.png` | 调试 | 会话 08a：验证脚本如实报出唯一一项 ❌（当时 `get_latest()` 还没按盲区排序，由会话 05b 修），并修好报告里一处被截断的说明 |
+| `08b-docs-1-cd-app-root-cause.png` | 调试 | 会话 08b：开发服务器两次启动失败，Qoder 查到原因是工作目录已经在 `app/` 里，再 `cd app` 就会失败；之后按 README 的写法另起一个实例实测 |
+| `09b-site-1-fixes-measured.png` | 验收 | 会话 09b 结尾：网站的 9 条审阅意见逐条修复，并在 1440px 和 375px 两种宽度下用 DOM 和 ECharts 接口量测 |
 
-会话 03 和会话 04 中途 Qoder 各压缩过一次上下文，`--resume` 只显示压缩之后的部分。所以截图里看不到这两段过程：
+会话 03、04、05 中途 Qoder 各压缩过一次上下文，`--resume` 只显示压缩之后的部分。所以截图里看不到这几段过程：
 - 会话 03 的检索排序调试（标题加权参数扫描、RRF 平分时用关键词分决胜）；
-- 会话 04 前半段的编码（考试范围解析、覆盖度引擎）。
+- 会话 04 前半段的编码（考试范围解析、覆盖度引擎）；
+- 会话 05 前半段的编码（按考点词判定覆盖、按考点词归属试题、切块修复）。
 
 完整过程在 `sessions/` 和 `transcripts/` 里的同名文件中。`docs/DEVLOG.md` 的会话 03 一节有修改前后的对比表。
 

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>我的记忆 — 考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/source.js"></script>
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+<a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
+<a href="/usage.html">使用记录</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>我的记忆</h2>
+<div class="form-row">
+<div>
+<label for="learner-input">你的名字</label>
+<input type="text" id="learner-input" placeholder="例如：验收同学">
+</div>
+<div>
+<label for="course-id">课程 ID</label>
+<input type="text" id="course-id" value="db101">
+</div>
+</div>
+<button class="btn" style="margin-top:12px" onclick="loadMemory()">查看记忆</button>
+<div id="memory-notice" class="status err" style="display:none;margin-top:12px">记忆服务暂不可用</div>
+<div id="scope-info" style="margin-top:12px"></div>
+</div>
+<div id="memory-area"></div>
+</div>
+<script>
+const SRC = new URLSearchParams(window.location.search).get('source') === 'auto' ? 'auto' : null;
+const HDRS = Object.assign({'Content-Type': 'application/json'}, SRC ? {'X-ExamRadar-Source': SRC} : {});
+
+function ls(key, val) {
+  if (val !== undefined) localStorage.setItem(key, val);
+  return localStorage.getItem(key);
+}
+
+function init() {
+  document.getElementById('learner-input').value = ls('examradar_learner') || '';
+  document.getElementById('course-id').value = ls('examradar_course') || 'db101';
+}
+
+async function loadMemory() {
+  const learner = document.getElementById('learner-input').value.trim();
+  const course = document.getElementById('course-id').value.trim();
+  if (!learner) { alert('请输入你的名字'); return; }
+  ls('examradar_learner', learner);
+  ls('examradar_course', course);
+  const area = document.getElementById('memory-area');
+  area.innerHTML = '<div class="card"><p>加载中...</p></div>';
+  try {
+    const r = await fetch('/api/memory?learner=' + encodeURIComponent(learner) +
+      '&course_id=' + encodeURIComponent(course));
+    const d = await r.json();
+    if (!r.ok) { area.innerHTML = '<div class="card status err">' + escapeHtml(d.error || '加载失败') + '</div>'; return; }
+    render(d);
+  } catch (e) {
+    area.innerHTML = '<div class="card status err">网络错误: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function render(d) {
+  document.getElementById('memory-notice').style.display = d.memory_ok ? 'none' : '';
+  document.getElementById('scope-info').innerHTML =
+    d.scope_id ? `<div class="meta">PowerContext Scope：<code>${escapeHtml(d.scope_id)}</code></div>` : '';
+  const area = document.getElementById('memory-area');
+  let html = '';
+
+  html += '<div class="card"><h2>复习计划</h2>';
+  if (d.review_plan) {
+    const p = d.review_plan;
+    html += `<div class="meta">artifact ${escapeHtml(p.artifact_id)} · revision ${p.revision} · 共 ${p.revisions.length} 个 revision</div>`;
+    html += '<p>' + escapeHtml((p.text || '').split('\n')[0]) + '</p>';
+    html += '<details><summary>计划全文</summary><pre>' + escapeHtml(p.text) + '</pre></details>';
+    html += '<details><summary>revision 历史</summary><ol>' +
+      p.revisions.map(rv => `<li>rev ${rv.revision}：<pre>${escapeHtml(rv.text)}</pre></li>`).join('') + '</ol></details>';
+  } else html += '<p style="color:#888">还没有复习计划</p>';
+  html += '</div>';
+
+  html += '<div class="card"><h2>掌握度卡片</h2>';
+  if (d.mastery_cards && d.mastery_cards.length) {
+    html += '<table><tr><th>知识点</th><th>盒号</th><th>对/错</th><th>下次复习</th><th>artifact</th><th>轨迹</th></tr>' +
+      d.mastery_cards.map(c =>
+        `<tr><td>${escapeHtml(c.topic_id)} ${escapeHtml(c.topic_name)}</td>` +
+        `<td>${c.box}</td><td>${c.correct}/${c.wrong}</td><td>${escapeHtml(c.next_review || '—')}</td>` +
+        `<td><code>${escapeHtml(c.artifact_id)}</code> rev ${c.revision}</td>` +
+        `<td><details><summary>${c.revisions.length} 个 revision</summary><ol>` +
+        c.revisions.map(rv => `<li>rev ${rv.revision}：${escapeHtml(firstLine(rv.text))}</li>`).join('') +
+        '</ol></details></td></tr>').join('') + '</table>';
+  } else html += '<p style="color:#888">还没有掌握度卡片</p>';
+  html += '</div>';
+
+  html += '<div class="card"><h2>错题</h2>';
+  if (d.mistakes && d.mistakes.length) {
+    html += d.mistakes.map(m =>
+      `<div class="result-item"><div class="meta"><code>${escapeHtml(m.artifact_id || '—')}</code> rev ${m.revision ?? '—'}</div>` +
+      '<pre style="white-space:pre-wrap">' + escapeHtml(m.text) + '</pre></div>').join('');
+  } else html += '<p style="color:#888">还没有错题记录</p>';
+  html += '</div>';
+
+  html += '<div class="card"><h2>会话小结</h2>';
+  if (d.session_summaries && d.session_summaries.length) {
+    html += d.session_summaries.map(m =>
+      `<div class="result-item"><div class="meta"><code>${escapeHtml(m.artifact_id || '—')}</code> rev ${m.revision ?? '—'}</div>` +
+      '<pre style="white-space:pre-wrap">' + escapeHtml(m.text) + '</pre></div>').join('');
+  } else html += '<p style="color:#888">还没有会话小结</p>';
+  html += '</div>';
+
+  if (d.bootstrap) {
+    html += '<div class="card"><h2>bootstrap 校验</h2>' +
+      `<div class="meta">status: ${escapeHtml(d.bootstrap.status || '—')}${d.bootstrap.reason ? ' · ' + escapeHtml(d.bootstrap.reason) : ''}</div>`;
+    if (d.bootstrap.items && d.bootstrap.items.length) {
+      html += '<ul>' + d.bootstrap.items.map(it =>
+        `<li><code>${escapeHtml(it.artifact_id || '—')}</code> rev ${it.revision ?? '—'}</li>`).join('') + '</ul>';
+      html += '<details><summary>bootstrap content</summary><pre>' + escapeHtml(d.bootstrap.content || '') + '</pre></details>';
+    }
+    html += '</div>';
+  }
+
+  if (d.pc_calls && d.pc_calls.length) {
+    html += '<div class="card"><h2>PowerContext 请求 / 响应摘要</h2>' +
+      '<table><tr><th>时间</th><th>请求</th><th>状态</th><th>响应摘要</th></tr>' +
+      d.pc_calls.slice().reverse().map(c =>
+        `<tr><td>${escapeHtml((c.ts || '').replace('T',' ').slice(0,19))}</td>` +
+        `<td><code>${escapeHtml(c.method)} ${escapeHtml(c.path)}</code><br><span style="color:#888">${escapeHtml(String(c.request || '').slice(0,120))}</span></td>` +
+        `<td>${c.status ?? '—'}</td><td style="color:#888">${escapeHtml(String(c.response || '').slice(0,160))}</td></tr>`).join('') +
+      '</table></div>';
+  }
+  area.innerHTML = html;
+}
+
+function firstLine(t) { return (t || '').split('\n')[0]; }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+init();
+</script>
+</body>
+</html>

@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>考前覆盖雷达 — 考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<style>
+  /* blind-spot table: headers and the 查看理由 toggle must stay on one
+     line; on narrow screens the table scrolls horizontally instead
+     (scope to this table: evidence Markdown also renders <table> here) */
+  .blindspot th, .blindspot summary { white-space: nowrap; }
+  .table-wrap { overflow-x: auto; }
+</style>
+<script src="/static/js/source.js"></script>
 </head>
 <body>
 <header>
@@ -15,6 +24,8 @@
 <a href="/import.html">导入资料</a>
 <a href="/ask.html">问笔记</a>
 <a href="/radar.html">覆盖雷达</a>
+<a href="/coach.html">复习教练</a>
+<a href="/memory.html">我的记忆</a>
 <a href="/usage.html">使用记录</a>
 </nav>
 </div>
@@ -40,6 +51,8 @@
 
 <div id="results-area"></div>
 </div>
+<!-- marked v15.0.12 (MIT), vendored from https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js -->
+<script src="/static/lib/marked.min.js"></script>
 <script src="/static/lib/echarts.min.js"></script>
 <script>
 const SAMPLE_SYLLABUS = `《数据库系统原理》2026 秋 期末考试范围
@@ -55,8 +68,96 @@ const SAMPLE_SYLLABUS = `《数据库系统原理》2026 秋 期末考试范围
 10. 分布式事务与两阶段提交（2PC）`;
 
 function getSourceHeader() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('source') === 'auto' ? 'auto' : 'real';
+  return window.examRadarSource ? window.examRadarSource() : 'real';
+}
+
+function renderContent(text) {
+  let html = marked.parse(escapeHtml(text || ''));
+  // CommonMark leaves **…** literal when the closing delimiter follows
+  // punctuation and precedes a CJK letter（"（redo）**来"）; fall back to
+  // <strong> for leftover pairs outside code/pre
+  if (html.includes('**')) {
+    html = html.replace(
+      /(<(?:code|pre)[\s\S]*?<\/(?:code|pre)>)|\*\*([^*\n]+?)\*\*/g,
+      (m, code, inner) => code ? code : '<strong>' + inner + '</strong>');
+  }
+  return html;
+}
+
+// Break a topic name into short axis-label lines, but only at natural
+// points: after ：/与/space and before （. English words and acronyms
+// (3NF, BCNF, WAL, ARIES, MVCC, ACID) are atomic units and never split.
+const LABEL_BREAK_AFTER = new Set(['：', '与', ' ']);
+const LABEL_MAX_WIDTH = 14; // display units: CJK char = 2, ASCII = 1
+
+function labelUnits(text) {
+  const units = [];
+  let cur = '';
+  for (const ch of text) {
+    if (ch === '（' && cur) { units.push(cur); cur = '（'; continue; }
+    cur += ch;
+    if (LABEL_BREAK_AFTER.has(ch)) { units.push(cur); cur = ''; }
+  }
+  if (cur) units.push(cur);
+  return units;
+}
+
+function displayWidth(s) {
+  let w = 0;
+  for (const ch of s) w += ch.codePointAt(0) > 0xFF ? 2 : 1;
+  return w;
+}
+
+function wrapUnits(units, max) {
+  const lines = [];
+  let cur = '';
+  for (const u of units) {
+    if (cur && displayWidth(cur.trimEnd()) + displayWidth(u) > max) {
+      lines.push(cur.trimEnd());
+      cur = u;
+    } else {
+      cur += u;
+    }
+  }
+  if (cur) lines.push(cur.trimEnd());
+  return lines;
+}
+
+function axisLabel(item) {
+  const lines = [];
+  // ： ends a segment: "索引：" / "B+树与哈希索引", never "索引：B+" / "树…"
+  for (const seg of item.topic_name.split(/(?<=：)/)) {
+    lines.push(...wrapUnits(labelUnits(seg), LABEL_MAX_WIDTH));
+  }
+  return item.topic_id + '\n' + lines.join('\n');
+}
+
+function examQuestionHtml(q) {
+  const content = q.content || '';
+  const basis = (q.matched_terms && q.matched_terms.length)
+    ? '命中考点词: ' + q.matched_terms.map(escapeHtml).join('、')
+    : '纯语义相似度';
+  const short = content.substring(0, 80);
+  const truncated = content.length > 80;
+  const id = 'q-text-' + q.question_no;
+  return `<div class="result-item">
+    <div class="meta">第${q.question_no}题 · ${q.points}分 · 语义 ${(q.similarity * 100).toFixed(1)}% · ${basis}</div>
+    <div class="content">${escapeHtml(short)}${truncated ? '…' : ''}</div>
+    ${truncated ? `<a href="javascript:void(0)" onclick="toggleQuestion('${id}')">展开全文</a>
+      <div id="${id}" style="display:none" class="content">${escapeHtml(content)}</div>` : ''}
+  </div>`;
+}
+
+function toggleQuestion(id) {
+  const el = document.getElementById(id);
+  const link = el.previousElementSibling;
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    link.textContent = '收起';
+  } else {
+    el.style.display = 'none';
+    link.textContent = '展开全文';
+  }
 }
 
 function loadSample() {
@@ -117,20 +218,23 @@ function renderResults(data) {
   html += '<div class="card"><h2>覆盖度雷达图</h2><div id="radar-chart" style="width:100%;height:450px"></div></div>';
 
   html += '<div class="card"><h2>盲区清单（按 考试权重 × 未覆盖度 排序）</h2>';
-  html += '<table><tr><th>排名</th><th>知识点</th><th>覆盖度</th><th>考试权重</th><th>盲区分数</th><th>判定理由</th></tr>';
+  html += '<div class="table-wrap"><table class="blindspot"><tr><th>排名</th><th>知识点</th><th>覆盖度</th><th>考试权重</th><th>盲区分数</th><th>关联试题</th><th>判定理由</th></tr>';
   items.forEach((item, i) => {
     const levelClass = item.coverage_level === 'covered' ? 'level-covered' :
                        item.coverage_level === 'thin' ? 'level-thin' : 'level-missing';
+    const qs = (item.exam_questions || [])
+      .map(q => `第${q.question_no}题(${q.points}分)`).join('、') || '—';
     html += `<tr>
       <td>${i+1}</td>
       <td><strong>${escapeHtml(item.topic_id)}</strong> ${escapeHtml(item.topic_name)}</td>
       <td><span class="${levelClass}">${item.coverage_level}</span> (${(item.coverage_score * 100).toFixed(1)}%)</td>
       <td>${item.exam_weight} 分</td>
       <td>${item.blind_spot_score.toFixed(2)}</td>
+      <td>${qs}</td>
       <td><details><summary>查看理由</summary><p style="margin:8px 0;font-size:13px;color:#555">${escapeHtml(item.reason)}</p></details></td>
     </tr>`;
   });
-  html += '</table></div>';
+  html += '</table></div></div>';
 
   items.forEach((item, i) => {
     html += `<div class="card"><h2>${escapeHtml(item.topic_id)} · ${escapeHtml(item.topic_name)}</h2>`;
@@ -145,37 +249,40 @@ function renderResults(data) {
     if (item.best_evidence) {
       const ev = item.best_evidence;
       html += '<details open><summary><strong>最强证据</strong></summary>';
-      html += `<div style="margin:8px 0;padding:8px;background:#f8f9fa;border-radius:6px">`;
-      html += `<div style="font-size:12px;color:#888">`;
+      html += '<div class="result-item">';
+      html += `<div class="meta">`;
       if (ev.document_name) html += escapeHtml(ev.document_name);
       if (ev.page) html += ` · 第${ev.page}页`;
       if (ev.heading) html += ` · ${escapeHtml(ev.heading)}`;
+      html += ` · 语义分: ${fmtScore(ev.semantic_score, 4)} | 关键词分: ${fmtScore(ev.keyword_score, 2)}`;
       html += `</div>`;
-      html += `<div style="font-size:13px;margin-top:4px;white-space:pre-wrap">${escapeHtml((ev.content || '').substring(0, 300))}${(ev.content || '').length > 300 ? '...' : ''}</div>`;
-      html += `<div style="font-size:12px;color:#666;margin-top:4px">语义分: ${fmtScore(ev.semantic_score, 4)} | 关键词分: ${fmtScore(ev.keyword_score, 2)}</div>`;
-      html += `</div></details>`;
+      html += `<div class="content md">${renderContent(ev.content)}</div>`;
+      html += '</div></details>';
     }
 
     if (item.exam_questions && item.exam_questions.length) {
-      html += '<details><summary><strong>关联试题</strong></summary>';
-      html += '<table style="margin-top:8px"><tr><th>题号</th><th>分值</th><th>相似度</th></tr>';
-      item.exam_questions.forEach(q => {
-        html += `<tr><td>第${q.question_no}题</td><td>${q.points}分</td><td>${(q.similarity * 100).toFixed(1)}%</td></tr>`;
-      });
-      html += '</table></details>';
+      // missing/thin topics: questions are the action item, show them directly
+      const open = item.coverage_level !== 'covered' ? ' open' : '';
+      html += `<details${open}><summary><strong>关联试题</strong>（${item.exam_questions.length} 题，共 ${item.exam_weight} 分）</summary>`;
+      item.exam_questions.forEach(q => { html += examQuestionHtml(q); });
+      html += '</details>';
     }
 
     if (item.all_evidence && item.all_evidence.length > 1) {
       html += '<details><summary><strong>全部证据（' + item.all_evidence.length + ' 条）</strong></summary>';
       item.all_evidence.forEach((ev, j) => {
-        html += `<div style="margin:8px 0;padding:8px;background:#f8f9fa;border-radius:6px">`;
-        html += `<div style="font-size:12px;color:#888">#${j+1} `;
+        html += '<div class="result-item">';
+        html += `<div class="meta">#${j+1} `;
         if (ev.document_name) html += escapeHtml(ev.document_name);
         if (ev.page) html += ` · 第${ev.page}页`;
         if (ev.heading) html += ` · ${escapeHtml(ev.heading)}`;
+        html += ` · 语义分: ${fmtScore(ev.semantic_score, 4)} | 关键词分: ${fmtScore(ev.keyword_score, 2)}`;
+        if (ev.matched_terms && ev.matched_terms.length) {
+          html += ` · 命中: ${ev.matched_terms.map(escapeHtml).join('、')}`;
+        }
         html += `</div>`;
-        html += `<div style="font-size:12px;color:#666;margin-top:2px">语义分: ${fmtScore(ev.semantic_score, 4)} | 关键词分: ${fmtScore(ev.keyword_score, 2)}</div>`;
-        html += `</div>`;
+        html += `<div class="content md">${renderContent(ev.content)}</div>`;
+        html += '</div>';
       });
       html += '</details>';
     }
@@ -188,23 +295,33 @@ function renderResults(data) {
   renderRadarChart(items);
 }
 
+let radarChart = null;
+
 function renderRadarChart(items) {
-  const chart = echarts.init(document.getElementById('radar-chart'));
+  const el = document.getElementById('radar-chart');
+  // SVG renderer so label boxes can be measured in the DOM (and text stays
+  // crisp); reuse the instance across re-renders
+  if (!radarChart) radarChart = echarts.init(el, null, {renderer: 'svg'});
   const maxWeight = Math.max(...items.map(i => i.exam_weight), 1);
   const indicators = items.map(i => ({
-    name: i.topic_id + ' ' + i.topic_name.substring(0, 8),
+    name: axisLabel(i),
     max: 1.0,
   }));
   const coverageData = items.map(i => i.coverage_score);
   const weightData = items.map(i => i.exam_weight / maxWeight);
 
-  chart.setOption({
+  radarChart.setOption({
     tooltip: {},
     legend: { data: ['覆盖度', '考试权重'], bottom: 0 },
     radar: {
       indicator: indicators,
       shape: 'polygon',
+      // center/radius leave room above for the top label and below for the
+      // bottom label plus the legend, so nothing overlaps
+      center: ['50%', '48%'],
+      radius: '58%',
       splitArea: { areaStyle: { color: ['#fff', '#f5f6fa'] } },
+      axisName: { color: '#555', lineHeight: 14 },
     },
     series: [{
       type: 'radar',
@@ -214,7 +331,7 @@ function renderRadarChart(items) {
       ],
     }],
   });
-  window.addEventListener('resize', () => chart.resize());
+  window.addEventListener('resize', () => radarChart && radarChart.resize());
 }
 
 function fmtScore(v, digits) {
