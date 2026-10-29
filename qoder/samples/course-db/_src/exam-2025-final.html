@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>数据库系统原理 期末考试试卷（A卷）</title>
+<style>
+  @page { size: A4; margin: 22mm 20mm; }
+  body { font-family: "Songti SC", "STSong", "PingFang SC", serif; font-size: 15px; line-height: 1.75; color: #111; }
+  h1 { font-size: 22px; text-align: center; margin: 0 0 6px; }
+  .sub { text-align: center; color: #333; margin-bottom: 18px; }
+  h2 { font-size: 17px; margin: 22px 0 8px; }
+  .q { margin: 0 0 14px; }
+  .q b { font-weight: 600; }
+  pre { font-family: Menlo, monospace; font-size: 13px; background: #f6f6f6; padding: 8px 12px; margin: 6px 0; white-space: pre-wrap; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>2025—2026 学年第一学期《数据库系统原理》期末考试试卷（A 卷）</h1>
+  <div class="sub">考试时间：120 分钟　　满分：100 分　　闭卷</div>
+
+  <h2>一、关系模型与 SQL（共 25 分）</h2>
+  <div class="q"><b>1.（5 分）</b>设有关系 学生 S(Sno, Sname, Dept)、选课 SC(Sno, Cno, Grade)。用<b>关系代数</b>表达式写出"选修了 2 号课程的学生姓名"，并说明选择、投影、自然连接各自起什么作用。</div>
+  <div class="q"><b>2.（10 分）</b>用 SQL 写出：查询平均成绩高于 85 分的学生学号和平均成绩，结果按平均成绩降序排列；再基于该查询建立一个名为 <code>good_students</code> 的<b>视图</b>，并说明通过视图更新数据有哪些限制。</div>
+  <div class="q"><b>3.（10 分）</b>一棵阶数为 4 的 B+树，叶子结点依次为 [5, 10, 15]、[20, 25]、[30, 40]。依次插入 12 和 13，画出每次插入后的 B+树，说明叶子结点<b>分裂</b>时哪个搜索码被复制到父结点。</div>
+
+  <h2>二、关系数据库设计（共 25 分）</h2>
+  <div class="q"><b>4.（15 分）</b>设关系模式 R(A, B, C, D, E)，<b>函数依赖</b>集 F = { A→B, B→C, AD→E }。
+    <br>（1）求 R 的所有候选码；（2）求属性集闭包 (A)<sup>+</sup>；（3）判断 R 最高属于第几<b>范式</b>，说明理由。</div>
+  <div class="q"><b>5.（10 分）</b>将上题的 R 分解为满足 <b>BCNF</b> 的关系模式集合，并判断你的分解是否<b>无损连接</b>、是否<b>保持函数依赖</b>。</div>
+</div>
+<div class="page">
+  <h2>三、查询处理与事务（共 50 分）</h2>
+  <div class="q"><b>6.（5 分）</b><b>查询优化</b>中为什么要尽早执行选择操作（"选择下推"）？结合查询树说明它如何减少中间结果的大小。</div>
+  <div class="q"><b>7.（5 分）</b>事务的 <b>ACID</b> 特性中，原子性和持久性分别由数据库的什么机制来保证？</div>
+  <div class="q"><b>8.（10 分）</b>什么是<b>两阶段锁协议</b>？证明或说明遵守两阶段锁协议的并发调度是冲突可串行化的；遵守两阶段锁协议能否避免<b>死锁</b>？举例说明。</div>
+  <div class="q"><b>9.（10 分）</b>比较"<b>读已提交</b>"和"<b>可重复读</b>"两种<b>隔离级别</b>分别能避免哪些并发异常；说明 <b>MVCC</b>（多版本并发控制）如何实现不加锁的快照读。</div>
+  <div class="q"><b>10.（10 分）</b>简述 <b>ARIES</b> 恢复算法的三个阶段及每个阶段的作用，并说明<b>先写日志（WAL）</b>原则为什么是恢复正确性的前提。</div>
+  <div class="q"><b>11.（10 分）</b>在<b>分布式事务</b>中，<b>两阶段提交协议（2PC）</b>的两个阶段分别做什么？为什么说 2PC 是"阻塞"的协议？协调者在什么时刻崩溃会导致参与者阻塞？</div>
+</div>
+</body>
+</html>

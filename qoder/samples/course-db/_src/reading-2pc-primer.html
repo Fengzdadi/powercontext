@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Two-Phase Commit: A Short Primer</title>
+<style>
+  @page { size: A4; margin: 24mm 22mm; }
+  body { font-family: "Times New Roman", Georgia, serif; font-size: 14px; line-height: 1.6; color: #111; }
+  h1 { font-size: 22px; text-align: center; margin-bottom: 4px; }
+  .by { text-align: center; color: #444; margin-bottom: 18px; font-style: italic; }
+  h2 { font-size: 16px; margin: 18px 0 6px; }
+  p { margin: 0 0 10px; text-align: justify; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Two-Phase Commit: A Short Primer</h1>
+  <div class="by">Supplementary reading for "Principles of Database Systems", Fall 2026</div>
+
+  <h2>1. The Atomic Commitment Problem</h2>
+  <p>A distributed transaction updates data stored on several independent database nodes. Each node can commit or abort its local part, but the transaction as a whole must be atomic: either every participant commits, or every participant aborts. A node cannot simply commit when its own work succeeds, because another node may fail to apply its part. Atomic commitment protocols solve this problem, and two-phase commit (2PC) is the most widely used one.</p>
+
+  <h2>2. Roles</h2>
+  <p>One node acts as the <b>coordinator</b>; the nodes that executed parts of the transaction are the <b>participants</b>. The coordinator is often the node where the transaction started. Every node keeps a write-ahead log on stable storage so that it can recover its decisions after a crash.</p>
+
+  <h2>3. Phase One: Prepare (Voting)</h2>
+  <p>The coordinator sends a PREPARE message to every participant. A participant that can commit its part force-writes a <i>prepared</i> log record, which guarantees that it will be able to commit even after a crash, and replies YES. A participant that cannot commit writes an abort record and replies NO. After voting YES, a participant gives up its right to abort on its own: it is now in the <b>uncertain</b> (prepared) state and must wait for the coordinator's decision.</p>
+
+  <h2>4. Phase Two: Commit or Abort (Decision)</h2>
+  <p>If every participant voted YES, the coordinator force-writes a commit record and sends COMMIT to all participants; this log write is the moment the transaction is committed. If any participant voted NO or did not answer before a timeout, the coordinator decides to abort and sends ABORT. Each participant applies the decision, writes it to its log, releases its locks, and replies with an acknowledgment. When all acknowledgments have arrived, the coordinator writes an end record and can forget the transaction.</p>
+</div>
+<div class="page">
+  <h2>5. Handling Failures</h2>
+  <p>If a participant crashes before voting, the coordinator times out and aborts the transaction. If a participant crashes after voting YES, on recovery it finds the prepared record in its log and asks the coordinator for the outcome. If the coordinator crashes before writing its decision, it aborts the transaction after recovery. Message loss is handled by timeouts and retransmission.</p>
+
+  <h2>6. Why 2PC Is a Blocking Protocol</h2>
+  <p>The weakness of 2PC appears when the coordinator crashes <b>after</b> the participants have voted YES but <b>before</b> they receive the decision. The prepared participants cannot commit, because some other participant might have voted NO, and they cannot abort, because the coordinator might already have decided to commit. They must keep holding their locks until the coordinator recovers. This is why 2PC is called a <b>blocking</b> protocol: a single coordinator failure can block the other nodes, and the data they have locked stays unavailable.</p>
+
+  <h2>7. Beyond 2PC</h2>
+  <p>Three-phase commit (3PC) adds a pre-commit phase to avoid blocking under the assumption of a synchronous network with bounded delays, an assumption that rarely holds in practice. Modern systems instead replicate the coordinator's state with a consensus protocol such as Paxos or Raft, so that a new coordinator can take over and finish the protocol when the old one fails.</p>
+</div>
+</body>
+</html>

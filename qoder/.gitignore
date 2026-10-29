@@ -1,0 +1,12 @@
+# local configuration and secrets
+.env
+.env.*
+!.env.example
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# local data and caches
+.cache/
+*.log
