@@ -1,28 +1,48 @@
 #!/usr/bin/env python3
-"""Calibrate coverage thresholds on sample data.
+"""Calibrate coverage rules on sample data.
 
 Run from the app/ directory:
     .venv/bin/python ../scripts/calibrate.py [--course db101] [--source auto]
 
-Outputs per-topic score distributions and suggests threshold values.
+Runs the full coverage analysis (persisting a coverage run) and prints, for
+every topic and every key term: whether it was found, in which chunks
+(document/page/heading), its best semantic score, and how far the topic sits
+from the covered thresholds. Judgments are compared against the design truth
+in samples/course-db/README.md.
 """
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 from examradar.config import get_settings
-from examradar.seekdb import ensure_tables, hybrid_search, get_connection
-from examradar.embedding import get_embedding_model
+from examradar.coverage import analyze
+from examradar.seekdb import ensure_tables
 from examradar.syllabus import parse_syllabus
+
+DESIGN_LEVELS = {
+    "t01": "missing", "t02": "thin", "t03": "covered", "t04": "missing",
+    "t05": "missing", "t06": "covered", "t07": "covered", "t08": "thin",
+    "t09": "covered", "t10": "covered",
+}
+
+
+def _ref_str(ref: dict) -> str:
+    parts = []
+    if ref.get("doc"):
+        parts.append(Path(ref["doc"]).stem)
+    if ref.get("page"):
+        parts.append(f"p{ref['page']}")
+    if ref.get("heading"):
+        parts.append(ref["heading"][:20])
+    return "·".join(parts)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Calibrate coverage thresholds")
+    parser = argparse.ArgumentParser(description="Calibrate coverage rules")
     parser.add_argument("--course", default="db101")
     parser.add_argument("--source", default="auto")
     parser.add_argument("--syllabus", default=None,
@@ -30,9 +50,10 @@ def main():
     args = parser.parse_args()
 
     s = get_settings()
-    print(f"Database: {s.effective_database}")
-    print(f"Thresholds: T_covered={s.coverage_t_covered}, T_thin={s.coverage_t_thin}, "
-          f"kw_scale={s.coverage_kw_scale}")
+    print(f"Database: {s.seekdb_database}")
+    print(f"Thresholds: term_ratio_covered={s.coverage_term_ratio_covered}, "
+          f"support_chars_covered={s.coverage_support_chars}, "
+          f"min_body_chars={s.coverage_min_body_chars}")
     print()
 
     ensure_tables()
@@ -45,143 +66,71 @@ def main():
     print(f"Parsed {len(topics)} topics from {syllabus_path}")
     print()
 
-    model = get_embedding_model()
+    result = analyze(args.course, text, source=args.source)
 
-    print(f"{'ID':<5} {'Topic':<30} {'Sem':>6} {'KW':>8} {'Score':>7} {'Level':<10}")
-    print("-" * 80)
+    ratio_t = s.coverage_term_ratio_covered
+    support_t = s.coverage_support_chars
 
-    sem_scores = []
-    kw_scores = []
-    combined_scores = []
+    mismatches = 0
+    for item in result["items"]:
+        tid = item["topic_id"]
+        level = item["coverage_level"]
+        score = item["coverage_score"]
+        found = sum(1 for t in item["terms"] if t["found"])
+        total = len(item["terms"])
+        ratio = found / total if total else 0.0
+        support = item["support_chars"]
 
-    for topic in topics:
-        query_vec = model.embed_one(topic.search_query, is_query=True)
-        hits, _, _ = hybrid_search(
-            query_text=topic.search_query,
-            query_vector=query_vec,
-            course_id=args.course,
-            doc_kinds=["notes", "slides", "paper"],
-            top_k=5,
-        )
-        if hits:
-            best = hits[0]
-            sem = best.get("_semantic_score") or 0.0
-            kw = best.get("_keyword_score") or 0.0
-            kw_norm = min(kw / s.coverage_kw_scale, 1.0)
-            combined = 0.6 * sem + 0.4 * kw_norm
-            if combined >= s.coverage_t_covered:
-                level = "covered"
-            elif combined >= s.coverage_t_thin:
-                level = "thin"
+        design = DESIGN_LEVELS.get(tid)
+        marker = ""
+        if design is not None and design != level:
+            marker = f"  <<< MISMATCH: design says {design}"
+            mismatches += 1
+
+        print(f"=== {tid} {item['topic_name']}")
+        print(f"  level={level} score={score:.4f} "
+              f"terms={found}/{total} (ratio {ratio:.2f} vs {ratio_t}) "
+              f"support={item['support_chunks']}段/{support}字 (vs {support_t})"
+              f"{marker}")
+        for t in item["terms"]:
+            if t["found"]:
+                refs = [_ref_str(r) for r in t["chunks"][:3]]
+                more = f" 等{len(t['chunks'])}处" if len(t["chunks"]) > 3 else ""
+                sem = t.get("best_sem")
+                sem_s = f" sem={sem:.4f}" if sem is not None else " sem=-"
+                print(f"    [找到] {t['term']}{sem_s} -> {'、'.join(refs)}{more}")
             else:
-                level = "missing"
-            sem_scores.append(sem)
-            kw_scores.append(kw)
-            combined_scores.append(combined)
-        else:
-            sem, kw, combined = 0.0, 0.0, 0.0
-            level = "missing"
-            sem_scores.append(0.0)
-            kw_scores.append(0.0)
-            combined_scores.append(0.0)
+                print(f"    [未找到] {t['term']}")
+        if level == "covered":
+            print(f"    距离阈值: 比例高出 {ratio - ratio_t:.2f}, "
+                  f"支撑字数高出 {support - support_t}")
+        elif level == "thin":
+            gap_ratio = max(0.0, ratio_t - ratio)
+            gap_support = max(0, support_t - support)
+            print(f"    距离阈值: 比例差 {gap_ratio:.2f}, 支撑字数差 {gap_support}")
+        print()
 
-        name_short = topic.name[:28]
-        print(f"{topic.topic_id:<5} {name_short:<30} {sem:>6.4f} {kw:>8.2f} "
-              f"{combined:>7.4f} {level:<10}")
-
+    print("Exam question assignment (question -> topic, basis):")
+    for item in result["items"]:
+        for q in item["exam_questions"]:
+            basis = "、".join(q["matched_terms"]) if q["matched_terms"] else "纯语义"
+            print(f"  Q{q['question_no']} ({q['points']:.0f}分) -> "
+                  f"{item['topic_id']} {item['topic_name'][:16]} "
+                  f"依据[{basis}] sim={q['similarity']:.4f}")
     print()
-    print("Score distribution:")
-    print(f"  Semantic: min={min(sem_scores):.4f}, max={max(sem_scores):.4f}, "
-          f"mean={sum(sem_scores)/len(sem_scores):.4f}")
-    print(f"  Keyword:  min={min(kw_scores):.2f}, max={max(kw_scores):.2f}, "
-          f"mean={sum(kw_scores)/len(kw_scores):.2f}")
-    print(f"  Combined: min={min(combined_scores):.4f}, max={max(combined_scores):.4f}, "
-          f"mean={sum(combined_scores)/len(combined_scores):.4f}")
-
-    sorted_scores = sorted(combined_scores)
-    n = len(sorted_scores)
-    print(f"  Combined percentiles: p25={sorted_scores[n//4]:.4f}, "
-          f"p50={sorted_scores[n//2]:.4f}, p75={sorted_scores[3*n//4]:.4f}")
-
-    print()
-    print("Exam question assignment:")
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT question_no, points, content, embedding FROM chunks "
-                "WHERE course_id = %s AND doc_kind = 'exam' AND question_no IS NOT NULL "
-                "ORDER BY question_no",
-                (args.course,),
-            )
-            exam_chunks = cur.fetchall()
-    finally:
-        conn.close()
-
-    print(f"Found {len(exam_chunks)} exam chunks")
-
-    import numpy as np
-    topic_embeddings = {}
-    for t in topics:
-        vec = model.embed_one(t.search_query, is_query=True)
-        topic_embeddings[t.topic_id] = np.array(vec)
-
-    for chunk in exam_chunks:
-        q_no = chunk["question_no"]
-        pts = float(chunk.get("points") or 0)
-        emb_raw = chunk.get("embedding")
-        if emb_raw is None:
-            continue
-        if isinstance(emb_raw, str):
-            emb_raw = json.loads(emb_raw)
-        q_vec = np.array([float(x) for x in emb_raw])
-
-        best_topic = None
-        best_sim = -1.0
-        for t in topics:
-            t_vec = topic_embeddings[t.topic_id]
-            cos_sim = float(np.dot(q_vec, t_vec) / (np.linalg.norm(q_vec) * np.linalg.norm(t_vec)))
-            sim = (1 + cos_sim) / 2
-            if sim > best_sim:
-                best_sim = sim
-                best_topic = t.topic_id
-
-        topic_name = next((t.name for t in topics if t.topic_id == best_topic), "?")
-        print(f"  Q{q_no} ({pts}分) -> {best_topic} {topic_name} (sim={best_sim:.4f})")
-
-    print()
-    topic_weights = {t.topic_id: 0.0 for t in topics}
-    for chunk in exam_chunks:
-        q_no = chunk["question_no"]
-        pts = float(chunk.get("points") or 0)
-        emb_raw = chunk.get("embedding")
-        if emb_raw is None:
-            continue
-        if isinstance(emb_raw, str):
-            emb_raw = json.loads(emb_raw)
-        q_vec = np.array([float(x) for x in emb_raw])
-        best_topic = None
-        best_sim = -1.0
-        for t in topics:
-            t_vec = topic_embeddings[t.topic_id]
-            cos_sim = float(np.dot(q_vec, t_vec) / (np.linalg.norm(q_vec) * np.linalg.norm(t_vec)))
-            sim = (1 + cos_sim) / 2
-            if sim > best_sim:
-                best_sim = sim
-                best_topic = t.topic_id
-        if best_topic:
-            topic_weights[best_topic] += pts
 
     print("Blind spot ranking (exam_weight * (1 - coverage_score)):")
-    blind_spots = []
-    for i, t in enumerate(topics):
-        weight = topic_weights[t.topic_id]
-        score = combined_scores[i]
-        blind = weight * (1 - score)
-        blind_spots.append((t.topic_id, t.name, weight, score, blind))
-    blind_spots.sort(key=lambda x: -x[4])
-    for tid, name, weight, score, blind in blind_spots:
-        print(f"  {tid} {name:<30} weight={weight:>5.1f}  coverage={score:.4f}  blind={blind:.2f}")
+    for item in result["items"]:
+        print(f"  {item['topic_id']} {item['topic_name'][:24]:<26} "
+              f"weight={item['exam_weight']:>5.1f} "
+              f"coverage={item['coverage_score']:.4f} "
+              f"blind={item['blind_spot_score']:.2f}")
+
+    print()
+    if mismatches:
+        print(f"RESULT: {mismatches} topic(s) disagree with design truth")
+        sys.exit(1)
+    print("RESULT: all topic judgments match design truth")
 
 
 if __name__ == "__main__":

@@ -360,3 +360,114 @@
 - PowerContext 记忆模型（M3）
 - 出题与判分（M3）
 - 端到端验证脚本（M4）
+
+---
+
+## 会话 05 — M2 审阅修复：考点词判定、试题归属、页面与记录（2026-10-28）
+
+**参与者**：产品负责人（M2 审阅意见）、Qoder（实现与验证）
+
+本次会话只修审阅问题，不加新功能。审阅的核心结论：旧的 `combined = 0.6×sem + 0.4×kw` 公式在 bge-small-zh-v1.5 上永远判不出 missing（语义分下限 ~0.7），覆盖判定必须换成"考点词是否出现在语料里"这一可解释证据。
+
+### A. 覆盖判定重写（coverage.py / syllabus.py）
+
+**考点词提取**（`parse_terms`）：
+- 知识点名称按 `：:、；;` 和 `与和及` 切成考点词：`索引：B+树与哈希索引` → `索引`、`B+树`、`哈希索引`
+- 括号内术语（2PC、3NF、BCNF）作为**别名**挂到前一个考点词上，别名出现等同考点词出现（t10 的"两阶段提交"靠英文材料里的 2PC 命中）
+
+**匹配规则**（全部纯函数，构造数据单测）：
+- 归一化：casefold、全角→半角（U+FF01–FF5E）、去空白
+- 单 token 考点词：连续出现即命中；多 token（"SQL 查询"、"事务的 ACID 特性"）按内容 token 严格多数（>50%）命中，去掉"的/与/和"等停用词
+- 证据判定遍历**全部**材料块，不依赖 hybrid 检索的召回完整性；每个知识点仍做一次 `DBMS_HYBRID_SEARCH`（top 10），但语义分只用来排序和标注证据，**不参与判定**
+
+**判定规则**（阈值进 config 和 .env.example）：
+- `missing`：一个考点词都没找到，score = 0
+- `covered`：考点词找到比例 ≥ `COVERAGE_TERM_RATIO_COVERED`(0.5) **且** 支撑正文 ≥ `COVERAGE_SUPPORT_CHARS`(280 字)
+- `thin`：介于两者之间；score 在 (0, 0.5)，covered 在 [0.5, 1]，雷达数值与判定不会互相矛盾
+- 正文 = 去掉 Markdown 标题行后的文本；正文 < `COVERAGE_MIN_BODY_CHARS`(50 字) 的块（目录页、只有标题的页）不算证据，但考点词仍算"找到"
+
+**判定理由**：写明每个考点词找到在哪几段（文档·页·标题）、哪些没找到、支撑段落/字数、与阈值的距离；covered 写"高出 covered 阈值 X 字"，不会出现"还有 -0.0329"这类负距离。
+
+### B. 试题归属改为考点词优先
+
+`assign_question`：先统计每个知识点的考点词在题目原文里的命中数，命中数最多者胜，平手用语义相似度决出；没有任何考点词命中时才用纯语义。每道题记录 `matched_terms`（归属依据）供前端展示。实测 11 题全部按考点词命中归属（审阅里点名的 Q10（ARIES/WAL）正确归到 t09，不再被 0.780 vs 0.770 的纯语义分带偏）。
+
+### C. 雷达页修复（radar.html）
+
+1. **关联试题显示原文**：题号、分值、语义分、命中考点词 + 题目原文（默认截断 80 字，"展开全文"点击展开/收起）；missing/thin 知识点的关联试题默认展开，盲区清单表格新增"关联试题"列，缺失知识点直接列出考察它的题
+2. **证据渲染成 Markdown**：与 ask.html 同管线（marked + escapeHtml），最强证据和全部证据都渲染，元信息（文档·页·标题·语义分·关键词分·命中考点词）在证据上方
+3. **雷达轴标签**：`t01\n关系模型与\n关系代数` 多行短标签，不再截断到 8 个字
+4. **auto 模式跨页保持**：新增共享脚本 `static/js/source.js`——URL 带 `?source=auto` 时写入 sessionStorage，导航链接（含首页快捷入口）自动补 `?source=auto`；从其它页进入时若无参数但 sessionStorage 记录了 auto，用 replaceState 补上。五个页面全部接入
+
+### D. 使用记录修复
+
+1. **时区**：前端改传 IANA 时区名（`Intl.DateTimeFormat().resolvedOptions().timeZone`），后端 `zoneinfo.ZoneInfo` 按天分桶（`compute_usage_stats` 纯函数，含夏令时切换单测）。验证：事件 UTC 2026-10-29 02:55–03:47 在 America/New_York（UTC-4）正确落到 2026-10-28——旧版符号取反会全部错到 10-29
+2. **累计学习时长**：按事件间隔聚类估算（间隔 > 30 分钟分段，每段取时长与 事件数×1 分钟 的较大值），概览新增"累计学习时长"卡片，注明 M3 接入真实会话
+3. **CSV BOM**：导出加 UTF-8 BOM（实测响应前 3 字节 EF BB BF），Excel 可正确识别中文
+4. **delete-course 不再删使用记录**：默认只删资料和分析（chunks、documents、coverage_*），`usage_events` 保留；CLI 加 `--include-usage` 显式删除。实测 `delete-course db101` 后 7 条 usage_events 全部保留
+
+### E. 切块修复（cleaner.py / chunker.py）
+
+1. **试卷硬换行**：新增 `join_exam_lines()`，题号行（`N.（M 分）`）和节标题行（`一、`）永远起新块，其余硬换行按中英规则拼接；重导后 Q1 "用关系代数表达式写出"、Q10 "先写日志（WAL）原则" 均已拼好
+2. **英文论文节标题**：`join_intra_paragraph_lines` 对标题样式的行（`N.` 开头、≤80 字符）保持独立，不再粘进正文；"1. The Atomic Commitment Problem" 等标题独占一行
+3. **中英拼接空格**：`_join_pair` 中文+中文直接拼，任一侧是拉丁/数字则加一个空格；"对没有 commit 也没有 abort" 空格正确
+
+重导样例后 6 条验收检索在开发库全部第一条命中（集成测试在测试库同样断言）。
+
+### F. 工程修复
+
+1. config.py 恢复 session 03 测得的"BGE 查询指令默认关闭"注释
+2. 删除 `effective_database`：应用代码不再识别测试标志，测试库切换只发生在 `tests/conftest.py`（EXAMRADAR_IT 时设 `SEEKDB_DATABASE=examradar_test`），集成测试 fixture 断言连的是测试库
+3. 集成测试从"只查形状"改为逐条断言设计真值：10 个判定（`DESIGN_LEVELS`）、11 道归属（`DESIGN_ASSIGNMENTS`）、盲区第一为 t04（25 分、coverage 0、blind 25.00）、理由包含考点词出处与阈值距离、题目原文与 matched_terms 持久化
+4. `scripts/calibrate.py` 重写：逐知识点逐考点词打印证据（是否找到、在哪几段、语义分、离阈值距离）、题目归属依据、盲区排序，并与设计真值比对，不一致时退出码非 0
+
+### G. 校准结果（开发库 db101，阈值 0.5 / 280 字 / 50 字）
+
+| ID | 知识点 | 判定 | 考点词 | 支撑 | 离阈值距离 | score |
+|---|---|---|---|---|---|---|
+| t04 | 函数依赖与范式（3NF、BCNF） | **missing** | 0/2（函数依赖、范式均未找到） | 0段/0字 | — | 0 |
+| t08 | 隔离级别与 MVCC | **thin** | 2/2（都在 05-事务笔记 5.5 节） | 1段/89字 | 支撑差 191 字 | 0.1589 |
+| t02 | SQL 查询与视图 | **thin** | 1/2（SQL 查询✓；视图未找到，笔记明说"视图没记"） | 2段/233字 | 支撑差 47 字 | 0.2080 |
+| t01 | 关系模型与关系代数 | **missing** | 0/2 | 0段/0字 | — | 0 |
+| t05 | 查询处理与优化 | **missing** | 0/2 | 0段/0字 | — | 0 |
+| t10 | 分布式事务与两阶段提交（2PC） | **covered** | 1/2（分布式事务未找到；两阶段提交经 2PC 别名命中英文阅读材料） | 2段/3250字 | 支撑高出 2970 字 | 0.75 |
+| t03 | 索引：B+树与哈希索引 | **covered** | 3/3 | 6段/1237字 | 高出 957 字 | 1.0 |
+| t06 | 事务的 ACID 特性 | **covered** | 1/1（多 token 多数匹配命中"事务由 ACID …"表述） | 1段/345字 | 高出 65 字 | 1.0 |
+| t07 | 并发控制：两阶段锁与死锁 | **covered** | 3/3 | 6段/1496字 | 高出 1216 字 | 1.0 |
+| t09 | 故障恢复：WAL 与 ARIES | **covered** | 3/3 | 3段/531字 | 高出 251 字 | 1.0 |
+
+题目归属（全部命中考点词，依据存 matched_terms）：Q1→t01、Q2→t02、Q3→t03、Q4/Q5→t04（函数依赖、范式）、Q6→t05、Q7→t06、Q8→t07（两阶段锁、死锁）、Q9→t08（隔离级别、MVCC）、Q10→t09（WAL、ARIES）、Q11→t10（分布式事务、两阶段提交）。盲区第一：t04（权重 25、coverage 0、blind 25.00），其后 t08 8.22、t02 7.67。
+
+**阈值余量说明**：两考点词的知识点比例只能取 {0, 0.5, 1}，t02 与 t10 都恰好落在比例 0.5 上，两者的区分完全由支撑量承担（233 字 vs 3250 字，相差一个数量级），判定对阈值微调不敏感；支撑阈值取 280 时最近的两个判定余量均衡（t02 差 47 字、t06 高 65 字），没有任何 coverage score 压在 0.5 上。规则为通用规则，仅用样例校准阈值，无任何针对样例的特判。
+
+### 验收结果
+
+| 验收项 | 结果 |
+|---|---|
+| 10 个知识点判定 = 设计真值 | ✅（calibrate.py 与集成测试双重断言） |
+| 11 道题归属 = 设计真值 | ✅ 全部按考点词命中归属 |
+| 盲区第一是 t04（25 分、coverage 0） | ✅ blind_spot_score=25.00 |
+| 判定不压线 | ✅ 最近余量 t02 差 47 字 / t06 高 65 字；无 score=0.5 |
+| 构造数据单测（covered/thin/missing、归属含双考点词题） | ✅ test_coverage.py、test_usage.py |
+| `uv run pytest` | ✅ 124 passed, 26 skipped |
+| `export EXAMRADAR_IT=1 && uv run pytest -m integration` | ✅ 26 passed（含设计真值逐条断言、6 条验收检索第一条命中） |
+| 6 条验收检索第一条命中（重导后的开发库） | ✅ 6/6（脏页表→p7、先写日志→p4、B+树分裂→3.3、coordinator crash→p2、两阶段锁→5.3、函数依赖→Q4） |
+| 集成测试后开发库计数不变 | ✅ 6 文档 / 38 块（测试只碰 examradar_test） |
+| `delete-course db101` 保留 usage_events | ✅ 删除时 7 条全保留（本会话后续事件增至 15 条） |
+| 浏览器验证（headless Chrome + CDP，`?source=auto`） | ✅ 11/11 项通过：导航链接带 auto、雷达→使用记录仍 auto、证据 Markdown 渲染无 `**`/`##` 残留、t04 直接列出 Q4/Q5 原文且默认展开、题目 80 字截断+展开（Q4 展开 105 字）、盲区表含关联试题列、轴标签多行全名；截图 `.cache/scratch/s05_radar.png`、`s05_radar_t04.png`、`s05_radar_t09.png`、`s05_usage.png` |
+| 使用记录按天日期 = 本地时区 | ✅ 浏览器 tz=America/New_York，UTC 10-29 02:55–03:47 的 15 条事件全部落在 2026-10-28；学习时长 17.5 分钟与事件间隔核算一致 |
+| 导出 CSV 有 BOM | ✅ 响应前 3 字节 EF BB BF；**未在 Excel 中实际打开**（本机无 Excel，BOM 字节已验证，Excel 兼容性未验证） |
+
+### 遇到的问题和解决办法
+
+1. **`）**来` 的 Markdown 渲染死角**：CommonMark 规定闭合 `**` 前是标点（全角括号）且后是文字（汉字）时不构成强调，`崩溃后**重做（redo）**来保证` 会原样输出；ask.html 同样存在。renderContent 加后置兜底（marked 渲染后对残留的 `**…**` 成对转 `<strong>`，跳过 code/pre），两页同步修复
+2. **source.js 在 head 里跑不到 nav**：脚本随 head 加载时 body 未解析，链接改写落空；改为 readyState 判断 + DOMContentLoaded 兜底
+3. **使用记录页默认查 real 源**：auto 模式下进入页面看到全 0；auto 时数据来源下拉默认选 auto
+4. **CDP `Runtime.evaluate` 不等待 Promise**：async IIFE 返回的是 Promise 对象，需传 `awaitPromise: true`
+5. **支撑阈值初版 250 太贴**：t02 支撑 233 字离阈值只有 17 字；调到 280 后两侧余量均衡（47/65），所有判定不变
+
+### 未做（留给后续会话）
+
+- Excel 实际打开 CSV 验证（本机无 Excel）
+- 真实会话时长与出题判分（M3）
+- Docker/compose（M4）

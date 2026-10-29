@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>问笔记 — 考前雷达</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/source.js"></script>
 </head>
 <body>
 <header>
@@ -46,8 +47,7 @@
 const SHOW_FIRST = 5;
 
 function getSourceHeader() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('source') === 'auto' ? 'auto' : null;
+  return window.examRadarSource ? window.examRadarSource() : null;
 }
 
 function sourceLine(item) {
@@ -64,7 +64,16 @@ function fmtScore(v, digits) {
 }
 
 function renderContent(text) {
-  return marked.parse(escapeHtml(text));
+  let html = marked.parse(escapeHtml(text || ''));
+  // CommonMark leaves **…** literal when the closing delimiter follows
+  // punctuation and precedes a CJK letter（"（redo）**来"）; fall back to
+  // <strong> for leftover pairs outside code/pre
+  if (html.includes('**')) {
+    html = html.replace(
+      /(<(?:code|pre)[\s\S]*?<\/(?:code|pre)>)|\*\*([^*\n]+?)\*\*/g,
+      (m, code, inner) => code ? code : '<strong>' + inner + '</strong>');
+  }
+  return html;
 }
 
 function resultHtml(item) {

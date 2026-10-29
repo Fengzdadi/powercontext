@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from .cleaner import clean_extracted_text, normalize_text, strip_footer_page_number, join_intra_paragraph_lines
+from .cleaner import clean_extracted_text, normalize_text, strip_footer_page_number, join_intra_paragraph_lines, join_exam_lines
 
 
 @dataclass
@@ -111,6 +111,7 @@ def chunk_exam_pdf(raw_text: str, page_texts: list[str]) -> list[Chunk]:
     with question_no and points extracted."""
     full_text = "\n".join(page_texts)
     full_text = clean_extracted_text(full_text)
+    full_text = join_exam_lines(full_text)
 
     matches = list(_EXAM_Q_RE.finditer(full_text))
     if not matches:

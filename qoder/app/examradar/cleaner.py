@@ -140,17 +140,64 @@ def _is_cjk(ch: str) -> bool:
 
 _SENTENCE_END_RE = re.compile(r"[。！？；：…\.\!\?\;]$")
 
+# Exam-paper line boundaries: a new question ("3.（10 分）…") or a section
+# header ("二、关系数据库设计（共 25 分）") always starts a new block.
+_EXAM_QUESTION_START_RE = re.compile(r"\d+\s*[.、．]\s*[（(]\s*\d+(?:\.\d+)?\s*分\s*[）)]")
+_EXAM_SECTION_START_RE = re.compile(r"^[一二三四五六七八九十]+\s*[、.．]")
+
+
+def join_exam_lines(text: str) -> str:
+    """Join hard line breaks inside an exam paper.
+
+    Unlike a slide page, an exam page has no single title line, so nothing
+    is special-cased as a title; instead question headers ("N.（M 分）") and
+    section headers ("二、…") always start a new block and are never glued
+    to the previous question's text.
+    """
+    result: list[str] = []
+    buf = ""
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            if buf:
+                result.append(buf)
+                buf = ""
+            result.append("")
+            continue
+        starts_block = (_EXAM_QUESTION_START_RE.match(stripped)
+                        or _EXAM_SECTION_START_RE.match(stripped))
+        if buf and starts_block:
+            result.append(buf)
+            buf = ""
+        buf = stripped if not buf else _join_pair(buf, stripped)
+    if buf:
+        result.append(buf)
+    return "\n".join(result)
+
+
+# Short numbered lines like "1. The Atomic Commitment Problem" are section
+# headings inside a paper page, not body sentences — they must not be glued
+# to neighbouring text when joining hard-wrapped lines.
+_HEADING_LINE_RE = re.compile(r"^\d+(\.\d+)*[.、]?\s+\S.{0,80}$")
+
+
+def _join_pair(buf: str, line: str) -> str:
+    """Join two hard-wrapped lines: no space between CJK chars, one space
+    whenever either side of the boundary is latin/digit."""
+    if buf and line and _is_cjk(buf[-1]) and _is_cjk(line[0]):
+        return buf + line
+    return buf + " " + line
+
 
 def join_intra_paragraph_lines(page_text: str) -> str:
     """Join hard line breaks within a paragraph.
 
     The first line of a page is the title and stays independent. For the
     remaining lines, if a line does NOT end with a sentence-ending
-    punctuation mark, it is joined with the next line:
-    - Chinese context: direct concatenation
-    - English context: one space inserted
-
-    Blank lines are treated as paragraph boundaries and preserved.
+    punctuation mark, it is joined with the next line (no space between CJK
+    chars, one space at CJK/latin boundaries). Blank lines are paragraph
+    boundaries and preserved, and heading-like lines (short numbered lines)
+    are kept standalone instead of being glued into the body.
     """
     lines = page_text.split("\n")
     if len(lines) <= 1:
@@ -169,17 +216,16 @@ def join_intra_paragraph_lines(page_text: str) -> str:
                 buf = ""
             result.append("")
             continue
+        if _HEADING_LINE_RE.match(stripped):
+            if buf:
+                result.append(buf)
+                buf = ""
+            result.append(stripped)
+            continue
         if not buf:
             buf = stripped
         else:
-            prev_ends_cjk = buf and _is_cjk(buf[-1])
-            curr_starts_cjk = stripped and _is_cjk(stripped[0])
-            if prev_ends_cjk and curr_starts_cjk:
-                buf = buf + stripped
-            elif prev_ends_cjk or curr_starts_cjk:
-                buf = buf + stripped
-            else:
-                buf = buf + " " + stripped
+            buf = _join_pair(buf, stripped)
         if _SENTENCE_END_RE.search(stripped):
             result.append(buf)
             buf = ""

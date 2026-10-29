@@ -115,3 +115,65 @@ class TestChunkExamPdf:
         text = "This is just a regular text without any question markers."
         chunks = chunk_exam_pdf("", [text])
         assert len(chunks) >= 1
+
+
+class TestJoinExamLines:
+    def test_hard_wrap_inside_question_joined(self):
+        from examradar.cleaner import join_exam_lines
+        text = "1.（5 分）用关系代数表达式写\n出查询结果。\n2.（10 分）下一题。"
+        joined = join_exam_lines(text)
+        assert "写出查询结果。" in joined
+
+    def test_question_header_never_glued_to_previous_question(self):
+        from examradar.cleaner import join_exam_lines
+        text = "1.（5 分）第一题没有句号结尾\n2.（10 分）第二题开始"
+        joined = join_exam_lines(text)
+        assert "第一题没有句号结尾" in joined
+        assert joined.index("第一题没有句号结尾") < joined.index("2.（10 分）")
+        lines = joined.split("\n")
+        assert any(l.startswith("2.（10 分）") for l in lines)
+
+    def test_section_header_starts_new_block(self):
+        from examradar.cleaner import join_exam_lines
+        text = "3.（10 分）画出一棵B+树\n二、关系数据库设计（共 25 分）\n4.（15 分）求候选码"
+        joined = join_exam_lines(text)
+        lines = joined.split("\n")
+        assert "二、关系数据库设计（共 25 分）" in lines
+        assert not any(l.startswith("3.（10 分）画出一棵B+树 二、") for l in lines)
+
+    def test_cjk_latin_boundary_gets_space(self):
+        from examradar.cleaner import join_exam_lines
+        text = "1.（5 分）说明先写日志（WAL）原\n则为什么成立。"
+        joined = join_exam_lines(text)
+        assert "原则" in joined
+
+
+class TestJoinIntraParagraphLines:
+    def test_english_section_heading_stays_standalone(self):
+        from examradar.cleaner import join_intra_paragraph_lines
+        page = ("Two-Phase Commit: A Short Primer\n"
+                "Supplementary reading, Fall 2026\n"
+                "1. The Atomic Commitment Problem\n"
+                "A distributed transaction updates data stored on several nodes.")
+        joined = join_intra_paragraph_lines(page)
+        assert "1. The Atomic Commitment Problem" in joined.split("\n")
+        assert "Commitment Problem A distributed" not in joined
+
+    def test_cjk_latin_join_inserts_space(self):
+        from examradar.cleaner import join_intra_paragraph_lines
+        page = "标题\n对没有\ncommit 也没有 abort 的事务撤销。"
+        joined = join_intra_paragraph_lines(page)
+        assert "对没有 commit" in joined
+
+    def test_cjk_cjk_join_without_space(self):
+        from examradar.cleaner import join_intra_paragraph_lines
+        page = "标题\n用关系代数表达式写\n出学生姓名。"
+        joined = join_intra_paragraph_lines(page)
+        assert "写出学生姓名。" in joined
+
+    def test_long_numbered_line_is_body_not_heading(self):
+        from examradar.cleaner import join_intra_paragraph_lines
+        numbered = "3. " + "word " * 25  # numbered but far longer than a heading
+        page = "Title\nSome intro without ending punct\n" + numbered
+        joined = join_intra_paragraph_lines(page)
+        assert "Some intro without ending punct 3. word" in joined

@@ -2,12 +2,11 @@
 
 Run with: export EXAMRADAR_IT=1 && uv run pytest -m integration
 
-When EXAMRADAR_IT=1, the app connects to examradar_test (or
-SEEKDB_TEST_DATABASE) instead of the dev database, so tests never
-touch production data.
+conftest.py switches SEEKDB_DATABASE to examradar_test (or
+SEEKDB_TEST_DATABASE) when EXAMRADAR_IT is set, so tests never touch the
+dev database.
 """
 import os
-import json
 import hashlib
 import pathlib
 
@@ -22,7 +21,7 @@ from examradar.seekdb import (
 from examradar.ingest import ingest_bytes
 from examradar.embedding import get_embedding_model
 from examradar.chunker import chunk_file
-from examradar.cleaner import clean_extracted_text, validate_cjk_chars
+from examradar.cleaner import validate_cjk_chars
 
 
 pytestmark = pytest.mark.integration
@@ -44,6 +43,17 @@ ACCEPTANCE_QUERIES = [
      lambda h: h.get("question_no") == 4),
 ]
 
+# Design truth from samples/course-db/README.md — every judgment asserted.
+DESIGN_LEVELS = {
+    "t01": "missing", "t02": "thin", "t03": "covered", "t04": "missing",
+    "t05": "missing", "t06": "covered", "t07": "covered", "t08": "thin",
+    "t09": "covered", "t10": "covered",
+}
+DESIGN_ASSIGNMENTS = {
+    1: "t01", 2: "t02", 3: "t03", 4: "t04", 5: "t04", 6: "t05",
+    7: "t06", 8: "t07", 9: "t08", 10: "t09", 11: "t10",
+}
+
 
 def _sample_files():
     files = []
@@ -62,9 +72,11 @@ def setup_db():
     if not os.environ.get("EXAMRADAR_IT"):
         pytest.skip("EXAMRADAR_IT not set")
     s = get_settings()
-    test_db = s.effective_database
-    assert test_db != s.seekdb_database, \
-        f"Integration tests must use a separate database (got {test_db})"
+    test_db = s.seekdb_database
+    expected = os.environ.get("SEEKDB_TEST_DATABASE", "examradar_test")
+    assert test_db == expected, (
+        f"Integration tests must use the test database {expected!r}, "
+        f"got {test_db!r}")
     ensure_tables()
     assert check_connection(), "Cannot connect to seekdb"
     _clean_test_db()
@@ -72,7 +84,7 @@ def setup_db():
         result = ingest_bytes(f.read_bytes(), f.name, COURSE, kind, source="auto")
         assert not result["skipped"], f"{f.name} should be imported fresh"
     yield
-    delete_course(COURSE_B)
+    delete_course(COURSE_B, include_usage=True)
 
 
 def _clean_test_db():
@@ -85,7 +97,7 @@ def _clean_test_db():
     finally:
         conn.close()
     for cid in course_ids:
-        delete_course(cid)
+        delete_course(cid, include_usage=True)
 
 
 def test_connection():
@@ -105,7 +117,7 @@ def test_same_file_importable_into_other_course():
     assert result["skipped"] is False
     assert result["chunk_count"] > 0
     # restore the corpus: extra documents shift BM25 IDF for later tests
-    delete_course(COURSE_B)
+    delete_course(COURSE_B, include_usage=True)
 
 
 def test_find_document_by_sha256_scoped_to_course():
@@ -144,6 +156,14 @@ def test_chunk_exam_pdf():
         assert "（" in c.content, "full-width punctuation should be preserved"
 
 
+def test_chunk_exam_pdf_joins_hard_wraps():
+    result = chunk_file(str(SAMPLES / "exams" / "2025-2026-1-期末试卷A.pdf"), "exam")
+    q1 = next(c for c in result.chunks if c.question_no == 1)
+    assert "写出" in q1.content, f"'写\\n出' should be joined: {q1.content[:80]!r}"
+    q10 = next(c for c in result.chunks if c.question_no == 10)
+    assert "原则" in q10.content, f"'原\\n则' should be joined: {q10.content[:80]!r}"
+
+
 def test_chunk_slides_pdf():
     result = chunk_file(str(SAMPLES / "slides" / "第7讲-故障恢复.pdf"), "slides")
     assert len(result.chunks) == 9
@@ -156,6 +176,17 @@ def test_chunk_slides_pdf():
     headings = {c.page: c.heading for c in result.chunks}
     assert headings[4] == "先写日志原则（WAL）"
     assert headings[7] == "ARIES 恢复算法的三个阶段"
+
+
+def test_chunk_paper_pdf_keeps_section_headings():
+    """Numbered section headings must not be glued into body paragraphs."""
+    result = chunk_file(str(SAMPLES / "papers" / "two-phase-commit-primer.pdf"), "paper")
+    joined = "\n".join(c.content for c in result.chunks)
+    for heading in ("1. The Atomic Commitment Problem", "2. Roles",
+                    "6. Why 2PC Is a Blocking Protocol"):
+        assert "\n" + heading + "\n" in "\n" + joined + "\n", \
+            f"{heading!r} should stay on its own line"
+    assert "Commitment Problem A distributed transaction" not in joined
 
 
 def test_embedding_model():
@@ -179,6 +210,7 @@ def test_hybrid_search_sql_matches_heading():
         query_text="测试查询", query_vector=query_vec,
         course_id=COURSE, doc_kinds=["notes"], top_k=3,
     )
+    import json
     parsed = json.loads(search_json) if isinstance(search_json, str) else search_json
     assert "query" in parsed and "knn" in parsed
     assert "match(`heading`)" in actual_sql, \
@@ -221,31 +253,77 @@ def test_acceptance_query_first_hit(query, doc_kinds, expect):
         f"_keyword_score is None for first hit of {query!r}"
 
 
-def test_coverage_analyze():
-    """Full coverage analysis on sample data."""
+@pytest.fixture(scope="module")
+def coverage_result():
     from examradar.coverage import analyze
     syllabus_text = (SAMPLES / "syllabus.txt").read_text(encoding="utf-8")
-    result = analyze(COURSE, syllabus_text, source="auto")
-    assert result["run_id"] > 0
-    assert result["course_id"] == COURSE
-    assert len(result["items"]) == 10
-    topic_ids = sorted(item["topic_id"] for item in result["items"])
-    assert topic_ids == [f"t{i:02d}" for i in range(1, 11)]
-    for item in result["items"]:
-        assert item["coverage_level"] in ("covered", "thin", "missing")
-        assert 0 <= item["coverage_score"] <= 1
-        assert item["exam_weight"] >= 0
-        assert item["blind_spot_score"] >= 0
-    # t04 should be the top blind spot (25 points, missing)
-    assert result["items"][0]["topic_id"] == "t04"
+    return analyze(COURSE, syllabus_text, source="auto")
 
 
-def test_coverage_latest():
-    """get_latest returns the most recent analysis."""
-    from examradar.coverage import analyze, get_latest
-    syllabus_text = (SAMPLES / "syllabus.txt").read_text(encoding="utf-8")
-    analyze(COURSE, syllabus_text, source="auto")
+def test_coverage_levels_match_design_truth(coverage_result):
+    """All 10 topic judgments must match the design truth in the README."""
+    levels = {i["topic_id"]: i["coverage_level"] for i in coverage_result["items"]}
+    assert levels == DESIGN_LEVELS, f"coverage levels mismatch: {levels}"
+
+
+def test_coverage_scores_consistent_with_levels(coverage_result):
+    for item in coverage_result["items"]:
+        score, level = item["coverage_score"], item["coverage_level"]
+        if level == "missing":
+            assert score == 0.0
+        elif level == "thin":
+            assert 0.0 < score < 0.5, (item["topic_id"], score)
+        else:
+            assert score >= 0.5, (item["topic_id"], score)
+
+
+def test_exam_assignment_matches_design_truth(coverage_result):
+    """All 11 questions must be assigned to the design-truth topics."""
+    assigned = {}
+    for item in coverage_result["items"]:
+        for q in item["exam_questions"]:
+            assigned[q["question_no"]] = item["topic_id"]
+    assert assigned == DESIGN_ASSIGNMENTS, f"assignment mismatch: {assigned}"
+    # term-based assignments must report their matched terms
+    for item in coverage_result["items"]:
+        for q in item["exam_questions"]:
+            assert q["matched_terms"], \
+                f"Q{q['question_no']} assigned to {item['topic_id']} without term evidence"
+
+
+def test_blind_spot_ranking(coverage_result):
+    """t04 must be the top blind spot: 25 points, coverage 0."""
+    items = coverage_result["items"]
+    assert items[0]["topic_id"] == "t04"
+    assert items[0]["exam_weight"] == 25.0
+    assert items[0]["coverage_score"] == 0.0
+    assert items[0]["blind_spot_score"] == 25.0
+
+
+def test_coverage_reasons_are_explained(coverage_result):
+    """Every reason must name the found/missing terms and the quantities."""
+    by_id = {i["topic_id"]: i for i in coverage_result["items"]}
+    # missing topic: names the terms that were not found
+    assert "关系代数" in by_id["t01"]["reason"]
+    assert "0/2" in by_id["t01"]["reason"]
+    # covered topic: reports support chars above the threshold
+    assert "支撑段落" in by_id["t03"]["reason"]
+    assert "高出 covered 阈值" in by_id["t03"]["reason"]
+    # thin topics say which dimension fell short
+    assert "thin" in by_id["t02"]["reason"]
+    assert "thin" in by_id["t08"]["reason"]
+
+
+def test_coverage_latest(coverage_result):
+    """get_latest returns the most recent analysis with full detail."""
+    from examradar.coverage import get_latest
     latest = get_latest(COURSE)
     assert latest is not None
     assert latest["course_id"] == COURSE
     assert len(latest["items"]) == 10
+    item = next(i for i in latest["items"] if i["topic_id"] == "t04")
+    assert item["coverage_level"] == "missing"
+    assert item["coverage_score"] == 0.0
+    t10 = next(i for i in latest["items"] if i["topic_id"] == "t10")
+    assert t10["exam_questions"][0]["content"], "question text must persist"
+    assert t10["exam_questions"][0]["matched_terms"]
