@@ -1,0 +1,66 @@
+services:
+  seekdb:
+    image: oceanbase/seekdb:1.4.0-100000172026082615
+    environment:
+      ROOT_PASSWORD: ${SEEKDB_PASSWORD}
+    ports:
+      - "${SEEKDB_HOST_PORT:-10800}:2881"
+    volumes:
+      - seekdb-data:/data/seekdb
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h127.0.0.1", "-P2881", "-uroot", "-p${SEEKDB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  powercontext:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.powercontext
+    environment:
+      POWERCONTEXT_SERVER_DATABASE_KIND: seekdb
+      POWERCONTEXT_SERVER_DATABASE_PATH: /data/seekdb
+      POWERCONTEXT_SERVER_HTTP_HOST: "0.0.0.0"
+      POWERCONTEXT_SERVER_ALLOW_UNAUTHENTICATED_NON_LOOPBACK: "true"
+    ports:
+      - "${POWERCONTEXT_HOST_PORT:-18801}:8000"
+    volumes:
+      - pc-data:/data/seekdb
+    depends_on:
+      seekdb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    environment:
+      SEEKDB_HOST: seekdb
+      SEEKDB_PORT: "2881"
+      SEEKDB_USER: root
+      SEEKDB_PASSWORD: ${SEEKDB_PASSWORD}
+      SEEKDB_DATABASE: ${SEEKDB_DATABASE:-examradar}
+      POWERCONTEXT_URL: http://powercontext:8000
+      APP_HOST: "0.0.0.0"
+      APP_PORT: "18800"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:18800}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-zh-v1.5}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-512}
+    ports:
+      - "${APP_PORT:-18800}:18800"
+    depends_on:
+      seekdb:
+        condition: service_healthy
+      powercontext:
+        condition: service_healthy
+
+volumes:
+  seekdb-data:
+  pc-data:

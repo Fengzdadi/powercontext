@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>系统状态</h2>
+<div id="health">加载中...</div>
+</div>
+<div class="card">
+<h2>快捷入口</h2>
+<div class="quick-links">
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+</div>
+</div>
+<div class="card">
+<h2>已导入资料</h2>
+<label for="course-select">课程 ID</label>
+<input type="text" id="course-select" value="db101" style="max-width:200px">
+<button class="btn" onclick="loadDocs()" style="margin-top:8px">刷新列表</button>
+<div id="doc-list" style="margin-top:12px"></div>
+</div>
+</div>
+<script>
+async function checkHealth() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    const el = document.getElementById('health');
+    const items = [
+      ['seekdb', d.seekdb.ok],
+      ['向量模型', d.embedding.ok, d.embedding.model],
+      ['PowerContext', d.powercontext.ok, d.powercontext.detail],
+    ];
+    el.innerHTML = items.map(([name, ok, detail]) =>
+      `<div style="padding:4px 0">${ok ? '✅' : '❌'} ${name}${detail ? ' — ' + detail : ''}</div>`
+    ).join('');
+  } catch(e) {
+    document.getElementById('health').innerHTML = '<span style="color:red">无法连接服务</span>';
+  }
+}
+async function loadDocs() {
+  const cid = document.getElementById('course-select').value;
+  try {
+    const r = await fetch(`/api/documents?course_id=${encodeURIComponent(cid)}`);
+    const docs = await r.json();
+    const el = document.getElementById('doc-list');
+    if (!docs.length) { el.innerHTML = '<p style="color:#888">暂无资料</p>'; return; }
+    el.innerHTML = `<table><tr><th>文件名</th><th>类型</th><th>块数</th><th>导入时间</th></tr>` +
+      docs.map(d => `<tr><td>${d.name}</td><td>${d.doc_kind}</td><td>${d.chunk_count}</td><td>${d.created_at||''}</td></tr>`).join('') +
+      '</table>';
+  } catch(e) {
+    document.getElementById('doc-list').innerHTML = '<span style="color:red">加载失败</span>';
+  }
+}
+checkHealth();
+loadDocs();
+</script>
+</body>
+</html>

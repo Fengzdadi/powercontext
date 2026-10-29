@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # How every Qoder development session in this project was run.
-#   dev-records/run_qoder.sh <session-name> <prompt-file> [extra qoderclicn args...]
+#   dev-records/run_qoder.sh <session-name> <prompt-file> [extra qoderclicn args, e.g. -m GLM-5.3]
 # The complete stream-json transcript goes to dev-records/sessions/<session-name>.jsonl,
 # with start/finish timestamps next to it. Commands Qoder may run without asking are
-# listed in ALLOWED; file edits are allowed by --permission-mode accept_edits.
+# listed in ALLOWED (plus EXTRA_ALLOWED from the environment, for a session that needs
+# more, such as the Docker one); file edits are allowed by --permission-mode accept_edits.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 project="$(cd "$here/.." && pwd)"          # the qoder/ directory
@@ -16,7 +17,8 @@ Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(wc:*),Bash(sed -n:*),Bash(sort:*),Bash
 Bash(file:*),Bash(shasum:*),Bash(jq:*),Bash(tree:*),Bash(pwd:*),Bash(echo:*),Bash(test:*),\
 Bash(cd:*),Bash(env:*),Bash(export:*),Bash(source:*),Bash(sleep:*),Bash(xargs:*),\
 Bash(mkdir:*),Bash(chmod:*),Bash(bash scripts/:*),Bash(./scripts/:*),Bash(scripts/:*),\
-Bash(nohup:*),Bash(lsof:*),Bash(kill:*),Bash(pkill -f uvicorn:*)"
+Bash(nohup:*),Bash(lsof:*),Bash(kill:*),Bash(which:*),Bash(.venv/bin/uvicorn:*),Bash(.venv/bin/pytest:*)"
+ALLOWED="$ALLOWED${EXTRA_ALLOWED:+,$EXTRA_ALLOWED}"
 
 date '+%Y-%m-%dT%H:%M:%S%z' > "$out.started"
 set +e

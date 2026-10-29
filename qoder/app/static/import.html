@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>导入资料 — 考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>上传资料</h2>
+<form id="upload-form">
+<div class="form-row">
+<div>
+<label for="course-id">课程 ID</label>
+<input type="text" id="course-id" value="db101" required>
+</div>
+<div>
+<label for="doc-kind">资料类型</label>
+<select id="doc-kind">
+<option value="notes">笔记 (notes)</option>
+<option value="slides">课件 (slides)</option>
+<option value="exam">往年试卷 (exam)</option>
+<option value="paper">论文/阅读 (paper)</option>
+</select>
+</div>
+</div>
+<label for="file-input">选择文件</label>
+<input type="file" id="file-input" accept=".md,.txt,.pdf" required style="margin-top:4px">
+<button type="submit" class="btn" style="margin-top:16px" id="upload-btn">上传并导入</button>
+</form>
+<div id="upload-status"></div>
+</div>
+<div class="card">
+<h2>已导入资料</h2>
+<button class="btn" onclick="loadDocs()">刷新列表</button>
+<div id="doc-list" style="margin-top:12px"></div>
+</div>
+</div>
+<script>
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('upload-btn');
+  const status = document.getElementById('upload-status');
+  btn.disabled = true;
+  btn.textContent = '导入中...';
+  status.innerHTML = '';
+  const form = new FormData();
+  form.append('file', document.getElementById('file-input').files[0]);
+  form.append('course_id', document.getElementById('course-id').value);
+  form.append('doc_kind', document.getElementById('doc-kind').value);
+  try {
+    const r = await fetch('/api/documents', { method: 'POST', body: form });
+    const d = await r.json();
+    if (d.skipped) {
+      status.className = 'status info';
+      status.textContent = `文件已存在，跳过。已有 ${d.chunk_count} 个块。`;
+    } else {
+      status.className = 'status ok';
+      status.textContent = `导入成功！共 ${d.chunk_count} 个块。`;
+    }
+    loadDocs();
+  } catch(err) {
+    status.className = 'status err';
+    status.textContent = '导入失败: ' + err.message;
+  }
+  btn.disabled = false;
+  btn.textContent = '上传并导入';
+});
+async function loadDocs() {
+  const cid = document.getElementById('course-id').value;
+  try {
+    const r = await fetch(`/api/documents?course_id=${encodeURIComponent(cid)}`);
+    const docs = await r.json();
+    const el = document.getElementById('doc-list');
+    if (!docs.length) { el.innerHTML = '<p style="color:#888">暂无资料</p>'; return; }
+    el.innerHTML = `<table><tr><th>文件名</th><th>类型</th><th>块数</th></tr>` +
+      docs.map(d => `<tr><td>${d.name}</td><td>${d.doc_kind}</td><td>${d.chunk_count}</td></tr>`).join('') +
+      '</table>';
+  } catch(e) {
+    document.getElementById('doc-list').innerHTML = '<span style="color:red">加载失败</span>';
+  }
+}
+loadDocs();
+</script>
+</body>
+</html>

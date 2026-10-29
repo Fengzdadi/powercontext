@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+RUN pip install --no-cache-dir "powercontext[cli,server,seekdb]==1.4.1"
+
+ENV POWERCONTEXT_SERVER_DATABASE_KIND=seekdb
+ENV POWERCONTEXT_SERVER_DATABASE_PATH=/data/seekdb
+ENV POWERCONTEXT_SERVER_HTTP_HOST=0.0.0.0
+ENV POWERCONTEXT_SERVER_ALLOW_UNAUTHENTICATED_NON_LOOPBACK=true
+
+EXPOSE 8000
+
+CMD ["powercontext", "server", "run"]

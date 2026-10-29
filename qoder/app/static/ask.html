@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>问笔记 — 考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>问笔记</h2>
+<div class="form-row">
+<div>
+<label for="course-id">课程 ID</label>
+<input type="text" id="course-id" value="db101">
+</div>
+<div style="flex:0 0 auto">
+<label>&nbsp;</label>
+<label style="display:flex;align-items:center;gap:6px;margin-top:16px">
+<input type="checkbox" id="include-exam" style="width:auto"> 包含试卷
+</label>
+</div>
+</div>
+<label for="query-input">你的问题</label>
+<textarea id="query-input" rows="2" placeholder="例如：B+树插入时结点怎么分裂？"></textarea>
+<button class="btn" style="margin-top:12px" id="search-btn" onclick="doSearch()">检索</button>
+</div>
+<div id="results-area"></div>
+</div>
+<script>
+async function doSearch() {
+  const btn = document.getElementById('search-btn');
+  const area = document.getElementById('results-area');
+  btn.disabled = true;
+  btn.textContent = '检索中...';
+  area.innerHTML = '';
+  const query = document.getElementById('query-input').value.trim();
+  if (!query) { area.innerHTML = '<div class="card"><p>请输入问题</p></div>'; btn.disabled = false; btn.textContent = '检索'; return; }
+  try {
+    const r = await fetch('/api/search', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        query: query,
+        course_id: document.getElementById('course-id').value,
+        include_exam: document.getElementById('include-exam').checked,
+        top_k: 10,
+      })
+    });
+    const d = await r.json();
+    if (!d.results || !d.results.length) {
+      area.innerHTML = '<div class="card"><p>没有找到相关结果</p></div>';
+      return;
+    }
+    let html = '<div class="card"><h2>检索结果</h2>';
+    for (const item of d.results) {
+      const meta = [];
+      if (item.heading) meta.push(item.heading);
+      if (item.page) meta.push('第' + item.page + '页');
+      if (item.question_no) meta.push('第' + item.question_no + '题' + (item.points ? ' (' + item.points + '分)' : ''));
+      html += `<div class="result-item">
+        <div class="meta">#${item.rank} ${meta.join(' · ')}</div>
+        <div class="content">${escapeHtml(item.content).substring(0, 500)}${item.content.length > 500 ? '...' : ''}</div>
+        <div class="scores">
+          RRF: ${(item.score||0).toFixed(4)} |
+          关键词: ${(item.keyword_score||0).toFixed(2)} (rank ${item.keyword_rank||'-'}) |
+          语义: ${(item.semantic_score||0).toFixed(4)} (rank ${item.semantic_rank||'-'})
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+    html += `<div class="card"><details><summary>seekdb 实际执行的检索 JSON</summary>
+      <pre>${escapeHtml(JSON.stringify(d.search_json, null, 2))}</pre></details>
+      <details><summary>GET_SQL 结果</summary><pre>${escapeHtml(d.actual_sql||'(空)')}</pre></details></div>`;
+    area.innerHTML = html;
+  } catch(err) {
+    area.innerHTML = '<div class="card status err">检索失败: ' + escapeHtml(err.message) + '</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = '检索';
+}
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+document.getElementById('query-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSearch(); }
+});
+</script>
+</body>
+</html>
