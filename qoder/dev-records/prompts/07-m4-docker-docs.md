@@ -1,4 +1,4 @@
-会话 06（里程碑 M4）：Docker 一键部署 + 端到端验证样例 + README。
+会话 07（里程碑 M4）：Docker 一键部署 + 端到端验证样例 + README。
 
 先读 `docs/DEVLOG.md` 了解当前状态。开发用的 seekdb（127.0.0.1:10800）和 PowerContext（127.0.0.1:18801）照常在跑，不要动它们。
 

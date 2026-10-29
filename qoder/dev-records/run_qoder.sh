@@ -23,7 +23,8 @@ Bash(file:*),Bash(shasum:*),Bash(jq:*),Bash(tree:*),Bash(pwd:*),Bash(echo:*),Bas
 Bash(cd:*),Bash(env:*),Bash(export:*),Bash(source:*),Bash(sleep:*),Bash(xargs:*),\
 Bash(mkdir:*),Bash(chmod:*),Bash(bash scripts/load_sample.sh:*),Bash(bash ../scripts/load_sample.sh:*),\
 Bash(scripts/load_sample.sh:*),Bash(./scripts/load_sample.sh:*),Bash(../scripts/load_sample.sh:*),\
-Bash(nohup:*),Bash(lsof:*),Bash(kill:*),Bash(which:*),Bash(.venv/bin/uvicorn:*),Bash(.venv/bin/pytest:*)"
+Bash(nohup:*),Bash(lsof:*),Bash(kill:*),Bash(which:*),Bash(.venv/bin/uvicorn:*),Bash(.venv/bin/pytest:*),\
+Bash(app/.venv/bin/python:*),Bash(./app/.venv/bin/python:*)"
 ALLOWED="$ALLOWED${EXTRA_ALLOWED:+,$EXTRA_ALLOWED}"
 
 date '+%Y-%m-%dT%H:%M:%S%z' > "$out.started"
