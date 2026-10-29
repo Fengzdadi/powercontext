@@ -323,7 +323,7 @@ Continue reading the remaining materials: samples/course-db/README.md, dev-recor
 ```
 1	# Qoder Credits 用量
 2	
-3	账号 `fengzc`（个人版）。每次运行的用量取自 Qoder CLI 输出里 `result.total_credits`（与逐条请求 `usage.credits` 累加一致）。
+3	账号 `[redacted]`（个人版）。每次运行的用量取自 Qoder CLI 输出里 `result.total_credits`（与逐条请求 `usage.credits` 累加一致）。
 4	
 5	| # | 会话 | 日期 | 模型 | 轮数 | 耗时 | Credits | 累计 |
 6	| --- | --- | --- | --- | --- | --- | --- | --- |
@@ -354,7 +354,7 @@ Continue reading the remaining materials: samples/course-db/README.md, dev-recor
 3	本项目（考前雷达 ExamRadar）的需求拆解、技术设计、编码和调试由 **Qoder CLI**（`qoderclicn` 1.1.80，Qoder CN）完成。
 4	产品负责人只负责写需求、提供样例数据和接口实测备忘、审阅和验收，不直接写应用代码。
 5	
-6	- **Qoder 账号**：用户名 `fengzc`（个人版）
+6	- **Qoder 账号**：用户名 `[redacted]`（个人版）
 7	- **账号 UID**：`01a184e5-b79a-7087-aa96-d00a66126283`
 8	
 9	## 目录
@@ -684,7 +684,7 @@ build_site_data.py: standard library only. Parse CREDITS.md table rows. Output J
 }
 ```
 
-turns "—" → null. Also the note paragraphs in CREDITS.md — maybe include the account info? Page shows: 账号 fengzc 个人版? dev-records/README says account username fengzc, UID. Privacy: "不放任何密码、密钥、个人信息" — username/UID arguably fine (already public in repo). The brief says链接到 dev-records. I'll show model usage summary without account details, or mention "个人版账号". Keep it minimal: table + 分工 + link.
+turns "—" → null. Also the note paragraphs in CREDITS.md — maybe include the account info? Page shows: 账号 [redacted] 个人版? dev-records/README says account username [redacted], UID. Privacy: "不放任何密码、密钥、个人信息" — username/UID arguably fine (already public in repo). The brief says链接到 dev-records. I'll show model usage summary without account details, or mention "个人版账号". Keep it minimal: table + 分工 + link.
 
 Model column "5 个模型" — fine as string.
 

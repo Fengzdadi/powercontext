@@ -2478,7 +2478,7 @@ find /Users/wanderer/Project/oceanbase/powercontext-camp/.camp/wt/eco-qoder/qode
 3	本项目（考前雷达 ExamRadar）的需求拆解、技术设计、编码和调试由 **Qoder CLI**（`qoderclicn` 1.1.80，Qoder CN）完成。
 4	产品负责人只负责写需求、提供样例数据和接口实测备忘、审阅和验收，不直接写应用代码。
 5	
-6	- **Qoder 账号**：用户名 `fengzc`（个人版）
+6	- **Qoder 账号**：用户名 `[redacted]`（个人版）
 7	- **账号 UID**：（待账号所有者在 Qoder 账号页核对后填写）
 8	
 9	## 目录
@@ -2523,7 +2523,7 @@ find /Users/wanderer/Project/oceanbase/powercontext-camp/.camp/wt/eco-qoder/qode
 ```
 1	# Qoder Credits 用量
 2	
-3	账号 `fengzc`（个人版）。每次运行的用量取自 Qoder CLI 输出里 `result.total_credits`（与逐条请求 `usage.credits` 累加一致）。
+3	账号 `[redacted]`（个人版）。每次运行的用量取自 Qoder CLI 输出里 `result.total_credits`（与逐条请求 `usage.credits` 累加一致）。
 4	
 5	| # | 会话 | 日期 | 模型 | 轮数 | 耗时 | Credits | 累计 |
 6	| --- | --- | --- | --- | --- | --- | --- | --- |

@@ -598,7 +598,7 @@ find /Users/wanderer/Project/oceanbase/powercontext-camp/.camp/wt/eco-qoder/qode
 ```
 1	# Qoder Credits 用量
 2	
-3	账号 `fengzc`（个人版）。每次运行的用量取自 Qoder CLI 输出里 `result.total_credits`（与逐条请求 `usage.credits` 累加一致）。
+3	账号 `[redacted]`（个人版）。每次运行的用量取自 Qoder CLI 输出里 `result.total_credits`（与逐条请求 `usage.credits` 累加一致）。
 4	
 5	| # | 会话 | 日期 | 模型 | 轮数 | 耗时 | Credits | 累计 |
 6	| --- | --- | --- | --- | --- | --- | --- | --- |
