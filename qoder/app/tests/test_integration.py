@@ -1,26 +1,61 @@
 """Integration tests requiring a running seekdb instance.
 
-Run with: EXAMRADAR_IT=1 uv run pytest -m integration
+Run with: export EXAMRADAR_IT=1 && uv run pytest -m integration
 """
 import os
 import json
 import hashlib
+import pathlib
+
 import pytest
 
 from examradar.config import get_settings
 from examradar.seekdb import (
     ensure_tables, check_connection, get_connection,
-    insert_document, insert_chunk, find_document_by_sha256,
+    import_document, find_document_by_sha256, delete_course,
     hybrid_search, insert_usage_event, get_documents,
 )
+from examradar.ingest import ingest_bytes
 from examradar.embedding import get_embedding_model
 from examradar.chunker import chunk_file
-from examradar.cleaner import clean_extracted_text, normalize_text
+from examradar.cleaner import clean_extracted_text, validate_cjk_chars
 
 
 pytestmark = pytest.mark.integration
 
-COURSE = "db101_it"
+# The acceptance queries are calibrated against a corpus containing exactly
+# the sample course materials: BM25 IDF is computed over the whole table,
+# so extra documents in other courses shift keyword scores. The suite
+# therefore wipes all courses first and imports only the samples.
+COURSE = "db101"
+COURSE_B = "db101_it_b"
+
+SAMPLES = pathlib.Path(__file__).resolve().parents[2] / "samples" / "course-db"
+
+# The 6 acceptance queries: (query, doc_kinds, expectation on first hit)
+ACCEPTANCE_QUERIES = [
+    ("脏页表", ["slides"], lambda h: h.get("page") == 7),
+    ("先写日志原则", ["slides"], lambda h: h.get("page") == 4),
+    ("B+树插入时结点分裂", ["notes"],
+     lambda h: "3.3" in (h.get("heading") or "")),
+    ("coordinator crash blocking", ["paper"], lambda h: h.get("page") == 2),
+    ("两阶段锁能不能避免死锁", ["notes"],
+     lambda h: "5.3" in (h.get("heading") or "")),
+    ("函数依赖 候选码", ["notes", "slides", "paper", "exam"],
+     lambda h: h.get("question_no") == 4),
+]
+
+
+def _sample_files():
+    files = []
+    for sub, kind in (("notes", "notes"), ("slides", "slides"),
+                      ("exams", "exam"), ("papers", "paper")):
+        d = SAMPLES / sub
+        if d.is_dir():
+            for f in sorted(d.iterdir()):
+                if f.suffix.lower() in (".md", ".txt", ".pdf"):
+                    files.append((f, kind))
+    return files
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -29,129 +64,123 @@ def setup_db():
         pytest.skip("EXAMRADAR_IT not set")
     assert check_connection(), "Cannot connect to seekdb"
     ensure_tables()
+    _delete_all_courses()
+    for f, kind in _sample_files():
+        result = ingest_bytes(f.read_bytes(), f.name, COURSE, kind)
+        assert not result["skipped"], f"{f.name} should be imported fresh"
+    # leave COURSE data in place: this is the acceptance environment
+    # (scripts/load_sample.sh afterwards reports all files as skipped)
     yield
+    delete_course(COURSE_B)
+
+
+def _delete_all_courses():
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            for table in ("chunks", "documents", "usage_events"):
-                cur.execute(f"DELETE FROM {table} WHERE course_id = %s", (COURSE,))
+            cur.execute("SELECT DISTINCT course_id FROM documents")
+            course_ids = [r["course_id"] for r in cur.fetchall()]
     finally:
         conn.close()
+    for cid in course_ids:
+        delete_course(cid)
 
 
 def test_connection():
     assert check_connection()
 
 
-def test_insert_and_find_document():
-    sha = hashlib.sha256(b"test_content_it").hexdigest()
-    doc_id = insert_document(COURSE, "test_it.md", "notes", "md", sha, 1)
-    assert doc_id > 0
-    found = find_document_by_sha256(sha)
-    assert found is not None
-    assert found["name"] == "test_it.md"
+def test_import_is_idempotent():
+    f = SAMPLES / "notes" / "03-索引与B+树.md"
+    result = ingest_bytes(f.read_bytes(), f.name, COURSE, "notes")
+    assert result["skipped"] is True
+    assert result["chunk_count"] > 0
 
 
-def test_chunk_and_import_markdown():
-    import pathlib
-    md_path = pathlib.Path(__file__).resolve().parents[2] / "samples" / "course-db" / "notes" / "03-索引与B+树.md"
-    if not md_path.exists():
-        pytest.skip("Sample file not found")
-    result = chunk_file(str(md_path), "notes")
-    assert len(result.chunks) >= 3
-    for c in result.chunks:
-        assert c.content.strip()
-        assert c.heading is not None
+def test_same_file_importable_into_other_course():
+    f = SAMPLES / "notes" / "03-索引与B+树.md"
+    result = ingest_bytes(f.read_bytes(), f.name, COURSE_B, "notes")
+    assert result["skipped"] is False
+    assert result["chunk_count"] > 0
+    # restore the corpus: extra documents shift BM25 IDF for later tests
+    delete_course(COURSE_B)
+
+
+def test_find_document_by_sha256_scoped_to_course():
+    f = SAMPLES / "notes" / "03-索引与B+树.md"
+    sha = hashlib.sha256(f.read_bytes()).hexdigest()
+    assert find_document_by_sha256(sha, COURSE) is not None
+    assert find_document_by_sha256(sha, COURSE + "_nope") is None
+
+
+def test_created_at_is_utc_isoformat():
+    docs = get_documents(COURSE)
+    assert docs
+    for d in docs:
+        assert d["created_at"].endswith("+00:00"), d["created_at"]
+
+
+def test_import_document_rollback_on_failure():
+    """A failing chunk insert must roll back the whole document."""
+    sha = hashlib.sha256(b"rollback_test_payload").hexdigest()
+    chunks = [
+        {"content": "ok", "chunk_index": 0, "embedding": [0.1] * 512},
+        # >64KB violates TEXT limit -> insert error mid-batch
+        {"content": "x" * 200_000, "chunk_index": 1, "embedding": [0.1] * 512},
+    ]
+    with pytest.raises(Exception):
+        import_document(COURSE, "rollback.md", "notes", "md", sha, chunks)
+    assert find_document_by_sha256(sha, COURSE) is None
 
 
 def test_chunk_exam_pdf():
-    import pathlib
-    exam_path = pathlib.Path(__file__).resolve().parents[2] / "samples" / "course-db" / "exams" / "2025-2026-1-期末试卷A.pdf"
-    if not exam_path.exists():
-        pytest.skip("Exam PDF not found")
-    result = chunk_file(str(exam_path), "exam")
+    result = chunk_file(str(SAMPLES / "exams" / "2025-2026-1-期末试卷A.pdf"), "exam")
     assert len(result.chunks) == 11, f"Expected 11 questions, got {len(result.chunks)}"
     total_points = sum(c.points for c in result.chunks if c.points)
     assert total_points == 100.0, f"Expected 100 points, got {total_points}"
+    for c in result.chunks:
+        assert "（" in c.content, "full-width punctuation should be preserved"
+
+
+def test_chunk_slides_pdf():
+    result = chunk_file(str(SAMPLES / "slides" / "第7讲-故障恢复.pdf"), "slides")
+    assert len(result.chunks) == 9
+    for c in result.chunks:
+        lines = c.content.split("\n")
+        assert c.heading == lines[0], "heading must be the page's first line"
+        # no standalone footer page-number line
+        assert not lines[-1].strip().isdigit(), f"footer page number left: {lines[-1]!r}"
+        assert validate_cjk_chars(c.content) == []
+    headings = {c.page: c.heading for c in result.chunks}
+    assert headings[4] == "先写日志原则（WAL）"
+    assert headings[7] == "ARIES 恢复算法的三个阶段"
 
 
 def test_embedding_model():
     model = get_embedding_model()
     vec = model.embed_one("数据库系统")
-    s = get_settings()
-    assert len(vec) == s.embedding_dim
+    assert len(vec) == get_settings().embedding_dim
 
 
-def test_batch_embedding():
+def test_query_embedding_instruction_is_configurable():
+    """With the default empty instruction, query and plain embeddings are
+    identical; the BGE instruction is opt-in via EMBEDDING_QUERY_INSTRUCTION
+    (measured to hurt short Chinese term queries — see DEVLOG session 03)."""
     model = get_embedding_model()
-    texts = ["B+树索引", "事务隔离级别", "SQL查询优化"]
-    vecs = model.embed(texts)
-    assert len(vecs) == 3
-    assert all(len(v) == 512 for v in vecs)
+    assert model.embed_one("数据库系统", is_query=True) == model.embed_one("数据库系统")
 
 
-def test_full_import_and_search():
-    """End-to-end: import a markdown file, then search it."""
-    import pathlib
-    md_path = pathlib.Path(__file__).resolve().parents[2] / "samples" / "course-db" / "notes" / "03-索引与B+树.md"
-    if not md_path.exists():
-        pytest.skip("Sample file not found")
-
-    content = md_path.read_bytes()
-    sha = hashlib.sha256(content).hexdigest()
-
-    existing = find_document_by_sha256(sha)
-    if existing and existing["course_id"] == COURSE:
-        doc_id = existing["id"]
-    else:
-        result = chunk_file(str(md_path), "notes")
-        doc_id = insert_document(COURSE, md_path.name, "notes", "md", sha, len(result.chunks))
-        model = get_embedding_model()
-        texts = [c.content for c in result.chunks]
-        embeddings = model.embed(texts)
-        for i, (chunk, emb) in enumerate(zip(result.chunks, embeddings)):
-            insert_chunk(
-                document_id=doc_id, course_id=COURSE, doc_kind="notes",
-                content=chunk.content, heading=chunk.heading, page=chunk.page,
-                question_no=chunk.question_no, points=chunk.points,
-                chunk_index=chunk.chunk_index, embedding=emb,
-            )
-
+def test_hybrid_search_sql_matches_heading():
     model = get_embedding_model()
-    query_vec = model.embed_one("B+树插入时结点分裂")
+    query_vec = model.embed_one("测试查询", is_query=True)
     hits, search_json, actual_sql = hybrid_search(
-        query_text="B+树插入时结点分裂",
-        query_vector=query_vec,
-        course_id=COURSE,
-        doc_kinds=["notes"],
-        top_k=5,
-    )
-    assert len(hits) > 0, "No search results"
-    assert actual_sql, "GET_SQL returned empty"
-
-    first = hits[0]
-    heading = first.get("heading", "") or ""
-    assert "3.3" in heading, f"Expected 3.3 in heading, got: {heading}"
-
-    kw_score = first.get("_keyword_score")
-    assert kw_score is not None and kw_score > 0, f"keyword_score should be > 0, got {kw_score}"
-
-
-def test_search_json_and_sql():
-    """Verify search JSON is well-formed and GET_SQL returns valid SQL."""
-    model = get_embedding_model()
-    query_vec = model.embed_one("测试查询")
-    hits, search_json, actual_sql = hybrid_search(
-        query_text="测试查询",
-        query_vector=query_vec,
-        course_id=COURSE,
-        doc_kinds=["notes"],
-        top_k=3,
+        query_text="测试查询", query_vector=query_vec,
+        course_id=COURSE, doc_kinds=["notes"], top_k=3,
     )
     parsed = json.loads(search_json) if isinstance(search_json, str) else search_json
-    assert "query" in parsed
-    assert "knn" in parsed
-    assert len(actual_sql) > 0
+    assert "query" in parsed and "knn" in parsed
+    assert "match(`heading`)" in actual_sql, \
+        f"GET_SQL should score the heading fulltext index: {actual_sql[:400]}"
 
 
 def test_usage_event_recorded():
@@ -169,22 +198,22 @@ def test_usage_event_recorded():
         conn.close()
 
 
-def test_pdf_text_cleaning():
-    """Verify that PDF extraction produces normal CJK characters."""
-    import pathlib
-    slides_path = pathlib.Path(__file__).resolve().parents[2] / "samples" / "course-db" / "slides" / "第7讲-故障恢复.pdf"
-    if not slides_path.exists():
-        pytest.skip("Slides PDF not found")
-
-    import fitz
-    doc = fitz.open(str(slides_path))
-    page7_text = doc[6].get_text("text")
-    doc.close()
-
-    cleaned = clean_extracted_text(page7_text)
-    assert "脏页表" in cleaned or "脏页表" in normalize_text(page7_text), \
-        f"Expected '脏页表' in cleaned text. Got: {cleaned[:200]}"
-
-    from examradar.cleaner import validate_cjk_chars
-    suspicious = validate_cjk_chars(cleaned)
-    assert len(suspicious) == 0, f"Suspicious chars after cleaning: {suspicious[:3]}"
+@pytest.mark.parametrize("query,doc_kinds,expect", ACCEPTANCE_QUERIES)
+def test_acceptance_query_first_hit(query, doc_kinds, expect):
+    """Each acceptance query's first hit must be the expected source,
+    with a non-null keyword score."""
+    model = get_embedding_model()
+    query_vec = model.embed_one(query, is_query=True)
+    hits, _, _ = hybrid_search(
+        query_text=query, query_vector=query_vec,
+        course_id=COURSE, doc_kinds=doc_kinds, top_k=3,
+    )
+    assert hits, f"no results for: {query}"
+    first = hits[0]
+    assert expect(first), (
+        f"first hit for {query!r} unexpected: "
+        f"page={first.get('page')} heading={first.get('heading')!r} "
+        f"question_no={first.get('question_no')}"
+    )
+    assert first.get("_keyword_score") is not None, \
+        f"_keyword_score is None for first hit of {query!r}"

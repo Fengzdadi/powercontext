@@ -98,6 +98,9 @@ def main() -> None:
     ap.add_argument("--steps", required=True)
     ap.add_argument("--slices", type=int, default=0,
                     help="after the steps, also write the whole scrollback as pages of this many rows")
+    ap.add_argument("--cut-at", default="",
+                    help="drop the scrollback from the last row containing this text on (used to leave out "
+                         "the folder-trust prompt that `--resume` shows; the prompt is never answered)")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
     args = ap.parse_args()
     cmd = args.cmd[1:] if args.cmd and args.cmd[0] == "--" else args.cmd
@@ -138,6 +141,13 @@ def main() -> None:
             print("wrote", path)
     if args.slices:
         allrows = list(screen.history.top) + [screen.buffer[y] for y in range(screen.lines)]
+        if args.cut_at:
+            texts = ["".join(allrows[i][x].data for x in range(screen.columns)) for i in range(len(allrows))]
+            hits = [i for i, t in enumerate(texts) if args.cut_at in t]
+            if hits:
+                allrows = allrows[:hits[-1]]
+            while allrows and not "".join(allrows[-1][x].data for x in range(screen.columns)).strip():
+                allrows.pop()
         for i in range(0, len(allrows), args.slices):
             path = out.parent / f"{out.name}-h{i // args.slices:03d}.html"
             path.write_text(render(allrows[i:i + args.slices], screen.columns, args.title), encoding="utf-8")

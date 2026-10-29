@@ -38,7 +38,40 @@
 </div>
 <div id="results-area"></div>
 </div>
+<!-- marked v15.0.12 (MIT), vendored from https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js -->
+<script src="/static/lib/marked.min.js"></script>
 <script>
+const SHOW_FIRST = 5;
+
+function sourceLine(item) {
+  const parts = [];
+  if (item.document_name) parts.push(item.document_name);
+  if (item.page) parts.push('第' + item.page + '页');
+  if (item.question_no) parts.push('第' + item.question_no + '题' + (item.points ? ' (' + item.points + '分)' : ''));
+  if (item.heading) parts.push(item.heading);
+  return parts.join(' · ');
+}
+
+function fmtScore(v, digits) {
+  return (v === null || v === undefined) ? '—' : Number(v).toFixed(digits);
+}
+
+function renderContent(text) {
+  return marked.parse(escapeHtml(text));
+}
+
+function resultHtml(item) {
+  return `<div class="result-item">
+    <div class="meta">#${item.rank} ${escapeHtml(sourceLine(item))}</div>
+    <div class="content md">${renderContent(item.content)}</div>
+    <div class="scores">
+      RRF: ${fmtScore(item.score, 4)} |
+      关键词: ${fmtScore(item.keyword_score, 2)} (rank ${item.keyword_rank ?? '—'}) |
+      语义: ${fmtScore(item.semantic_score, 4)} (rank ${item.semantic_rank ?? '—'})
+    </div>
+  </div>`;
+}
+
 async function doSearch() {
   const btn = document.getElementById('search-btn');
   const area = document.getElementById('results-area');
@@ -64,20 +97,11 @@ async function doSearch() {
       return;
     }
     let html = '<div class="card"><h2>检索结果</h2>';
-    for (const item of d.results) {
-      const meta = [];
-      if (item.heading) meta.push(item.heading);
-      if (item.page) meta.push('第' + item.page + '页');
-      if (item.question_no) meta.push('第' + item.question_no + '题' + (item.points ? ' (' + item.points + '分)' : ''));
-      html += `<div class="result-item">
-        <div class="meta">#${item.rank} ${meta.join(' · ')}</div>
-        <div class="content">${escapeHtml(item.content).substring(0, 500)}${item.content.length > 500 ? '...' : ''}</div>
-        <div class="scores">
-          RRF: ${(item.score||0).toFixed(4)} |
-          关键词: ${(item.keyword_score||0).toFixed(2)} (rank ${item.keyword_rank||'-'}) |
-          语义: ${(item.semantic_score||0).toFixed(4)} (rank ${item.semantic_rank||'-'})
-        </div>
-      </div>`;
+    html += d.results.slice(0, SHOW_FIRST).map(resultHtml).join('');
+    html += `<div id="more-results" style="display:none">` +
+      d.results.slice(SHOW_FIRST).map(resultHtml).join('') + `</div>`;
+    if (d.results.length > SHOW_FIRST) {
+      html += `<button class="btn" style="width:100%" id="show-more-btn" onclick="showMore(this)">显示更多（${d.results.length - SHOW_FIRST} 条）</button>`;
     }
     html += '</div>';
     html += `<div class="card"><details><summary>seekdb 实际执行的检索 JSON</summary>
@@ -90,7 +114,13 @@ async function doSearch() {
   btn.disabled = false;
   btn.textContent = '检索';
 }
-function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showMore(btn) {
+  document.getElementById('more-results').style.display = '';
+  btn.remove();
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 document.getElementById('query-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSearch(); }
 });

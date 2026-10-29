@@ -70,9 +70,21 @@ class TestBuildSearchJson:
             course_id="db101",
             doc_kinds=["notes"],
         )
-        match_text = result["query"]["bool"]["must"][0]["match"]["content"]
-        assert '"' not in match_text
-        assert "'" not in match_text
+        match = result["query"]["bool"]["must"][0]["multi_match"]
+        assert '"' not in match["query"]
+        assert "'" not in match["query"]
+
+    def test_multi_match_covers_content_and_heading(self):
+        result = build_search_json(
+            query_text="先写日志原则",
+            query_vector=[0.1] * 512,
+            course_id="db101",
+            doc_kinds=["slides"],
+        )
+        match = result["query"]["bool"]["must"][0]["multi_match"]
+        assert match["query"] == "先写日志原则"
+        assert "content" in match["fields"]
+        assert "heading" in match["fields"]
 
     def test_serializable(self):
         result = build_search_json(
@@ -83,7 +95,7 @@ class TestBuildSearchJson:
         )
         json_str = json.dumps(result, ensure_ascii=False)
         parsed = json.loads(json_str)
-        assert parsed["query"]["bool"]["must"][0]["match"]["content"] == "B+树"
+        assert parsed["query"]["bool"]["must"][0]["multi_match"]["query"] == "B+树"
 
     def test_knn_k_value(self):
         result = build_search_json(

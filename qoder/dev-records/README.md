@@ -23,6 +23,25 @@
 
 见 `CREDITS.md`，以及 `docs/DEVLOG.md`（Qoder 在每个会话结束时自己写的开发日志）。
 
+## 截图是怎么来的
+
+`screenshots/` 里是 Qoder CLI 自己的界面。会话结束后，在一个虚拟终端（150×46）里运行 `qoderclicn --resume <会话 ID>`，Qoder 会把这次会话的历史重新显示出来；`tui_capture.py` 把屏幕和滚动历史渲染成图片。
+
+- 重放时不发送任何新指令，也不产生新的模型调用。
+- 重放时 CLI 会弹出"是否信任此文件夹"的确认框。截图没有回答它，而是把它裁掉了（`--cut-at`）。
+
+| 截图 | 环节 | 内容 |
+| --- | --- | --- |
+| `01-plan-1-prompt.png` | 规划 | 会话 01 开头：Qoder CLI 版本与登录方式、产品负责人给的需求拆解任务 |
+| `01-plan-2-summary.png` | 规划 | 会话 01 结尾：Qoder 产出的 PLAN.md 各章摘要 |
+| `02-m1-1-writing-code-and-tests.png` | 核心编码 | 会话 02：Qoder 编写测试代码 |
+| `02-m1-2-debug-search-result-fields.png` | 调试 | 会话 02：Qoder 发现 `DBMS_HYBRID_SEARCH` 返回字段不在 `_source` 下，修改检索接口和集成测试后全部通过 |
+| `02-m1-3-acceptance-summary.png` | 验收 | 会话 02 结尾：Qoder 报告的验收结果（有两条检索标了 ⚠，交给会话 03 修复） |
+| `03-fix-1-browser-check-without-tools.png` | 调试 | 会话 03：没有可用的浏览器工具（技能和 npm 安装被拒），Qoder 改为用 Python 标准库直接驱动 Chrome DevTools 协议来验证页面 |
+| `03-fix-2-acceptance-summary.png` | 验收 | 会话 03 结尾：6 条验收检索全部第一条命中，测试全部通过 |
+
+会话 03 中途 Qoder 压缩过一次上下文。`--resume` 只显示压缩之后的部分，所以检索排序的调试过程（标题加权参数扫描、RRF 平分时用关键词分决胜）看不到截图。这部分在 `sessions/03-fix-m1-review.jsonl` 和 `transcripts/03-fix-m1-review.md` 里，`docs/DEVLOG.md` 的会话 03 一节有修改前后的对比表。
+
 ## 说明
 
 - 开发时连接的是本机 Docker 里的 seekdb 和 PowerContext，数据库密码是本机随机生成的开发密码，只存在被 `.gitignore`

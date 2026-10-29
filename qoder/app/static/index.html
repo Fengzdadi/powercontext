@@ -63,11 +63,16 @@ async function loadDocs() {
     const el = document.getElementById('doc-list');
     if (!docs.length) { el.innerHTML = '<p style="color:#888">暂无资料</p>'; return; }
     el.innerHTML = `<table><tr><th>文件名</th><th>类型</th><th>块数</th><th>导入时间</th></tr>` +
-      docs.map(d => `<tr><td>${d.name}</td><td>${d.doc_kind}</td><td>${d.chunk_count}</td><td>${d.created_at||''}</td></tr>`).join('') +
+      docs.map(d => `<tr><td>${d.name}</td><td>${d.doc_kind}</td><td>${d.chunk_count}</td><td>${fmtLocalTime(d.created_at)}</td></tr>`).join('') +
       '</table>';
   } catch(e) {
     document.getElementById('doc-list').innerHTML = '<span style="color:red">加载失败</span>';
   }
+}
+function fmtLocalTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d) ? iso : d.toLocaleString();
 }
 checkHealth();
 loadDocs();

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from .cleaner import clean_extracted_text, normalize_text
+from .cleaner import clean_extracted_text, normalize_text, strip_footer_page_number
 
 
 @dataclass
@@ -144,22 +144,31 @@ def chunk_exam_pdf(raw_text: str, page_texts: list[str]) -> list[Chunk]:
     return chunks
 
 
+def _extract_pdf_pages(filepath: str) -> list[str]:
+    """Extract cleaned text of every page with pypdfium2."""
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(filepath)
+    try:
+        page_texts = []
+        for i in range(len(doc)):
+            textpage = doc[i].get_textpage()
+            raw = textpage.get_text_range()
+            cleaned = clean_extracted_text(raw)
+            page_texts.append(strip_footer_page_number(cleaned))
+        return page_texts
+    finally:
+        doc.close()
+
+
 def chunk_pdf(filepath: str, doc_kind: str = "slides") -> ChunkResult:
     """Chunk a PDF file. Behavior depends on doc_kind:
     - exam: split by question number with points
     - slides/paper: split by page, heading = first line of each page
     """
-    import fitz  # pymupdf
-
-    doc = fitz.open(filepath)
-    result = ChunkResult(file_type="pdf", page_count=len(doc))
-
-    page_texts: list[str] = []
-    for page in doc:
-        raw = page.get_text("text")
-        cleaned = clean_extracted_text(raw)
-        page_texts.append(cleaned)
-    doc.close()
+    result = ChunkResult(file_type="pdf")
+    page_texts = _extract_pdf_pages(filepath)
+    result.page_count = len(page_texts)
 
     if doc_kind == "exam":
         result.chunks = chunk_exam_pdf("", page_texts)

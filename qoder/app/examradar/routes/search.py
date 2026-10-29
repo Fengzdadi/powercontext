@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Header
 from pydantic import BaseModel
 
-from ..seekdb import hybrid_search, insert_usage_event
+from ..seekdb import hybrid_search, insert_usage_event, get_document_names
 from ..embedding import get_embedding_model
 
 router = APIRouter()
@@ -32,7 +32,7 @@ def search(req: SearchRequest, x_examradar_source: Optional[str] = Header(None))
             doc_kinds.append("exam")
 
     model = get_embedding_model()
-    query_vector = model.embed_one(req.query)
+    query_vector = model.embed_one(req.query, is_query=True)
 
     hits, search_json, actual_sql = hybrid_search(
         query_text=req.query,
@@ -41,6 +41,8 @@ def search(req: SearchRequest, x_examradar_source: Optional[str] = Header(None))
         doc_kinds=doc_kinds,
         top_k=req.top_k,
     )
+
+    doc_names = get_document_names(req.course_id)
 
     results = []
     for i, hit in enumerate(hits):
@@ -52,6 +54,7 @@ def search(req: SearchRequest, x_examradar_source: Optional[str] = Header(None))
             "question_no": hit.get("question_no"),
             "points": hit.get("points"),
             "document_id": hit.get("document_id"),
+            "document_name": doc_names.get(hit.get("document_id")),
             "keyword_score": hit.get("_keyword_score"),
             "semantic_score": hit.get("_semantic_score"),
             "keyword_rank": hit.get("_keyword_rank"),

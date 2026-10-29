@@ -25,7 +25,9 @@ class EmbeddingModel:
             return self._embed_openai(texts)
         return self._embed_local(texts)
 
-    def embed_one(self, text: str) -> list[float]:
+    def embed_one(self, text: str, is_query: bool = False) -> list[float]:
+        if is_query and self._settings.embedding_query_instruction:
+            text = self._settings.embedding_query_instruction + text
         return self.embed([text])[0]
 
     def _embed_local(self, texts: list[str]) -> list[list[float]]:

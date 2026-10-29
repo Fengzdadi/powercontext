@@ -63,7 +63,10 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
   try {
     const r = await fetch('/api/documents', { method: 'POST', body: form });
     const d = await r.json();
-    if (d.skipped) {
+    if (!r.ok) {
+      status.className = 'status err';
+      status.textContent = '导入失败: ' + (d.detail || r.statusText);
+    } else if (d.skipped) {
       status.className = 'status info';
       status.textContent = `文件已存在，跳过。已有 ${d.chunk_count} 个块。`;
     } else {

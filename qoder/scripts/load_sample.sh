@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Import all sample course materials into examradar.
+# syllabus.txt is NOT imported: the exam scope is an input for coverage
+# analysis (M2), not course material.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -20,7 +22,7 @@ import_file() {
     local name
     name=$(basename "$file")
     echo -n "  $name ($kind) ... "
-    .venv/bin/python -m examradar.cli import "$file" --course "$COURSE" --kind "$kind" 2>&1 | tail -1
+    .venv/bin/python -m examradar.cli import "$file" --course "$COURSE" --kind "$kind" | tail -1
 }
 
 echo "--- Notes ---"
@@ -45,10 +47,6 @@ echo "--- Papers ---"
 for f in "$SAMPLES"/papers/*.pdf; do
     import_file "$f" paper
 done
-
-echo ""
-echo "--- Syllabus ---"
-import_file "$SAMPLES/syllabus.txt" notes
 
 echo ""
 echo "=== Import complete ==="
