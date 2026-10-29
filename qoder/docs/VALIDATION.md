@@ -267,7 +267,7 @@ uv run python -m examradar.cli sql "SELECT COUNT(*) AS events FROM usage_events 
 
 打开 http://127.0.0.1:18800/coach.html?source=auto ，输入学习者名字开始会话。
 预期：开场先出盲区知识点的题；答错一题、答对一题后结束会话；**再开一次会话**，
-开场白出现"上次你在『…』上错了 1 次，先复习它"。
+开场白出现"你在『…』上累计错了 1 次，先复习它"。
 再打开 http://127.0.0.1:18800/memory.html?source=auto 输入同一名字：
 掌握度卡片（含 revision 轨迹）、错题本、复习计划、会话小结、PowerContext 调用日志。
 
@@ -322,12 +322,12 @@ curl -s "http://127.0.0.1:18800/api/memory?learner=<URL 编码的名字>&course_
 
 - **第 1 题（自动选题）**：`topic_id` 为 t04、`question_type` 为 `self`，
   `question` 是期末试卷第 4 题原文（"4.（15 分）设关系模式 R(A, B, C, D, E)…"），
-  `source.label` 为 `2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 第4题（15.0分）`，
+  `source.label` 为 `2025-2026-1-期末试卷A.pdf · 第1页 · 第4题 · 15 分`，
   `hint` 为"笔记里没有这部分，建议先补。"——missing 知识点走往年原题自测；
 - **答错（自评"不会"）**：`correct=false`、`box_before=1`、`box_after=1`（答错留在 1 号盒）；
   `mastery` 为新建卡片（`revision: 1`，正文含 `盒 1，答对 0 次 / 答错 1 次`）；
   `mistake_memory` 为新错题（正文以 `【错题】t04 …` 开头）；
-  `review_plan` 首建，`opening` 为"上次你在『函数依赖与范式（3NF、BCNF）』上错了 1 次…"
+  `review_plan` 首建，`opening` 为"你在『函数依赖与范式（3NF、BCNF）』上累计错了 1 次…"
 - **答对（t08 填空）**：`box_before=1`、`box_after=2`（Leitner 升盒），
   `mistake_memory` 为 `null`（答对不写错题）；
 - **结束会话**：`summary_memory` 正文为"会话小结：时长 N 分钟，做题 2 道，正确率 50%，
