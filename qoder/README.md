@@ -41,6 +41,10 @@ ExamRadar 用 seekdb 的**混合检索**（BM25 关键词 + 向量语义，RRF �
 
 （截图文件名清单见 `docs/images/README.md`。）
 
+### 演示视频
+
+[`docs/media/demo.mp4`](docs/media/demo.mp4)：约 70 秒，样例课程、开发环境录制。走完一遍完整流程：首页 → 导入资料 → 问笔记 → 覆盖雷达 → 复习教练出两道题 → 我的记忆 → 使用记录，每一步底部有一行说明。
+
 ## 架构
 
 ```mermaid
