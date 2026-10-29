@@ -16,7 +16,7 @@ seekdb 5.7.25-OceanBase seekdb-v1.4.0.0，数据库 `sdd`，工程 `campus-libra
   references   40 条
   verifies    130 条
 最近的导入批次（sdd_import_runs）：
-  #1 2026-10-29 10:05:41.313280 指纹 8acd5172039b 代码版本 f94b65358bb9：新增 161 更新 0 移动 0 删除 0 未变 0，共 161
+  #1 2026-10-29 10:23:10.543657 指纹 8acd5172039b 代码版本 d8b4de84b1a3：新增 161 更新 0 移动 0 删除 0 未变 0，共 161
 规格修订历史（sdd_chunk_revisions，修订号大于 1 的记录）：
   （没有）
 sdd_chunks 上的索引：

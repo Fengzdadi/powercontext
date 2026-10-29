@@ -1,6 +1,6 @@
 # 任务上下文：T-101 图书检索增加可借状态和出版年份筛选
 
-> 工程 `campus-library`；资料来自 seekdb 导入批次 #2（161 个片段，工程目录指纹 `e42dfd67e153`，代码版本 `f94b65358bb9`）。引用的来源 81 处，逐行核对一致 81 处。
+> 工程 `campus-library`；资料来自 seekdb 导入批次 #2（161 个片段，工程目录指纹 `e42dfd67e153`，代码版本 `d8b4de84b1a3`）。引用的来源 81 处，逐行核对一致 81 处。
 
 ## 0. 任务
 
@@ -437,13 +437,13 @@ def test_available_filter_follows_loans_and_returns(client):
 
 ## 4. 任务状态（PowerContext）
 
-- Scope：`sddctx/campus-library/T-101`（scp_2tjzbxszf0g05wwpsqkkvp1hxb），已有记录 5 条
-- 最近一次记录：succeeded — 任务完成：修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
+- Scope：`sddctx/campus-library/T-101`（scp_7h98ahj80qfgxwycknkmnjqth0），已有记录 5 条
+- 最近一次记录：succeeded — 任务完成：修改后验证（工程指纹 ef7bbeb1f9f4）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
 - 已完成：
-  - 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 d8ab69aefe74）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
+  - 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 2a7743ee4a9e）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
   - 修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed
-  - MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 12 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+25 −3 行，差异 sha256 d9cd48a07415）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed
-  - 修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
+  - MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 13 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+24 −3 行，差异 sha256 aab378c43059）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed；all 116 passed / 0 failed
+  - 修改后验证（工程指纹 ef7bbeb1f9f4）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
 - 已有验证结果：
   - 上下文来源核对：**passed** — 上下文引用的 81 处来源与工程文件逐行比对，一致 81 处
   - 修改前目标测试因功能未实现而失败：**passed** — 25 个用例中失败 25 个，其中断言失败 25 个；环境类问题（导入、夹具、收集错误）0 个；退出码 1；日志 runs/T-101/tests/before/target.log
@@ -452,7 +452,7 @@ def test_available_filter_follows_loans_and_returns(client):
   - 修改后回归测试全部通过：**passed** — 91 passed, 0 failed，exit 0（修改前 91 passed）；日志 runs/T-101/tests/after/regression.log
   - 规格和测试没有被修改：**passed** — 只读路径 specs/**, tests/**, sdd.toml, pyproject.toml 修改前后的指纹一致
   - 修改只涉及实现代码：**passed** — 修改的文件：library/api/handlers.py, library/catalog.py
-  - 被测代码就是 MiniMax 开发记录中的修改：**passed** — 快照差异 sha256 d9cd48a07415，开发记录 d9cd48a07415（runs/T-101/develop/session-20261029-020605.json）
+  - 被测代码就是 MiniMax 开发记录中的修改：**passed** — 快照差异 sha256 aab378c43059，开发记录 aab378c43059（runs/T-101/develop/session-20261029-022334.json）
 - **规格变更**：CAT-007 自上次记录后内容已变化（对比 PowerContext 中保存的规格指纹）。
 - 待办：
   - 规格 CAT-007 在上次记录之后被修改并重新导入，之前的验证结果不再代表当前规格：需要按新规格重新验证（必要时重新修改代码）

@@ -1,17 +1,17 @@
 $ ./sdd state T-101
 # 任务状态：T-101（工程 campus-library）
 
-- PowerContext Scope：`sddctx/campus-library/T-101` → scp_2tjzbxszf0g05wwpsqkkvp1hxb
+- PowerContext Scope：`sddctx/campus-library/T-101` → scp_7h98ahj80qfgxwycknkmnjqth0
 - 记录数：5
 - 最新记录：#5 `T-101/outcome/004-verify-after`，状态 **succeeded**
-- 摘要：任务完成：修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
+- 摘要：任务完成：修改后验证（工程指纹 ef7bbeb1f9f4）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
 
 ## 已完成
 
-- 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 d8ab69aefe74）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
+- 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 2a7743ee4a9e）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
 - 修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed
-- MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 12 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+25 −3 行，差异 sha256 d9cd48a07415）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed
-- 修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
+- MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 13 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+24 −3 行，差异 sha256 aab378c43059）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed；all 116 passed / 0 failed
+- 修改后验证（工程指纹 ef7bbeb1f9f4）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改
 
 ## 验证结果
 
@@ -22,7 +22,7 @@ $ ./sdd state T-101
 - 修改后回归测试全部通过：**passed** — 91 passed, 0 failed，exit 0（修改前 91 passed）；日志 runs/T-101/tests/after/regression.log
 - 规格和测试没有被修改：**passed** — 只读路径 specs/**, tests/**, sdd.toml, pyproject.toml 修改前后的指纹一致
 - 修改只涉及实现代码：**passed** — 修改的文件：library/api/handlers.py, library/catalog.py
-- 被测代码就是 MiniMax 开发记录中的修改：**passed** — 快照差异 sha256 d9cd48a07415，开发记录 d9cd48a07415（runs/T-101/develop/session-20261029-020605.json）
+- 被测代码就是 MiniMax 开发记录中的修改：**passed** — 快照差异 sha256 aab378c43059，开发记录 aab378c43059（runs/T-101/develop/session-20261029-022334.json）
 
 ## 待办
 
@@ -46,8 +46,8 @@ $ ./sdd state T-101
 |---|---|---|---|---|
 | 2 | `T-101/outcome/001-context` | context | partial | 已生成任务上下文：目标 CAT-007, CAT-008；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试函数 15 个 |
 | 3 | `T-101/outcome/002-verify-before` | verify-before | partial | 修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed |
-| 4 | `T-101/outcome/003-develop` | develop | partial | MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 12 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+25 −3 行，差异 sha256 d9cd48a07415）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed |
-| 5 | `T-101/outcome/004-verify-after` | verify-after | succeeded | 任务完成：修改后验证（工程指纹 79552c806854）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改 |
+| 4 | `T-101/outcome/003-develop` | develop | partial | MiniMax 开发助手（MiniMax-M3.1-Flash，实时调用）用 13 轮工具调用完成修改：library/api/handlers.py, library/catalog.py（+24 −3 行，差异 sha256 aab378c43059）；助手自测 target 25 passed / 0 failed；regression 91 passed / 0 failed；all 116 passed / 0 failed |
+| 5 | `T-101/outcome/004-verify-after` | verify-after | succeeded | 任务完成：修改后验证（工程指纹 ef7bbeb1f9f4）：目标测试 25/25 passed；回归测试 91 passed；规格和测试未被修改 |
 
 下一步：无，任务已完成
 # exit code: 0

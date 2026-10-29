@@ -15,8 +15,8 @@
   "import_run": {
     "run_id": 1,
     "tree_sha": "8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009",
-    "code_version": "f94b65358bb9",
-    "finished_at": "2026-10-29 10:05:41.313280",
+    "code_version": "d8b4de84b1a3",
+    "finished_at": "2026-10-29 10:23:10.543657",
     "total": 161
   },
   "specs": {
@@ -1260,13 +1260,13 @@
   "state": {
     "available": true,
     "scope_title": "sddctx/campus-library/T-101",
-    "scope_id": "scp_2tjzbxszf0g05wwpsqkkvp1hxb",
+    "scope_id": "scp_7h98ahj80qfgxwycknkmnjqth0",
     "records": 2,
     "empty": false,
     "latest_status": "partial",
     "latest_summary": "已生成任务上下文：目标 CAT-007, CAT-008；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试函数 15 个",
     "done": [
-      "生成任务上下文（seekdb 导入批次 #1，上下文 sha256 d8ab69aefe74）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个"
+      "生成任务上下文（seekdb 导入批次 #1，上下文 sha256 2a7743ee4a9e）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个"
     ],
     "checks": [
       {

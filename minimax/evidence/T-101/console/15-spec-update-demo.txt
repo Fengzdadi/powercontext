@@ -3,7 +3,7 @@ $ ./sdd spec-update-demo T-101
 2) 重新导入
 导入工程 campus-library（校园图书馆借阅服务）→ seekdb seekdb:2881/sdd，导入批次 #2
   片段 161 个：规格条目 25、规格说明 3、代码 52、测试函数 74、测试模块 7；追溯关系 569 条
-  与上一批次相比：新增 0、内容更新 1、位置移动 2、删除 0、未变化 158；耗时 0.14s
+  与上一批次相比：新增 0、内容更新 1、位置移动 2、删除 0、未变化 158；耗时 0.28s
   更新 spec:CAT-007 → 修订 r2（specs/catalog.md:61-79）
   移动 spec:CAT-008 → 修订 r1（specs/catalog.md:81-91）
   移动 spec:CAT-005 → 修订 r1（specs/catalog.md:95-104）
@@ -11,7 +11,7 @@ $ ./sdd spec-update-demo T-101
 4) 恢复 specs/catalog.md 并重新导入
 导入工程 campus-library（校园图书馆借阅服务）→ seekdb seekdb:2881/sdd，导入批次 #3
   片段 161 个：规格条目 25、规格说明 3、代码 52、测试函数 74、测试模块 7；追溯关系 569 条
-  与上一批次相比：新增 0、内容更新 1、位置移动 2、删除 0、未变化 158；耗时 0.03s
+  与上一批次相比：新增 0、内容更新 1、位置移动 2、删除 0、未变化 158；耗时 0.1s
   更新 spec:CAT-007 → 修订 r3（specs/catalog.md:61-78）
   移动 spec:CAT-008 → 修订 r1（specs/catalog.md:80-90）
   移动 spec:CAT-005 → 修订 r1（specs/catalog.md:94-103）

@@ -66,6 +66,9 @@ def search_books(
 
     实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008
     """
+    if year_from is not None and year_to is not None and year_from > year_to:
+        raise InvalidParameter("year_from", f"year_from 不能大于 year_to：{year_from} > {year_to}")
+
     books = list(repo.books.values())
 
     keyword = (keyword or "").strip().lower()
@@ -78,15 +81,11 @@ def search_books(
         books = [b for b in books if b.category == category]
 
     if available is not None:
-        if available:
-            books = [b for b in books if available_copies(repo, b.id) > 0]
-        else:
-            books = [b for b in books if available_copies(repo, b.id) == 0]
+        books = [b for b in books if (available_copies(repo, b.id) > 0) == available]
 
-    if year_from is not None and year_to is not None and year_from > year_to:
-        raise InvalidParameter("year_from", "year_from 不能大于 year_to")
     if year_from is not None:
         books = [b for b in books if b.year >= year_from]
+
     if year_to is not None:
         books = [b for b in books if b.year <= year_to]
 

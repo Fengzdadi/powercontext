@@ -1,14 +1,14 @@
 $ ./sdd state T-101
 # 任务状态：T-101（工程 campus-library）
 
-- PowerContext Scope：`sddctx/campus-library/T-101` → scp_2tjzbxszf0g05wwpsqkkvp1hxb
+- PowerContext Scope：`sddctx/campus-library/T-101` → scp_7h98ahj80qfgxwycknkmnjqth0
 - 记录数：3
 - 最新记录：#3 `T-101/outcome/002-verify-before`，状态 **partial**
 - 摘要：修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed
 
 ## 已完成
 
-- 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 d8ab69aefe74）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
+- 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 2a7743ee4a9e）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
 - 修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed
 
 ## 验证结果

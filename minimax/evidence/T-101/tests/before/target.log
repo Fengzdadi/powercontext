@@ -1,17 +1,17 @@
 # label: target
 # command: python -m pytest -q -rfE -p no:cacheprovider --junitxml=runs/T-101/tests/before/target.junit.xml tests/test_api_books_filters.py::test_available_true_returns_only_books_with_copies_on_shelf tests/test_api_books_filters.py::test_available_false_returns_only_books_without_copies_on_shelf tests/test_api_books_filters.py::test_available_accepts_true_spellings tests/test_api_books_filters.py::test_available_accepts_false_spellings tests/test_api_books_filters.py::test_invalid_available_value_is_rejected tests/test_api_books_filters.py::test_year_range_is_inclusive tests/test_api_books_filters.py::test_single_year_range tests/test_api_books_filters.py::test_year_from_alone tests/test_api_books_filters.py::test_year_to_alone tests/test_api_books_filters.py::test_non_integer_year_is_rejected tests/test_api_books_filters.py::test_year_from_after_year_to_is_rejected tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_category tests/test_api_books_filters.py::test_filters_apply_before_pagination tests/test_api_books_filters.py::test_filters_apply_before_sorting tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns
 # cwd: runs/T-101/snapshots/before
-# code_version: f94b65358bb9
+# code_version: d8b4de84b1a3
 # tree_sha256: 8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009
-# started_at: 2026-10-29T02:05:48.625+00:00
-# seconds: 0.19
+# started_at: 2026-10-29T02:23:17.147+00:00
+# seconds: 0.21
 # exit_code: 1
 # result: 0 passed, 25 failed，exit 1；断言失败 25，其他问题 0
 FFFFFFFFFFFFFFFFFFFFFFFFF                                                [100%]
 =================================== FAILURES ===================================
 _________ test_available_true_returns_only_books_with_copies_on_shelf __________
 
-client = <conftest.TestClient object at 0xffffabf856d0>
+client = <conftest.TestClient object at 0xffffab2656d0>
 
     @pytest.mark.spec("CAT-007", "DATA-001")
     def test_available_true_returns_only_books_with_copies_on_shelf(client):
@@ -27,7 +27,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:25: AssertionError
 _______ test_available_false_returns_only_books_without_copies_on_shelf ________
 
-client = <conftest.TestClient object at 0xffffabf8dd30>
+client = <conftest.TestClient object at 0xffffab26dd30>
 
     @pytest.mark.spec("CAT-007", "DATA-001")
     def test_available_false_returns_only_books_without_copies_on_shelf(client):
@@ -43,7 +43,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:34: AssertionError
 _________________ test_available_accepts_true_spellings[TRUE] __________________
 
-client = <conftest.TestClient object at 0xffffabfb7fb0>, raw = 'TRUE'
+client = <conftest.TestClient object at 0xffffab297fb0>, raw = 'TRUE'
 
     @pytest.mark.spec("CAT-007", "API-003")
     @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
@@ -58,7 +58,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:42: AssertionError
 _________________ test_available_accepts_true_spellings[True] __________________
 
-client = <conftest.TestClient object at 0xffffac0b7590>, raw = 'True'
+client = <conftest.TestClient object at 0xffffab397590>, raw = 'True'
 
     @pytest.mark.spec("CAT-007", "API-003")
     @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
@@ -73,7 +73,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:42: AssertionError
 ___________________ test_available_accepts_true_spellings[1] ___________________
 
-client = <conftest.TestClient object at 0xffffabf874a0>, raw = '1'
+client = <conftest.TestClient object at 0xffffab2674a0>, raw = '1'
 
     @pytest.mark.spec("CAT-007", "API-003")
     @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
@@ -88,7 +88,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:42: AssertionError
 ______________ test_available_accepts_true_spellings[%20true%20] _______________
 
-client = <conftest.TestClient object at 0xffffabdd7110>, raw = '%20true%20'
+client = <conftest.TestClient object at 0xffffab0b7110>, raw = '%20true%20'
 
     @pytest.mark.spec("CAT-007", "API-003")
     @pytest.mark.parametrize("raw", ["TRUE", "True", "1", "%20true%20"])
@@ -103,7 +103,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:42: AssertionError
 ________________ test_available_accepts_false_spellings[FALSE] _________________
 
-client = <conftest.TestClient object at 0xffffabde1e20>, raw = 'FALSE'
+client = <conftest.TestClient object at 0xffffab0c1e20>, raw = 'FALSE'
 
     @pytest.mark.spec("CAT-007", "API-003")
     @pytest.mark.parametrize("raw", ["FALSE", "0"])
@@ -118,7 +118,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:48: AssertionError
 __________________ test_available_accepts_false_spellings[0] ___________________
 
-client = <conftest.TestClient object at 0xffffabe647a0>, raw = '0'
+client = <conftest.TestClient object at 0xffffab1447a0>, raw = '0'
 
     @pytest.mark.spec("CAT-007", "API-003")
     @pytest.mark.parametrize("raw", ["FALSE", "0"])
@@ -133,7 +133,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:48: AssertionError
 ________________ test_invalid_available_value_is_rejected[yes] _________________
 
-client = <conftest.TestClient object at 0xffffabe6a870>, raw = 'yes'
+client = <conftest.TestClient object at 0xffffab14a870>, raw = 'yes'
 
     @pytest.mark.spec("CAT-007", "API-002", "API-003")
     @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
@@ -154,7 +154,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 __________________ test_invalid_available_value_is_rejected[] __________________
 
-client = <conftest.TestClient object at 0xffffabfd9fd0>, raw = ''
+client = <conftest.TestClient object at 0xffffab2b9fd0>, raw = ''
 
     @pytest.mark.spec("CAT-007", "API-002", "API-003")
     @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
@@ -175,7 +175,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 _________________ test_invalid_available_value_is_rejected[2] __________________
 
-client = <conftest.TestClient object at 0xffffabe8cc20>, raw = '2'
+client = <conftest.TestClient object at 0xffffab16cc20>, raw = '2'
 
     @pytest.mark.spec("CAT-007", "API-002", "API-003")
     @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
@@ -196,7 +196,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 _________________ test_invalid_available_value_is_rejected[on] _________________
 
-client = <conftest.TestClient object at 0xffffabb73770>, raw = 'on'
+client = <conftest.TestClient object at 0xffffaae53770>, raw = 'on'
 
     @pytest.mark.spec("CAT-007", "API-002", "API-003")
     @pytest.mark.parametrize("raw", ["yes", "", "2", "on"])
@@ -217,7 +217,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 _________________________ test_year_range_is_inclusive _________________________
 
-client = <conftest.TestClient object at 0xffffabb736e0>
+client = <conftest.TestClient object at 0xffffaae536e0>
 
     @pytest.mark.spec("CAT-008")
     def test_year_range_is_inclusive(client):
@@ -233,7 +233,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:61: AssertionError
 ____________________________ test_single_year_range ____________________________
 
-client = <conftest.TestClient object at 0xffffabbf1970>
+client = <conftest.TestClient object at 0xffffaaed1970>
 
     @pytest.mark.spec("CAT-008")
     def test_single_year_range(client):
@@ -247,7 +247,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:66: AssertionError
 _____________________________ test_year_from_alone _____________________________
 
-client = <conftest.TestClient object at 0xffffabbcc1a0>
+client = <conftest.TestClient object at 0xffffaaeac1a0>
 
     @pytest.mark.spec("CAT-008")
     def test_year_from_alone(client):
@@ -261,7 +261,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:71: AssertionError
 ______________________________ test_year_to_alone ______________________________
 
-client = <conftest.TestClient object at 0xffffabb7bfe0>
+client = <conftest.TestClient object at 0xffffaae5bfe0>
 
     @pytest.mark.spec("CAT-008")
     def test_year_to_alone(client):
@@ -275,7 +275,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:76: AssertionError
 __________ test_non_integer_year_is_rejected[year_from=abc-year_from] __________
 
-client = <conftest.TestClient object at 0xffffabbf3e90>, query = 'year_from=abc'
+client = <conftest.TestClient object at 0xffffaaed3e90>, query = 'year_from=abc'
 field = 'year_from'
 
     @pytest.mark.spec("CAT-008", "API-002", "API-004")
@@ -305,7 +305,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 ________ test_non_integer_year_is_rejected[year_from=2000.5-year_from] _________
 
-client = <conftest.TestClient object at 0xffffabb71220>
+client = <conftest.TestClient object at 0xffffaae51220>
 query = 'year_from=2000.5', field = 'year_from'
 
     @pytest.mark.spec("CAT-008", "API-002", "API-004")
@@ -335,7 +335,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 ___________ test_non_integer_year_is_rejected[year_to=20x5-year_to] ____________
 
-client = <conftest.TestClient object at 0xffffabfd9a60>, query = 'year_to=20x5'
+client = <conftest.TestClient object at 0xffffab2b9a60>, query = 'year_to=20x5'
 field = 'year_to'
 
     @pytest.mark.spec("CAT-008", "API-002", "API-004")
@@ -365,7 +365,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 _____________ test_non_integer_year_is_rejected[year_to=-year_to] ______________
 
-client = <conftest.TestClient object at 0xffffabe8c410>, query = 'year_to='
+client = <conftest.TestClient object at 0xffffab16c410>, query = 'year_to='
 field = 'year_to'
 
     @pytest.mark.spec("CAT-008", "API-002", "API-004")
@@ -395,7 +395,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 ___________________ test_year_from_after_year_to_is_rejected ___________________
 
-client = <conftest.TestClient object at 0xffffabe6a0c0>
+client = <conftest.TestClient object at 0xffffab14a0c0>
 
     @pytest.mark.spec("CAT-008", "API-002")
     def test_year_from_after_year_to_is_rejected(client):
@@ -415,7 +415,7 @@ E        +  where 200 = Response(status=200, headers={'Content-Type': 'applicati
 tests/test_api_books_filters.py:16: AssertionError
 ________________ test_filters_combine_with_keyword_and_category ________________
 
-client = <conftest.TestClient object at 0xffffabe66780>
+client = <conftest.TestClient object at 0xffffab146780>
 
     @pytest.mark.spec("CAT-007", "CAT-008", "CAT-001", "CAT-002")
     def test_filters_combine_with_keyword_and_category(client):
@@ -429,7 +429,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:100: AssertionError
 _____________________ test_filters_apply_before_pagination _____________________
 
-client = <conftest.TestClient object at 0xffffabde23f0>
+client = <conftest.TestClient object at 0xffffab0c23f0>
 
     @pytest.mark.spec("CAT-007", "CAT-004")
     def test_filters_apply_before_pagination(client):
@@ -440,7 +440,7 @@ E       assert 16 == 9
 tests/test_api_books_filters.py:109: AssertionError
 ______________________ test_filters_apply_before_sorting _______________________
 
-client = <conftest.TestClient object at 0xffffabf82a50>
+client = <conftest.TestClient object at 0xffffab262a50>
 
     @pytest.mark.spec("CAT-007", "CAT-003")
     def test_filters_apply_before_sorting(client):
@@ -455,7 +455,7 @@ E         Use -v to get more diff
 tests/test_api_books_filters.py:119: AssertionError
 _______________ test_available_filter_follows_loans_and_returns ________________
 
-client = <conftest.TestClient object at 0xffffabdd7b00>
+client = <conftest.TestClient object at 0xffffab0b7b00>
 
     @pytest.mark.spec("CAT-007", "DATA-001", "LOAN-001", "LOAN-004")
     def test_available_filter_follows_loans_and_returns(client):
@@ -464,7 +464,7 @@ client = <conftest.TestClient object at 0xffffabdd7b00>
 E       AssertionError: assert 'B016' not in ['B001', 'B002', 'B003', 'B004', 'B005', 'B006', ...]
 E        +  where ['B001', 'B002', 'B003', 'B004', 'B005', 'B006', ...] = ids(Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '2099'}, json={'tot...': 'B016', 'title': '线性代数应该这样学', 'author': 'Sheldon Axler', 'category': 'math', 'year': 2015, 'copies_available': 0}]}))
 E        +    where Response(status=200, headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '2099'}, json={'tot...': 'B016', 'title': '线性代数应该这样学', 'author': 'Sheldon Axler', 'category': 'math', 'year': 2015, 'copies_available': 0}]}) = get('/books?available=true&page_size=50')
-E        +      where get = <conftest.TestClient object at 0xffffabdd7b00>.get
+E        +      where get = <conftest.TestClient object at 0xffffab0b7b00>.get
 
 tests/test_api_books_filters.py:125: AssertionError
 =========================== short test summary info ============================
@@ -493,4 +493,4 @@ FAILED tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_ca
 FAILED tests/test_api_books_filters.py::test_filters_apply_before_pagination
 FAILED tests/test_api_books_filters.py::test_filters_apply_before_sorting - A...
 FAILED tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns
-25 failed in 0.06s
+25 failed in 0.07s

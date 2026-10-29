@@ -1,6 +1,6 @@
 $ ./sdd info
 sddctx 1.0.0，Python 3.12.14，PyMySQL 1.2.3，pytest 9.1.1
-工程目录 project（campus-library），运行产物 runs，代码版本 f94b65358bb9
+工程目录 project（campus-library），运行产物 runs，代码版本 d8b4de84b1a3
 seekdb seekdb:2881/sdd：5.7.25-OceanBase seekdb-v1.4.0.0
 PowerContext http://powercontext:8000：1.4.1（API 契约 1.4）
 MiniMax：https://api.minimax.cn/anthropic，模型 MiniMax-M3.1-Flash，密钥已配置

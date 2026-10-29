@@ -4,12 +4,12 @@
 |---|---|
 | 助手 | sddctx MiniMax 开发助手（Anthropic 兼容 Messages API + 工具调用） |
 | 模型 / 接口 | `MiniMax-M3.1-Flash` / `https://api.minimax.cn/anthropic/v1/messages` |
-| 开始 / 结束 | 2026-10-29T02:06:05.057+00:00 / 2026-10-29T02:07:21.625+00:00 |
-| 结果 | finished，12 轮，成功修改 2 次 |
-| Token 用量 | 输入 32461（另有缓存命中 256000），输出 4987 |
+| 开始 / 结束 | 2026-10-29T02:23:34.863+00:00 / 2026-10-29T02:25:20.810+00:00 |
+| 结果 | finished，13 轮，成功修改 2 次 |
+| Token 用量 | 输入 29054（另有缓存命中 256302），输出 5640 |
 | 修改的文件 | `library/api/handlers.py`, `library/catalog.py` |
-| 最终差异 sha256 | `d9cd48a07415c93f8c7a55d63b9c8c22901543c8e91afc920f982e89214f6d39` |
-| 代码版本 | `f94b65358bb9` |
+| 最终差异 sha256 | `aab378c430591f02bbbd4763d9e5d73eb6d69678bd6b4cf990ce09c02d8c1b10` |
+| 代码版本 | `d8b4de84b1a3` |
 
 ## 任务与上下文
 
@@ -19,20 +19,18 @@
 2. 出版年份区间筛选：查询参数 year_from、year_to，按出版年份筛选，包含两端，可以只给其中一个。
 参数值不合法时按统一的错误格式返回 400。新条件可以和现有的关键词、分类条件组合使用。
 
-提供给 MiniMax 的上下文：`runs/T-101/develop/context-20261029-020605.md`（sha256 `5a064c521bbc`），由 seekdb 检索结果和 PowerContext 任务状态生成（PowerContext 记录 `T-101/outcome/002-verify-before`）。首条用户消息（任务说明 + 完整上下文）见文末附录。
+提供给 MiniMax 的上下文：`runs/T-101/develop/context-20261029-022334.md`（sha256 `e2fa5327af16`），由 seekdb 检索结果和 PowerContext 任务状态生成（PowerContext 记录 `T-101/outcome/002-verify-before`）。首条用户消息（任务说明 + 完整上下文）见文末附录。
 
 ## 修改过程
 
 ### 第 1 轮
 
-响应 `0731dd0e68360cab1197eccc5fa97684`，模型 `MiniMax-M3.1-Flash`，5.82s，stop_reason `tool_use`，输入 9264 / 输出 115 tokens。
+响应 `0731e129ce576bec0422b788a0e67bf4`，模型 `MiniMax-M3.1-Flash`，4.43s，stop_reason `tool_use`，输入 9085 / 输出 64 tokens。
 
-I'll start by exploring the project structure and reading the relevant implementation files.
+I'll start by exploring the project structure and reading the relevant files.
 
 - 调用 `list_dir`（path="."）
 - 调用 `read_file`（path="library/catalog.py"）
-- 调用 `read_file`（path="library/api/handlers.py"）
-- 调用 `read_file`（path="library/api/params.py"）
   - `list_dir` 结果（成功）：
 
 ```
@@ -90,6 +88,13 @@ library/catalog.py（第 1-107 行，共 107 行）
   39|…（共 3601 字符）
 ```
 
+### 第 2 轮
+
+响应 `0731e12c725c8e03b8c772276aaf85ba`，模型 `MiniMax-M3.1-Flash`，3.53s，stop_reason `tool_use`，输入 1379 / 输出 80 tokens。
+
+- 调用 `read_file`（path="library/api/handlers.py"）
+- 调用 `read_file`（path="library/api/params.py"）
+- 调用 `read_file`（path="library/errors.py"）
   - `read_file` 结果（成功）：
 
 ```
@@ -175,88 +180,6 @@ library/api/params.py（第 1-66 行，共 66 行）
   40|     实现: API-…（共 2172 字符）
 ```
 
-### 第 2 轮
-
-响应 `0731dd14f3e316176b1c9f69e51d9a9e`，模型 `MiniMax-M3.1-Flash`，4.25s，stop_reason `tool_use`，输入 3397 / 输出 108 tokens。
-
-> 思考摘要：Now let's look at the test file for target tests, and the repository/data files.  Let me read the target test file and repository.
-
-- 调用 `read_file`（path="tests/test_api_books_filters.py"）
-- 调用 `read_file`（path="library/repository.py"）
-- 调用 `read_file`（path="library/errors.py"）
-  - `read_file` 结果（成功）：
-
-```
-tests/test_api_books_filters.py（第 1-128 行，共 128 行）
-   1| """GET /books 的可借状态筛选（CAT-007）和出版年份区间筛选（CAT-008）。
-   2| 
-   3| 这两个条目在 specs/catalog.md 中是“待实现”，本文件是它们的验收测试。
-   4| """
-   5| 
-   6| import pytest
-   7| 
-   8| from conftest import ids
-   9| 
-  10| # 种子数据中有在架副本的图书，以及没有在架副本的图书（含没有任何副本的 B013）
-  11| AVAILABLE = ["B001", "B003", "B005", "B006", "B008", "B010", "B011", "B014", "B016"]
-  12| UNAVAILABLE = ["B002", "B004", "B007", "B009", "B012", "B013", "B015"]
-  13| 
-  14| 
-  15| def assert_invalid(response, field):
-  16|     assert response.status == 400
-  17|     assert response.json["error"]["code"] == "invalid_parameter"
-  18|     assert response.json["error"]["field"] == field
-  19| 
-  20| 
-  21| @pytest.mark.spec("CAT-007", "DATA-001")
-  22| def test_available_true_returns_only_books_with_copies_on_shelf(client):
-  23|     response = client.get("/books?available=true&page_size=50")
-  24|     assert response.status == 200
-  25|     assert ids(response) == AVAILABLE
-  26|     assert response.json["total"] == len(AVAILABLE)
-  27|     assert all(item["copies_available"] > 0 for item in response.json["items"])
-  28| 
-  29| 
-  30| @pytest.mark.spec("CAT-007", "DATA-001")
-  31| def t…（共 5712 字符）
-```
-
-  - `read_file` 结果（成功）：
-
-```
-library/repository.py（第 1-57 行，共 57 行）
-   1| """内存仓库。启动时从 `data/seed.json` 载入种子数据，每个仓库实例互相独立。"""
-   2| 
-   3| from __future__ import annotations
-   4| 
-   5| import json
-   6| from datetime import date
-   7| from pathlib import Path
-   8| 
-   9| from .models import Book, Copy, CopyStatus, Loan, Member, MemberKind
-  10| 
-  11| SEED_PATH = Path(__file__).with_name("data") / "seed.json"
-  12| 
-  13| 
-  14| class Repository:
-  15|     def __init__(self) -> None:
-  16|         self.books: dict[str, Book] = {}
-  17|         self.copies: dict[str, Copy] = {}
-  18|         self.members: dict[str, Member] = {}
-  19|         self.loans: dict[str, Loan] = {}
-  20| 
-  21|     @classmethod
-  22|     def from_seed(cls, path: Path | None = None) -> "Repository":
-  23|         data = json.loads((path or SEED_PATH).read_text(encoding="utf-8"))
-  24|         repo = cls()
-  25|         for item in data["books"]:
-  26|             repo.books[item["id"]] = Book(**item)
-  27|         for item in data["copies"]:
-  28|             repo.copies[item["id"]] = Copy(**{**item, "status": CopyStatus(item["status"])})
-  29|         for item in data["members"]:
-  30|             repo.members[item["id"]] = Member(*…（共 2592 字符）
-```
-
   - `read_file` 结果（成功）：
 
 ```
@@ -310,12 +233,12 @@ library/errors.py（第 1-48 行，共 48 行）
 
 ### 第 3 轮
 
-响应 `0731dd1a96dbc8a137b79ed7149462bd`，模型 `MiniMax-M3.1-Flash`，5.99s，stop_reason `tool_use`，输入 3517 / 输出 184 tokens。
+响应 `0731e131e2ea5c02b80557cd54e5a4a3`，模型 `MiniMax-M3.1-Flash`，4.23s，stop_reason `tool_use`，输入 2522 / 输出 78 tokens。
 
-> 思考摘要：Now let me look at the app.py to understand query parsing, and specs/catalog.md for reference.  Note important: the query param `available=` with empty string → must return 400 invalid_parameter with field "available". `parse_bool` handles that: value "" not in true/false → raise. But careful: `params` contains the key "available" with value ""? Let's check parse_query in app.py.  Also `%20true%20…（共 542 字符）
+> 思考摘要：Now let's look at the tests to understand the expectations, and the app.py for query parsing.
 
 - 调用 `read_file`（path="library/api/app.py"）
-- 调用 `read_file`（path="specs/catalog.md"）
+- 调用 `read_file`（path="tests/test_api_books_filters.py"）
   - `read_file` 结果（成功）：
 
 ```
@@ -355,59 +278,84 @@ library/api/app.py（第 1-98 行，共 98 行）
   - `read_file` 结果（成功）：
 
 ```
-specs/catalog.md（第 1-103 行，共 103 行）
-   1| # 馆藏检索与详情（catalog）
+tests/test_api_books_filters.py（第 1-128 行，共 128 行）
+   1| """GET /books 的可借状态筛选（CAT-007）和出版年份区间筛选（CAT-008）。
    2| 
-   3| 读者通过检索接口查找馆藏图书，通过详情接口查看某本书的副本情况。
-   4| 
-   5| ## 图书检索 `GET /books`
-   6| 
-   7| ### CAT-001 关键词检索
-   8| - 状态：已实现
-   9| - 接口：GET /books?q=
-  10| - 关联：API-005
-  11| 
-  12| 参数 `q` 对书名和作者做子串匹配，不区分大小写，忽略前后空白。`q` 为空或只有空白时视为没有提供。
+   3| 这两个条目在 specs/catalog.md 中是“待实现”，本文件是它们的验收测试。
+   4| """
+   5| 
+   6| import pytest
+   7| 
+   8| from conftest import ids
+   9| 
+  10| # 种子数据中有在架副本的图书，以及没有在架副本的图书（含没有任何副本的 B013）
+  11| AVAILABLE = ["B001", "B003", "B005", "B006", "B008", "B010", "B011", "B014", "B016"]
+  12| UNAVAILABLE = ["B002", "B004", "B007", "B009", "B012", "B013", "B015"]
   13| 
-  14| 验收：
-  15| - `q=python` 返回书名或作者包含 “python”（不区分大小写）的图书。
-  16| - `q=%20%20` 与不带 `q` 的结果相同。
-  17| 
-  18| ### CAT-002 分类筛选
-  19| - 状态：已实现
-  20| - 接口：GET /books?category=
-  21| - 关联：API-002
-  22| 
-  23| 参数 `category` 按分类代码精确匹配，馆藏分类代码为 `cs`（计算机）、`lit`（文学）、`hist`（历史）、`math`（数学）。馆藏中不存在的分类返回 400，错误码 `invalid_parameter`，`field` 为 `category`。
-  24| 
-  25| 验收：
-  26| - `category=hist` 只返回历史类图书。
-  27| - `category=music` 返回 400 `invalid_parameter`，`field` 为 `category`。
+  14| 
+  15| def assert_invalid(response, field):
+  16|     assert response.status == 400
+  17|     assert response.json["error"]["code"] == "invalid_parameter"
+  18|     assert response.json["error"]["field"] == field
+  19| 
+  20| 
+  21| @pytest.mark.spec("CAT-007", "DATA-001")
+  22| def test_available_true_returns_only_books_with_copies_on_shelf(client):
+  23|     response = client.get("/books?available=true&page_size=50")
+  24|     assert response.status == 200
+  25|     assert ids(response) == AVAILABLE
+  26|     assert response.json["total"] == len(AVAILABLE)
+  27|     assert all(item["copies_available"] > 0 for item in response.json["items"])
   28| 
-  29| ### CAT-003 排序
-  30| - 状态：已实现
-  31| - 接口：GET /books?sort=
-  32| - 关联：API-002
-  33| 
-  34| 参数 `sort` 取值：`id`（默认，按图书编号升序）、`title`（按书名的 Unicode 码位升序）、`year`（按出版年份升序）、`-year`（按出版年份降序）。排序键相同的图书按图书编号升序，保证结果稳定。其他取值返回 400 `invalid_parameter`，`field` 为 `sort`。
-  35| 
-  36| 验收：
-  37| - `sort=-year` 时出版年份大的在前，同年份按编号升序。
-  38| - `sort=price` 返回 400 `invalid_parameter`。
-  39| 
-  40| ### CAT-004 分页
-  41| - 状态：已实现
-  42| - 接口：GET /b…（共 3831 字符）
+  29| 
+  30| @pytest.mark.spec("CAT-007", "DATA-001")
+  31| def t…（共 5712 字符）
 ```
 
 ### 第 4 轮
 
-响应 `0731dd1e0310494d9bf234f23a2b16c0`，模型 `MiniMax-M3.1-Flash`，5.18s，stop_reason `tool_use`，输入 3488 / 输出 118 tokens。
+响应 `0731e1349d981efafbaa13820e449053`，模型 `MiniMax-M3.1-Flash`，5.2s，stop_reason `tool_use`，输入 3330 / 输出 207 tokens。
 
-> 思考摘要：Now let me check the seed data to verify book years and copy statuses, and check the existing catalog search tests to see the calling conventions for `search_books` (regression tests may call search_books directly with keyword arguments).  Let me read tests/test_catalog_search.py and the seed data.
+> 思考摘要：Now let me check the catalog search tests and repository code. Also the `search_books` in library/catalog.py — I need to add `available` and year filters.  Note the `available` filter: `copies_available > 0`. But `book_summary` computes `copies_available` using `available_copies`. However, in `search_books`, the filtering needs `available_copies(repo, book.id)`.  Note also there's an important det…（共 659 字符）
 
+- 调用 `read_file`（path="library/repository.py"）
 - 调用 `read_file`（path="tests/test_catalog_search.py"）
-- 调用 `read_file`（path="library/data/seed.json"）
+  - `read_file` 结果（成功）：
+
+```
+library/repository.py（第 1-57 行，共 57 行）
+   1| """内存仓库。启动时从 `data/seed.json` 载入种子数据，每个仓库实例互相独立。"""
+   2| 
+   3| from __future__ import annotations
+   4| 
+   5| import json
+   6| from datetime import date
+   7| from pathlib import Path
+   8| 
+   9| from .models import Book, Copy, CopyStatus, Loan, Member, MemberKind
+  10| 
+  11| SEED_PATH = Path(__file__).with_name("data") / "seed.json"
+  12| 
+  13| 
+  14| class Repository:
+  15|     def __init__(self) -> None:
+  16|         self.books: dict[str, Book] = {}
+  17|         self.copies: dict[str, Copy] = {}
+  18|         self.members: dict[str, Member] = {}
+  19|         self.loans: dict[str, Loan] = {}
+  20| 
+  21|     @classmethod
+  22|     def from_seed(cls, path: Path | None = None) -> "Repository":
+  23|         data = json.loads((path or SEED_PATH).read_text(encoding="utf-8"))
+  24|         repo = cls()
+  25|         for item in data["books"]:
+  26|             repo.books[item["id"]] = Book(**item)
+  27|         for item in data["copies"]:
+  28|             repo.copies[item["id"]] = Copy(**{**item, "status": CopyStatus(item["status"])})
+  29|         for item in data["members"]:
+  30|             repo.members[item["id"]] = Member(*…（共 2592 字符）
+```
+
   - `read_file` 结果（成功）：
 
 ```
@@ -447,6 +395,13 @@ tests/test_catalog_search.py（第 1-94 行，共 94 行）
   33|     with pytest.raises…（共 3891 字符）
 ```
 
+### 第 5 轮
+
+响应 `0731e13b137b11b0987f833a05c7b3af`，模型 `MiniMax-M3.1-Flash`，8.93s，stop_reason `tool_use`，输入 2406 / 输出 60 tokens。
+
+> 思考摘要：Now let me check the seed data to verify the year ranges and available lists.  Let me check the seed.json for books and copies.
+
+- 调用 `read_file`（path="library/data/seed.json"）
   - `read_file` 结果（成功）：
 
 ```
@@ -463,11 +418,11 @@ library/data/seed.json（第 1-61 行，共 61 行）
   10|     {"id": "B008", "isbn": "9787506365437", "title": "活着", "author":…（共 6226 字符）
 ```
 
-### 第 5 轮
+### 第 6 轮
 
-响应 `0731dd24dff01e4853825fe0efdb3b2c`，模型 `MiniMax-M3.1-Flash`，14.39s，stop_reason `tool_use`，输入 4248 / 输出 2220 tokens。
+响应 `0731e142aa0f77abbb54b2186862a7a0`，模型 `MiniMax-M3.1-Flash`，17.91s，stop_reason `tool_use`，输入 2680 / 输出 1500 tokens。
 
-> 思考摘要：Now I need to design the implementation.  In `library/catalog.py::search_books`, add parameters `available: bool | None = None`, `year_from: int | None = None`, `year_to: int | None = None`.  Where to do the validation of year_from > year_to? The spec says: 400 invalid_parameter with field `year_from`. The API layer parses ints using parse_int (API-004). The comparison validation could be in the h…（共 4001 字符）
+> 思考摘要：Now, let me verify the test expectations against seed data.  AVAILABLE (copies_available > 0): B001 (C001 on_shelf), B003 (C005), B005 (C007, C008), B006 (C010), B008 (C012), B010 (C015), B011 (C016), B014 (C018), B016 (C021) → 9 books: B001, B003, B005, B006, B008, B010, B011, B014, B016. Matches AVAILABLE list.  UNAVAILABLE: B002, B004, B007, B009, B012, B013, B015 → matches.  Year tests: - year…（共 4001 字符）
 
 - 调用 `read_file`（path="library/loans.py"）
 - 调用 `read_file`（path="tests/conftest.py"）
@@ -556,89 +511,20 @@ tests/conftest.py（第 1-72 行，共 72 行）
   42|        …（共 2349 字符）
 ```
 
-### 第 6 轮
-
-响应 `0731dd326dd933702e631a868c25d590`，模型 `MiniMax-M3.1-Flash`，5.79s，stop_reason `tool_use`，输入 4458 / 输出 139 tokens。
-
-> 思考摘要：Everything checks out. Now implement the changes.  Note in `test_available_filter_follows_loans_and_returns`: borrowing C021 for M002 — M002 has loans L002 (C003) and L005 (C013), both open. Loan limit for student? Let's check models.MemberKind loan_limit. If student limit is 3, then 2 open loans + 1 new = 3, ok. Let me check models.py quickly to make sure borrow doesn't fail with loan_limit_reach…（共 427 字符）
-
-- 调用 `read_file`（path="library/models.py"）
-  - `read_file` 结果（成功）：
-
-```
-library/models.py（第 1-101 行，共 101 行）
-   1| """领域模型。"""
-   2| 
-   3| from __future__ import annotations
-   4| 
-   5| from dataclasses import dataclass
-   6| from datetime import date
-   7| from enum import Enum
-   8| 
-   9| 
-  10| class CopyStatus(str, Enum):
-  11|     """副本状态。
-  12| 
-  13|     实现: DATA-001
-  14|     """
-  15| 
-  16|     ON_SHELF = "on_shelf"
-  17|     ON_LOAN = "on_loan"
-  18|     REPAIR = "repair"
-  19|     LOST = "lost"
-  20| 
-  21| 
-  22| class MemberKind(str, Enum):
-  23|     """读者类型，决定借阅上限和借期。
-  24| 
-  25|     实现: DATA-003, LOAN-002, LOAN-003
-  26|     """
-  27| 
-  28|     STUDENT = "student"
-  29|     STAFF = "staff"
-  30| 
-  31|     @property
-  32|     def loan_limit(self) -> int:
-  33|         return 5 if self is MemberKind.STUDENT else 10
-  34| 
-  35|     @property
-  36|     def loan_days(self) -> int:
-  37|         return 30 if self is MemberKind.STUDENT else 60
-  38| 
-  39| 
-  40| @dataclass
-  41| class Book:
-  42|     """图书。
-  43| 
-  44|     实现: DATA-002
-  45|     """
-  46| 
-  47|     id: str
-  48|     isbn: str
-  49|     title: str
-  50|     author: str
-  51|     category: str
-  52|     year: int
-  53|     price_cents: int
-  54| 
-  55| 
-  56| @dataclas…（共 2347 字符）
-```
-
 ### 第 7 轮
 
-响应 `0731dd395708a699034b7eb2fda24695`，模型 `MiniMax-M3.1-Flash`，6.72s，stop_reason `tool_use`，输入 1206 / 输出 696 tokens。
+响应 `0731e1566d92d492bb6c786764c4b37b`，模型 `MiniMax-M3.1-Flash`，19.62s，stop_reason `tool_use`，输入 3587 / 输出 2301 tokens。
 
-> 思考摘要：All good. Now implement.  Edit library/catalog.py search_books and library/api/handlers.py list_books.  For catalog.search_books, the docstring should mention CAT-007, CAT-008.  Let me write the edits.
+> 思考摘要：Now let me check the specs/catalog.md to see the exact spec text for CAT-007 and CAT-008 (already in context). And check README for any API docs that should be updated (README might document the endpoint; but README is not in library/ — the instructions say only modify library/ .py files. README is not modifiable? "只修改实现代码（library/ 下的 .py 文件）". So I'll only modify library/.  Let me now implement. …（共 4001 字符）
 
-Now I'll implement the changes. First, `library/catalog.py`:
+Now I understand the structure. Let me implement the changes in `library/catalog.py` and `library/api/handlers.py`.
 
 - 调用 `edit_file`：`library/catalog.py`
 
 ```diff
 --- old_text
 +++ new_text
-@@ -4,11 +4,14 @@
+@@ -4,12 +4,18 @@
      keyword: str | None = None,
      category: str | None = None,
 +    available: bool | None = None,
@@ -654,51 +540,39 @@ Now I'll implement the changes. First, `library/catalog.py`:
 -    实现: CAT-001, CAT-002, CAT-003, CAT-004
 +    实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008
      """
++    if year_from is not None and year_to is not None and year_from > year_to:
++        raise InvalidParameter("year_from", f"year_from 不能大于 year_to：{year_from} > {year_to}")
++
      books = list(repo.books.values())
-@@ -23,3 +26,16 @@
+ 
+@@ -23,3 +29,12 @@
          books = [b for b in books if b.category == category]
  
 +    if available is not None:
-+        if available:
-+            books = [b for b in books if available_copies(repo, b.id) > 0]
-+        else:
-+            books = [b for b in books if available_copies(repo, b.id) == 0]
++        books = [b for b in books if (available_copies(repo, b.id) > 0) == available]
 +
-+    if year_from is not None and year_to is not None and year_from > year_to:
-+        raise InvalidParameter("year_from", "year_from 不能大于 year_to")
 +    if year_from is not None:
 +        books = [b for b in books if b.year >= year_from]
++
 +    if year_to is not None:
 +        books = [b for b in books if b.year <= year_to]
 +
      if sort not in SORT_KEYS:
 ```
 
-  - `edit_file` 结果（成功）：
-
-```
-已修改 library/catalog.py（从第 53 行开始，替换 25 行为 41 行）
-```
-
-### 第 8 轮
-
-响应 `0731dd3f7e33ce910ffea1d1bc8713f5`，模型 `MiniMax-M3.1-Flash`，5.77s，stop_reason `tool_use`，输入 916 / 输出 469 tokens。
-
-Now `library/api/handlers.py`:
-
 - 调用 `edit_file`：`library/api/handlers.py`
 
 ```diff
 --- old_text
 +++ new_text
-@@ -2,5 +2,5 @@
-     """GET /books：检索图书。
+@@ -1,5 +1,5 @@
+ """GET /books：检索图书。
  
 -    实现: CAT-001, CAT-002, CAT-003, CAT-004, API-005
 +    实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005
      """
      params = request.query
-@@ -8,8 +8,14 @@
+@@ -7,8 +7,14 @@
      page = parse_int(params, "page", default=1, minimum=1)
      page_size = parse_int(params, "page_size", default=10, minimum=1, maximum=50)
 +    available = parse_bool(params, "available")
@@ -718,12 +592,20 @@ Now `library/api/handlers.py`:
   - `edit_file` 结果（成功）：
 
 ```
-已修改 library/api/handlers.py（从第 16 行开始，替换 18 行为 24 行）
+已修改 library/catalog.py（从第 53 行开始，替换 25 行为 40 行）
 ```
 
-### 第 9 轮
+  - `edit_file` 结果（成功）：
 
-响应 `0731dd453fdf4867c8c53d64e8969c64`，模型 `MiniMax-M3.1-Flash`，3.74s，stop_reason `tool_use`，输入 656 / 输出 28 tokens。
+```
+已修改 library/api/handlers.py（从第 17 行开始，替换 16 行为 22 行）
+```
+
+### 第 8 轮
+
+响应 `0731e1686aa1820dd5ba03624a4d3700`，模型 `MiniMax-M3.1-Flash`，4.02s，stop_reason `tool_use`，输入 2368 / 输出 36 tokens。
+
+Now let me run the target tests:
 
 - 调用 `run_tests`（suite="target"）
   - `run_tests` 结果（成功）：
@@ -732,11 +614,11 @@ Now `library/api/handlers.py`:
 target 测试：25 passed, 0 failed，exit 0
 ```
 
-### 第 10 轮
+### 第 9 轮
 
-响应 `0731dd495a971a220e5550872c33b975`，模型 `MiniMax-M3.1-Flash`，4.1s，stop_reason `tool_use`，输入 200 / 输出 41 tokens。
+响应 `0731e1716039365f3678d0d63b5db69a`，模型 `MiniMax-M3.1-Flash`，8.11s，stop_reason `tool_use`，输入 65 / 输出 41 tokens。
 
-> 思考摘要：All target tests pass. Now run the regression suite.
+All 25 target cases pass. Now the regression suite:
 
 - 调用 `run_tests`（suite="regression"）
   - `run_tests` 结果（成功）：
@@ -745,17 +627,18 @@ target 测试：25 passed, 0 failed，exit 0
 regression 测试：91 passed, 0 failed，exit 0
 ```
 
-### 第 11 轮
+### 第 10 轮
 
-响应 `0731dd4fc08620232cc2615158cb2a58`，模型 `MiniMax-M3.1-Flash`，7.31s，stop_reason `tool_use`，输入 270 / 输出 104 tokens。
+响应 `0731e1773be124e2283016aada3fff24`，模型 `MiniMax-M3.1-Flash`，6.75s，stop_reason `tool_use`，输入 71 / 输出 118 tokens。
 
-> 思考摘要：All target tests (25 cases) and regression tests (91) pass.  Let me double-check the modified files for correctness and also verify the "no new params" behavior is unchanged — regression covers that.  Let me review the final code once more.
+> 思考摘要：Both suites pass. Let me double-check the final files to verify correctness and style.
 
 - 调用 `read_file`（end_line=100, path="library/catalog.py", start_line=53）
+- 调用 `read_file`（end_line=42, path="library/api/handlers.py", start_line=16）
   - `read_file` 结果（成功）：
 
 ```
-library/catalog.py（第 53-100 行，共 123 行）
+library/catalog.py（第 53-100 行，共 122 行）
   53| def search_books(
   54|     repo: Repository,
   55|     *,
@@ -772,69 +655,137 @@ library/catalog.py（第 53-100 行，共 123 行）
   66| 
   67|     实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008
   68|     """
-  69|     books = list(repo.books.values())
-  70| 
-  71|     keyword = (keyword or "").strip().lower()
-  72|     if keyword:
-  73|         books = [b for b in books if keyword in b.title.lower() or keyword in b.author.lower()]
-  74| 
-  75|     if category is not None:
-  76|         if category not in repo.categories():
-  77|             raise InvalidParameter("category", f"未知的分类：{category}")
-  78|         books = [b for b in books if b.category == category]
-  79| 
-  80|     if available is not None:
-  81|         if available:
-  82|             books = [b for b in books if available_copies(repo, b.id) > 0]
-  83|         else:
-  84|             books = […（共 2064 字符）
+  69|     if year_from is not None and year_to is not None and year_from > year_to:
+  70|         raise InvalidParameter("year_from", f"year_from 不能大于 year_to：{year_from} > {year_to}")
+  71| 
+  72|     books = list(repo.books.values())
+  73| 
+  74|     keyword = (keyword or "").strip().lower()
+  75|     if keyword:
+  76|         books = [b for b in books if keyword in b.title.lower() or keyword in b.author.lower()]
+  77| 
+  78|     if category is not None:
+  79|         if category not in repo.categories():
+  80|             raise InvalidParameter("category", f"未知的分类：{category}")
+  81|         books = [b for b in books if b.category == category]
+  82| 
+…（共 1991 字符）
+```
+
+  - `read_file` 结果（成功）：
+
+```
+library/api/handlers.py（第 16-42 行，共 91 行）
+  16| def list_books(ctx: AppContext, request: Request) -> tuple[int, dict]:
+  17|     """GET /books：检索图书。
+  18| 
+  19|     实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005
+  20|     """
+  21|     params = request.query
+  22|     sort = parse_choice(params, "sort", SORT_KEYS, default="id")
+  23|     page = parse_int(params, "page", default=1, minimum=1)
+  24|     page_size = parse_int(params, "page_size", default=10, minimum=1, maximum=50)
+  25|     available = parse_bool(params, "available")
+  26|     year_from = parse_int(params, "year_from")
+  27|     year_to = parse_int(params, "year_to")
+  28|     result = catalog.search_books(
+  29|         ctx.repo,
+  30|         keyword=params.get("q"),
+  31|         category=params.get("category"),
+  32|         available=available,
+  33|         year_from=year_from,
+  34|         year_to=year_to,
+  35|         sort=sort,
+  36|         page=page,
+  37|         page_size=page_size,
+  38|     )
+  39|     return 200, result.to_dict()
+  40| 
+  41| 
+  42| def get_book(ctx: AppContext, request: Request, book_id: str) -> tuple[int, dict]:
+…（共 91 行，只显示到第 42 行）
+```
+
+### 第 11 轮
+
+响应 `0731e17b6e7970466f612cda6ba0fd77`，模型 `MiniMax-M3.1-Flash`，5.44s，stop_reason `tool_use`，输入 1236 / 输出 250 tokens。
+
+> 思考摘要：Everything looks good. Let me also verify behavior consistency: with no new params, results are unchanged (available=None, year_from=None, year_to=None → no filtering). ✓  Also let me sanity-check a few edge cases manually, e.g. `available=1` handled by parse_bool; `year_from=+3` handled by parse_int. And the `available=false` case for a book with a `repair` copy only (B004) → copies_available 0 →…（共 810 字符）
+
+Let me do a quick manual sanity check of edge cases:
+
+- 调用 `search`（path="README.md", pattern="available|year_from|year_to"）
+  - `search` 结果（成功）：
+
+```
+没有匹配
 ```
 
 ### 第 12 轮
 
-响应 `0731dd55c876adc642597f1731e0f4ae`，模型 `MiniMax-M3.1-Flash`，7.06s，stop_reason `tool_use`，输入 841 / 输出 765 tokens。
+响应 `0731e182d670076f4af192c1560b2c0a`，模型 `MiniMax-M3.1-Flash`，5.54s，stop_reason `tool_use`，输入 268 / 输出 28 tokens。
 
-实现完成，测试全部通过。
+- 调用 `run_tests`（suite="all"）
+  - `run_tests` 结果（成功）：
 
-**修改的文件：**
+```
+all 测试：116 passed, 0 failed，exit 0
+```
 
-1. `library/catalog.py::search_books`（第 53-100 行）
-   - 新增关键字参数 `available: bool | None`、`year_from: int | None`、`year_to: int | None`。
-   - `available=True` 只保留 `available_copies(...) > 0` 的图书，`available=False` 只保留在架副本数为 0 的图书（复用已有的 `available_copies`，遵循 DATA-001 只统计 `on_shelf`），参数为 `None` 时不筛选。
-   - 年份按闭区间筛选：`year_from` 给出下界、`year_to` 给出上界，可只给其一；两者都给出且 `year_from > year_to` 时抛 `InvalidParameter("year_from", ...)`（400 / `invalid_parameter`）。
-   - 所有筛选在排序与分页之前完成，`total` 为筛选后的总数；docstring 补上 `实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008`。
+### 第 13 轮
 
-2. `library/api/handlers.py::list_books`（第 16-39 行）
-   - 复用已有的 `parse_bool`（API-003）解析 `available`、`parse_int`（API-004）解析 `year_from`/`year_to`，非法值自然返回 400 且 `field` 为对应参数名；`q`、`category`、`sort`、`page`/`page_size` 的解析与提示保持原样。
-   - docstring 补上 `实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005`。
+响应 `0731e1887230a7ef555eee3ed4fb4a09`，模型 `MiniMax-M3.1-Flash`，11.34s，stop_reason `tool_use`，输入 57 / 输出 877 tokens。
 
-**实现的规格条目：** CAT-007（可借状态筛选）、CAT-008（出版年份区间筛选），未改动其他接口与既有行为。
+> 思考摘要：All 116 tests pass (25 target + 91 regression).  Let me double check the README to see if it documents the endpoint - grep found no matches for available/year_from, so no docs update needed there (and README isn't a library/ .py file anyway).  Everything's complete. Let me call finish.
 
-**测试结果：** 目标测试 25 passed / 0 failed；回归测试 91 passed / 0 failed。
+全部测试通过（116 = 25 目标 + 91 回归）。改动总结：
 
-- 调用 `finish`：实现 T-101（图书检索增加可借状态和出版年份筛选）。
+**`library/catalog.py::search_books`**
+- 新增关键字参数 `available: bool | None`、`year_from: int | None`、`year_to: int | None`。
+- `available` 过滤复用已有的 `available_copies()`（DATA-001，只统计 `on_shelf` 副本）：`available=True` 保留 `copies_available > 0` 的书，`available=False` 保留在架副本数为 0 的书（含无任何副本的书）；`None`（参数缺省）不筛选。
+- 年份按闭区间过滤：`year_from` 存在时保留 `book.year >= year_from`，`year_to` 存在时保留 `book.year <= year_to`，可只给其一。
+- `year_from > year_to` 时抛 `InvalidParameter("year_from", ...)`（400 / `invalid_parameter` / field=`year_from`），校验放在筛选前。
+- 所有筛选均在 `sort` 与分页之前执行，`total` 为筛选后的总数；docstring 标注 `实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008`。
 
-修改文件：
-1. library/catalog.py::search_books —— 新增 available / year_from / year_to 三个可选参数；available=True 只保留在架副本数>0 的图书，available=False 只保留在架副本数为 0 的图书（复用 available_copies，遵循 DATA-001）；年份按闭区间 [year_from, year_to] 筛选，可只给其一；两者同时给出且 year_from > year_to 时抛 InvalidParameter("year_from")。筛选全部在排序和分页之前生效，total 为筛选后总数。docstring 标注 实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008。
-2. library/api/handlers.py::list_books —— 复用已有的 parse_bool（API-003）解析 available、parse_int（API-004）解析 year_from/year_to，非法值按统一格式返回 400 invalid_parameter 且 field 为对应参数名；q、category、sort、page/page_size 的原有解析与错误提示保持不变。docstring 标注 实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005。
+**`library/api/handlers.py::list_books`**
+- 复用现有参数解析函数：`parse_bool(params, "available")`（API-003，非法值自动 400，field=`available`）、`parse_int(params, "year_from")` / `parse_int(params, "year_to")`（API-004，非整数自动 400，field 为对应参数名），并透传给 `catalog.search_books`。
+- docstring 标注 `实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005`。
 
-实现规格条目：CAT-007 可借状态筛选、CAT-008 出版年份区间筛选；未改动其他接口与既有行为。
+原有 `q`、`category`、`sort`、`page/page_size` 的行为、错误提示以及其他接口（详情、借阅、归还、续借、罚款）均未改动；不带新参数时结果、排序、分页与改前完全一致。
 
-测试结果：目标测试 25 passed / 0 failed；回归测试 91 passed / 0 failed。
+**测试结果**：目标测试 25 passed / 0 failed；回归测试 91 passed / 0 failed（全量 116 passed）。
+
+- 调用 `finish`：实现 T-101：GET /books 增加可借状态与出版年份筛选。
+
+改动文件：
+1. library/catalog.py::search_books —— 新增 available / year_from / year_to 三个关键字参数：
+   - available 复用已有 available_copies()（DATA-001，只计 on_shelf 副本）做过滤，True 取 copies_available>0，False 取 copies_available=0（含无副本图书），缺省不筛选；
+   - 年份按闭区间过滤，两个参数可只给其一；
+   - year_from > year_to 抛 InvalidParameter("year_from")，即 400/invalid_parameter/field=year_from；
+   - 所有筛选在 sort 与分页之前执行，total 为筛选后总数；docstring 标注 实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008。
+2. library/api/handlers.py::list_books —— 复用现有 parse_bool/parse_int 解析 available、year_from、year_to（非法值统一按 API-002 返回 400，field 为对应参数名），并透传给 search_books；docstring 补 CAT-007、CAT-008 标注。
+
+保持原有行为：q/category/sort/page/page_size 的行为与错误提示不变，不带新参数时结果、排序、分页与改前一致，其他接口未改动。
+
+测试结果：目标测试 25 passed / 0 failed；回归测试 91 passed / 0 failed（全量 116 passed）。
 
 ## 最终结果
 
-MiniMax 的完成说明：实现 T-101（图书检索增加可借状态和出版年份筛选）。
+MiniMax 的完成说明：实现 T-101：GET /books 增加可借状态与出版年份筛选。
 
-修改文件：
-1. library/catalog.py::search_books —— 新增 available / year_from / year_to 三个可选参数；available=True 只保留在架副本数>0 的图书，available=False 只保留在架副本数为 0 的图书（复用 available_copies，遵循 DATA-001）；年份按闭区间 [year_from, year_to] 筛选，可只给其一；两者同时给出且 year_from > year_to 时抛 InvalidParameter("year_from")。筛选全部在排序和分页之前生效，total 为筛选后总数。docstring 标注 实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008。
-2. library/api/handlers.py::list_books —— 复用已有的 parse_bool（API-003）解析 available、parse_int（API-004）解析 year_from/year_to，非法值按统一格式返回 400 invalid_parameter 且 field 为对应参数名；q、category、sort、page/page_size 的原有解析与错误提示保持不变。docstring 标注 实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008, API-005。
+改动文件：
+1. library/catalog.py::search_books —— 新增 available / year_from / year_to 三个关键字参数：
+   - available 复用已有 available_copies()（DATA-001，只计 on_shelf 副本）做过滤，True 取 copies_available>0，False 取 copies_available=0（含无副本图书），缺省不筛选；
+   - 年份按闭区间过滤，两个参数可只给其一；
+   - year_from > year_to 抛 InvalidParameter("year_from")，即 400/invalid_parameter/field=year_from；
+   - 所有筛选在 sort 与分页之前执行，total 为筛选后总数；docstring 标注 实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008。
+2. library/api/handlers.py::list_books —— 复用现有 parse_bool/parse_int 解析 available、year_from、year_to（非法值统一按 API-002 返回 400，field 为对应参数名），并透传给 search_books；docstring 补 CAT-007、CAT-008 标注。
 
-实现规格条目：CAT-007 可借状态筛选、CAT-008 出版年份区间筛选；未改动其他接口与既有行为。
+保持原有行为：q/category/sort/page/page_size 的行为与错误提示不变，不带新参数时结果、排序、分页与改前一致，其他接口未改动。
 
-测试结果：目标测试 25 passed / 0 failed；回归测试 91 passed / 0 failed。
+测试结果：目标测试 25 passed / 0 failed；回归测试 91 passed / 0 failed（全量 116 passed）。
 
-助手最后一次自测：target 25 passed / 0 failed；regression 91 passed / 0 failed
+助手最后一次自测：target 25 passed / 0 failed；regression 91 passed / 0 failed；all 116 passed / 0 failed
 
 最终代码差异（相对修改前的工程）：
 
@@ -869,7 +820,7 @@ diff --git a/library/api/handlers.py b/library/api/handlers.py
 diff --git a/library/catalog.py b/library/catalog.py
 --- a/library/catalog.py
 +++ b/library/catalog.py
-@@ -55,13 +55,16 @@
+@@ -55,14 +55,20 @@
      *,
      keyword: str | None = None,
      category: str | None = None,
@@ -886,23 +837,23 @@ diff --git a/library/catalog.py b/library/catalog.py
 -    实现: CAT-001, CAT-002, CAT-003, CAT-004
 +    实现: CAT-001, CAT-002, CAT-003, CAT-004, CAT-007, CAT-008
      """
++    if year_from is not None and year_to is not None and year_from > year_to:
++        raise InvalidParameter("year_from", f"year_from 不能大于 year_to：{year_from} > {year_to}")
++
      books = list(repo.books.values())
  
-@@ -73,6 +76,19 @@
+     keyword = (keyword or "").strip().lower()
+@@ -73,6 +79,15 @@
          if category not in repo.categories():
              raise InvalidParameter("category", f"未知的分类：{category}")
          books = [b for b in books if b.category == category]
 +
 +    if available is not None:
-+        if available:
-+            books = [b for b in books if available_copies(repo, b.id) > 0]
-+        else:
-+            books = [b for b in books if available_copies(repo, b.id) == 0]
++        books = [b for b in books if (available_copies(repo, b.id) > 0) == available]
 +
-+    if year_from is not None and year_to is not None and year_from > year_to:
-+        raise InvalidParameter("year_from", "year_from 不能大于 year_to")
 +    if year_from is not None:
 +        books = [b for b in books if b.year >= year_from]
++
 +    if year_to is not None:
 +        books = [b for b in books if b.year <= year_to]
  
@@ -953,7 +904,7 @@ diff --git a/library/catalog.py b/library/catalog.py
 
 # 任务上下文：T-101 图书检索增加可借状态和出版年份筛选
 
-> 工程 `campus-library`；资料来自 seekdb 导入批次 #1（161 个片段，工程目录指纹 `8acd5172039b`，代码版本 `f94b65358bb9`）。引用的来源 81 处，逐行核对一致 81 处。
+> 工程 `campus-library`；资料来自 seekdb 导入批次 #1（161 个片段，工程目录指纹 `8acd5172039b`，代码版本 `d8b4de84b1a3`）。引用的来源 81 处，逐行核对一致 81 处。
 
 ## 0. 任务
 
@@ -1389,10 +1340,10 @@ def test_available_filter_follows_loans_and_returns(client):
 
 ## 4. 任务状态（PowerContext）
 
-- Scope：`sddctx/campus-library/T-101`（scp_2tjzbxszf0g05wwpsqkkvp1hxb），已有记录 3 条
+- Scope：`sddctx/campus-library/T-101`（scp_7h98ahj80qfgxwycknkmnjqth0），已有记录 3 条
 - 最近一次记录：partial — 修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed
 - 已完成：
-  - 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 d8ab69aefe74）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
+  - 生成任务上下文（seekdb 导入批次 #1，上下文 sha256 2a7743ee4a9e）：目标规格 CAT-007, CAT-008；约束 API-002, API-003, API-004, CAT-002, CAT-003, CAT-004, DATA-001；需要修改 library/api/handlers.py::list_books, library/catalog.py::search_books；目标测试 15 个测试函数；相关回归测试文件 5 个
   - 修改前验证（工程指纹 8acd5172039b）：目标测试 25 个用例失败 25 个（断言失败 25）；回归测试 91 passed
 - 已有验证结果：
   - 上下文来源核对：**passed** — 上下文引用的 81 处来源与工程文件逐行比对，一致 81 处

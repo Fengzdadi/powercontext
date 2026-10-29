@@ -1,12 +1,12 @@
 # label: regression
 # command: python -m pytest -q -rfE -p no:cacheprovider --junitxml=runs/T-101/tests/before/regression.junit.xml --deselect tests/test_api_books_filters.py::test_available_true_returns_only_books_with_copies_on_shelf --deselect tests/test_api_books_filters.py::test_available_false_returns_only_books_without_copies_on_shelf --deselect tests/test_api_books_filters.py::test_available_accepts_true_spellings --deselect tests/test_api_books_filters.py::test_available_accepts_false_spellings --deselect tests/test_api_books_filters.py::test_invalid_available_value_is_rejected --deselect tests/test_api_books_filters.py::test_year_range_is_inclusive --deselect tests/test_api_books_filters.py::test_single_year_range --deselect tests/test_api_books_filters.py::test_year_from_alone --deselect tests/test_api_books_filters.py::test_year_to_alone --deselect tests/test_api_books_filters.py::test_non_integer_year_is_rejected --deselect tests/test_api_books_filters.py::test_year_from_after_year_to_is_rejected --deselect tests/test_api_books_filters.py::test_filters_combine_with_keyword_and_category --deselect tests/test_api_books_filters.py::test_filters_apply_before_pagination --deselect tests/test_api_books_filters.py::test_filters_apply_before_sorting --deselect tests/test_api_books_filters.py::test_available_filter_follows_loans_and_returns
 # cwd: runs/T-101/snapshots/before
-# code_version: f94b65358bb9
+# code_version: d8b4de84b1a3
 # tree_sha256: 8acd5172039bfe45507eb4adef502ddd956db2f1bd015beb0a62ae4510498009
-# started_at: 2026-10-29T02:05:48.816+00:00
-# seconds: 0.18
+# started_at: 2026-10-29T02:23:17.363+00:00
+# seconds: 0.21
 # exit_code: 0
 # result: 91 passed, 0 failed，exit 0；断言失败 0，其他问题 0
 ........................................................................ [ 79%]
 ...................                                                      [100%]
-91 passed, 25 deselected in 0.07s
+91 passed, 25 deselected in 0.08s

@@ -1,0 +1,12 @@
+# label: 03-all
+# command: python -m pytest -q -rfE -p no:cacheprovider --junitxml=runs/T-101/develop/tests-20261029-022334/03-all.junit.xml 
+# cwd: runs/T-101/snapshots/after
+# code_version: d8b4de84b1a3
+# tree_sha256: ef7bbeb1f9f451aac7264bf777ae92018dde554885f5789b47f5e7c56fb56f2b
+# started_at: 2026-10-29T02:25:09.211+00:00
+# seconds: 0.22
+# exit_code: 0
+# result: 116 passed, 0 failed，exit 0；断言失败 0，其他问题 0
+........................................................................ [ 62%]
+............................................                             [100%]
+116 passed in 0.07s
