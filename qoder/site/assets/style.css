@@ -262,7 +262,7 @@ table.sessions th, table.sessions td { padding: 10px 14px; text-align: left; bor
 table.sessions th { background: #f0f4fa; font-size: 13px; }
 /* fixed layout: every column but the title gets just the width it needs,
    the remainder goes to the title column */
-table.sessions th:nth-child(1) { width: 48px; }
+table.sessions th:nth-child(1) { width: 96px; }
 table.sessions th:nth-child(3) { width: 142px; }
 table.sessions th:nth-child(4) { width: 62px; }
 table.sessions th:nth-child(5) { width: 92px; }

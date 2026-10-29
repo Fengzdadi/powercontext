@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T06:11:06+00:00",
+  "generated_at": "2026-10-29T06:20:14+00:00",
   "source": "dev-records/CREDITS.md",
   "rows": [
     {
@@ -193,10 +193,18 @@
       "model": "GLM-5.3",
       "turns": 49,
       "duration": "13.8 分钟"
+    },
+    {
+      "id": "09f",
+      "title": "会话表的 # 列加宽，\"05（中止）\"不再压到会话内容上",
+      "date": "2026-10-29",
+      "model": "GLM-5.3",
+      "turns": 32,
+      "duration": "5.4 分钟"
     }
   ],
   "totals": {
-    "rows": 24,
-    "turns": 1621
+    "rows": 25,
+    "turns": 1653
   }
 }
