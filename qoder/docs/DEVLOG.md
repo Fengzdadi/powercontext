@@ -605,3 +605,55 @@ query "脏页表"          → 第一条 第7讲-故障恢复.pdf 第 7 页 "ARI
 
 1. **`uv run` 在项目本体未安装时会尝试安装它**：层 2 模型下载时源码还没复制，`uv run --frozen python` 会同步环境（含安装 examradar，此时无源码会失败）。改用 `.venv/bin/python` 直接执行，绕开 uv 的环境同步。
 2. **重构建后模型层缓存**：`EMBEDDING_MODEL` 做成 ARG 后默认值不变，docker 的 ARG 默认值变更才使层失效——本次重构建模型层直接命中缓存，未重新下载。
+
+---
+
+## 会话 08a — M4 第二部分之一：端到端验证脚本（2026-10-29）
+
+**参与者**：产品负责人（任务输入）、Qoder（脚本实现与验证）
+**并行说明**：本会话在独立 worktree 进行；会话 07 在另一份目录改 `app/`（复习教练与学习者记忆），会话 08b 在另一份目录写 README / VALIDATION / `.env.example`，之后由产品负责人合并。本会话只改 `scripts/e2e_verify.py`、`docs/validation/` 和本 DEVLOG，**`app/` 零改动**（git status 确认）。
+
+### A. `scripts/e2e_verify.py`（约 640 行，仅标准库）
+
+1. **按步骤组织**：每步一个函数（`step_health` / `step_import` / `step_search` / `step_coverage`），`STEPS` 表串起全流程；每步返回 `StepResult`（若干 `Check` + 报告正文），挂起即停并在报告里记"执行中断"。会话 10 在 `STEPS` 表加"复习教练"一步即可（表里已留注释占位）。
+2. **期望值集中**在脚本开头的常量表，逐项注明出处：导入文件表与试卷 11 题/100 分（`samples/course-db/README.md` 资料表）、6 条验收检索与期望第一条（`dev-records/prompts/02-m1-ingest-search.md` 验收表）、10 个判定/11 道归属/盲区第一 t04（README「设计真值」表）。块数不在真值里（README 未给），以首次导入实际结果为准、只核对重复导入后不变。
+3. **HTTP**：`urllib` 手写客户端（JSON POST / multipart 文件上传），所有请求带 `X-ExamRadar-Source: auto`；`--app-url` / `--pc-url`（默认 18806，本地开发栈可用 `--pc-url http://127.0.0.1:18801` 覆盖）。
+4. **报告**：`docs/validation/e2e-report.md`，每步检查表 + 详细正文（导入块数表、每条检索的前 3 条出处和两路分数、判定/归属总表）+ 末行总结。
+5. **试卷题目核对不查库**：用 `POST /api/search`（`doc_kinds: ["exam"]`, top_k=20，试卷仅 11 块全召回）数题号块和分值合计，脚本保持零依赖、只走 HTTP。
+6. **latest 的已知问题按约定处理**：`latest` 第一名核对改为"盲区分数最高的知识点是 t04（25 分）"（按分数，不按列表位置），会话 05b 修复排序前后都成立；"整体顺序按盲区分数从高到低"保持位置核对，当前 ❌ 属预期（05b 修复中）。判定理由只核对结构（提到各考点词、支撑字数），不比对原文。
+
+### B. 验证（examradar-ci 栈：先 `down -v` 再 `up -d --build` 从零启动）
+
+三服务 healthy（app 18807 / powercontext 18806 / seekdb 18805，均只绑 127.0.0.1）。随后对 `--app-url http://127.0.0.1:18807` 连续运行三次脚本：首次导入 6 份资料共 38 块（3+7+6+9+11+2），后两次全部 skip、结果完全一致（幂等）。报告 `docs/validation/e2e-report.md` 保留最后一次运行结果。
+
+关键数字（与设计真值及 DEVLOG 会话 05 校准结果一致）：试卷 11 题合计 100 分；6 条验收检索全部第一条命中期望出处且 `keyword_score` 均非空（3.69 / 2.60 / 11.23 / 2.77 / 4.00 / 3.85）；analyze 的 10 个判定、11 道归属（含依据考点词）、盲区第一 t04（25 分、blind 25）全部等于设计真值，analyze 顺序 t04(25) > t08(8.41) > t02(7.92) > …；`latest` 与 `analyze` 的 run_id 一致、判定/归属/盲区第一也全部一致。
+
+### 验收结果
+
+| 验收项 | 结果 |
+| --- | --- |
+| 先 `down -v` 再 `up -d --build` 从零启动，三服务 healthy | ✅ |
+| `python3 scripts/e2e_verify.py --app-url http://127.0.0.1:18807` | ✅ 除「latest 整体顺序」一项外全部 ✅（该项按约定记 ❌，原因：会话 05b 修复中，`get_latest()` 现按 topic_id 排序），退出码 1 |
+| 报告写入 `docs/validation/e2e-report.md` | ✅ 总览 + 每步检查表 + 详细正文 + 总结行 |
+| 再跑一次结果不变（导入幂等） | ✅ 第三次运行与第二次逐项一致，6 份全部 skip、块数不变 |
+| 对无服务监听的地址运行（`--app-url http://127.0.0.1:18803`） | ✅ 清晰错误信息（含 DEPLOY.md 指引，无 Python 堆栈），退出码 1 |
+| 会话结束前 `down -v` 清掉 examradar-ci | ✅ 容器、pc-data/seekdb-data 卷、网络全部删除，`ps` 为空 |
+| `git status` 只含允许改的文件 | ✅ `scripts/e2e_verify.py`、`docs/validation/`、`docs/DEVLOG.md`（另有会话启动时即存在的 `dev-records/sessions/08a-*` 运行记录，未改动） |
+| 除「latest 的顺序」外全部 ✅ | ✅（见上） |
+
+### 发现的问题（应用 bug，不在本会话修）
+
+1. **`GET /api/coverage/latest` 返回顺序与 `analyze` 不一致**（已知，会话 05b 修复中）：`latest` 按 topic_id 排序，`analyze` 按盲区分数降序。复现：`POST /api/coverage/analyze` 后 `GET /api/coverage/latest?course_id=db101`，`items[0]` 是 t01 而非 t04。脚本该项照实记 ❌。
+2. 其余步骤未发现应用 bug：6 条检索、导入幂等、判定/归属/盲区均与设计真值一致。
+
+### 遇到的问题和解决办法
+
+1. **两行字符串字面量漏拼接**：导入步骤的说明文字写成 `+ "……（README "` 换行 `"未给出……"`，第二行成了独立表达式，报告里被截断为"（README"。改为括号内隐式拼接后完整。
+2. **`latest` 第一名核对方式**：初版按列表位置核对 `items[0]`，在 05b 修复前的代码上会把「latest 第一名」也判 ❌（按 topic_id 排序时 `items[0]` 是 t01），与任务约定"除顺序项外全部 ✅"冲突。改为按盲区分数核对（`max(blind_spot_score)` 属于 t04 且权重 25），数据本身正确、仅顺序有缺陷，前后兼容。
+3. **空端口的错误信息**：`urllib` 的 `URLError.reason` 在连接拒绝时是 `[Errno 61] Connection refused`，包装成中文提示并附部署指引；`HTTPError` 单独处理保留状态码和响应体。
+
+### 未做（留给后续会话）
+
+- "复习教练"步骤（会话 07 开发中、会话 10 合并后加进 `STEPS` 表）
+- 会话 05b 修复合并后重跑本脚本，「latest 整体顺序」应转 ✅
+- 会话 08b 的 README / VALIDATION / `.env.example`（另一目录并行进行）
