@@ -5,7 +5,9 @@
 - 本会话**不要改 `app/` 下的任何文件**，只动部署相关的文件：`docker/`、`docker-compose*.yml`、`.env.example` 的部署部分、`scripts/load_sample.sh`、`LICENSE`、`docs/`；
 - 不要改 `dev-records/` 和 `samples/`。
 
-先读 `docs/DEVLOG.md`、`docs/PLAN.md` 的部署部分和 `docs/reference/` 了解现状。本机 127.0.0.1:10800 的 seekdb 和 127.0.0.1:18801 的 PowerContext 是开发环境在用，不要动它们。
+先读 `docs/DEVLOG.md`、`docs/PLAN.md` 的部署部分和 `docs/reference/` 了解现状。以下都由会话 05 在用，不要动它们：
+- 本机 127.0.0.1:10800 的 seekdb 和 127.0.0.1:18801 的 PowerContext（开发环境）；
+- 18800 端口：不要在上面启动服务，`load_sample.sh` 只对 examradar-ci（18807）测试。
 
 ## 任务
 
