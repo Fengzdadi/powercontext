@@ -315,15 +315,13 @@ window.imgFallback = function (img) {
   <div class="wrap">
     <h2 class="sec-title">演示视频</h2>
     <p class="sec-sub">约 70 秒走完一遍完整流程（样例课程、开发环境录制）：首页 → 导入资料 → 问笔记 → 覆盖雷达 → 复习教练出两道题 → 我的记忆 → 使用记录，每一步底部有一行说明。</p>
-    <div class="video-box">
-      <video id="demo-video" hidden controls preload="metadata" poster="media/demo-poster.jpg">
-        <source src="media/demo.mp4" type="video/mp4">
-      </video>
-      <div class="video-pending" id="video-pending">
-        <div class="film">&#127916;</div>
-        <div>视频即将上线</div>
-      </div>
-    </div>
+    <a class="video-cover" href="https://github.com/Fengzdadi/powercontext/raw/2026-competition-ecosystem/qoder/docs/media/demo.mp4" target="_blank" rel="noopener" title="从 GitHub 下载演示视频">
+      <img src="media/demo-poster.jpg" alt="演示视频的封面（覆盖雷达页面截图），点击从 GitHub 下载演示视频">
+      <span class="play-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/></svg>
+      </span>
+    </a>
+    <p class="video-note">视频文件放在代码仓库里（qoder/docs/media/demo.mp4，MP4，约 2.4 MB），点封面从 GitHub 下载。</p>
   </div>
 </section>
 

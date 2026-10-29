@@ -1371,6 +1371,52 @@ $ CSV 导出前 3 字节: efbbbf
 
 - 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。
 
+---
+
+## 会话 09g — 演示视频一节改成封面图、点击从 GitHub 下载（2026-10-29）
+
+**参与者**：产品负责人（视频移出 `site/`、压缩 poster 与截图、任务输入）、Qoder（改版与验证）。背景：Qoder Sites 把 `site/` 整包上传，带 2.4 MB 视频四次上传均超时，视频不再随网站发布、只留在代码仓库（产品负责人已把 `site/media/demo.mp4` 移到 `docs/media/demo.mp4`，`demo-poster.jpg` 重压缩为 1280×800，`site/images/` 5 张截图换 256 色版本）。规则同前：只改 `site/index.html`、`site/assets/main.js`、`site/assets/style.css` 与两个检查脚本，另加 DEVLOG；只用 18808 端口（后台起、PID 关）；不发布；不访问 GitHub 链接（文件推送后由产品负责人确认）。本会话模型 GLM-5.3。
+
+### A. 改动内容
+
+1. **`site/index.html`**（`#video` 一节）：删 `<video id="demo-video">` 与"视频即将上线"占位，换成 `.video-cover` 封面链接——`<img src="media/demo-poster.jpg">`（alt 说明是演示视频封面），整卡 `<a>` 指向 `https://github.com/Fengzdadi/powercontext/raw/2026-competition-ecosystem/qoder/docs/media/demo.mp4`，`target="_blank" rel="noopener"`；封面正中叠内联 SVG 播放图标（`.play-badge`，CSS 定位，无新文件）；封面下加 `.video-note` 一行说明"视频文件放在代码仓库里（qoder/docs/media/demo.mp4，MP4，约 2.4 MB），点封面从 GitHub 下载。"。标题与 `.sec-sub` 不变。
+2. **`site/assets/main.js`**：删 `DEMO_VIDEO` 常量、`loadVideo()`（HEAD 探测 + 显示/隐藏）及其 DOMContentLoaded 调用，其余不动。
+3. **`site/assets/style.css`**：删 `.video-box`、`.video-box video`、`.video-pending`；加 `.video-cover`（宽度同原视频框，宽 100%、圆角卡片）、`.play-badge`（居中 72px 半透明圆 + 内联 SVG 三角，hover 加深）、`.video-note`（13px 弱色，位于封面下方）。
+
+### B. 验收量测结果（`.cache/scratch/check_09d.py` 改版 + `check_09e.py` 改版，桌面 1440×900 与手机 375×812，DOM 量测；ALL 09d / 09e CHECKS PASSED）
+
+| 验收项 | 结果 |
+| --- | --- |
+| 页面无视频残留 | 两宽度 `<video>` 标签 0 个、`#demo-video` 与 `#video-pending` 均 null；独立开页再核 0 个 `<video>`、`.video-cover` 恰 1 个 |
+| 封面加载成功 | 两宽度 `complete=true`、`naturalWidth=1280`（1280×800）；封面图不超出 `.wrap` 容器（inside_wrap=true），页面横向滚动 0（1440 与 375 均 scrollWidth=clientWidth） |
+| 封面链接属性 | 两宽度 href 均为 `https://github.com/Fengzdadi/powercontext/raw/2026-competition-ecosystem/qoder/docs/media/demo.mp4`、`target="_blank"`、`rel="noopener"`；`alt` 含"演示视频"（"演示视频的封面（覆盖雷达页面截图），点击从 GitHub 下载演示视频"） |
+| 播放图标 | `.play-badge` 72×72、叠在封面图范围内（badge_on_img=true） |
+| 封面下说明文字 | 两宽度文本逐字一致"视频文件放在代码仓库里（qoder/docs/media/demo.mp4，MP4，约 2.4 MB），点封面从 GitHub 下载。"、可见、位于封面正下方（note_below=true） |
+| 网络与控制台 | 两宽度共 28 条请求全部 127.0.0.1:18808、外部请求 0；含 `demo.mp4` 的请求 0 条；控制台错误 0 条 |
+| `site/` 无 mp4、体积 | `site/` 内 `.mp4` 文件 0 个；共 14 个文件、总计 1440 KB（精确求和口径，< 3 MB；09e 时的"除视频 1803 KB"已含旧版大图，本轮换 256 色截图与重压缩 poster 后下降） |
+| 截图与 f5 说明（保留项） | 5 张截图两宽度全部加载（1440×900）、无占位残留、不越界；f5 截图下说明两宽度逐字一致且在截图下方 |
+
+### C. 09c / 09e / 09f 检查项复验
+
+- `check_09c_radar.py`（未改）：ALL RADAR LABEL CHECKS PASSED（两宽度轴标签越界 0、断点不拆 ASCII 词、与图例不相交）。
+- `check_09e.py`（视频块改为封面检查，其余不动）：ALL 09e CHECKS PASSED。会话表当前 25 行 / 1653 轮（09f 后产品负责人补充的 09g 简报条目所致，非本会话改动）；其余检查（无 Credits、开场白、会话表 5 列、合计与 JSON 一致、标题列 61.5%、手机卡片、盲区逐行、echarts、cmd-links、使用效果三块注入、无外部请求、无控制台错误）全部通过。
+- `check_09f.py`（未改）：三宽度下单元格溢出 0、"05（中止）"单行 17px/73px、# 列 96px、标题列 61.5%/60.1%/46.0%，全部通过。
+- `check_09d.py`（视频检查换为封面检查）：截图与说明文字的检查保留，视频时长/preload/poster/404 降级/按 `site/media/demo.mp4` 算体积的检查替换为上表 B 的封面检查、mp4 残留与 `site/` 体积检查。
+
+### D. 截图目视核对（Read）
+
+- `clip-09g-mobile-video.png`（375 下 `#video` 一节）：描述相符——"演示视频"标题、副标题整句、封面框内雷达图、正中灰色圆形播放按钮（白色三角）、下方"视频文件放在代码仓库里（…约 2.4 MB）…从 GitHub 下载"一行。
+- `clip-09g-desktop-video.png`（1440 下同节）：描述大体相符（标题/副标题/封面雷达图/居中播放圆钮/底部说明均在），但细节有偏差、混入了相邻一节的描述（同 09/09b–09f 现象），目视核对以手机局部图 + DOM 量测代替。
+
+### E. 改动的文件
+
+`site/index.html`（`#video` 一节换封面链接）、`site/assets/main.js`（删 DEMO_VIDEO/loadVideo）、`site/assets/style.css`（删 .video-box/.video-pending，加 .video-cover/.play-badge/.video-note）、`docs/DEVLOG.md`（本节）。检查脚本 `.cache/scratch/check_09d.py`、`check_09e.py`、新增 `clip_09g.py`。
+
+### F. 未做（留给产品负责人/后续会话）
+
+- GitHub raw 链接（`…/raw/2026-competition-ecosystem/qoder/docs/media/demo.mp4`）未访问、未验证可下载——文件要等本节改动推送后才存在，由产品负责人推送后确认；本会话只核对链接的 href/target/rel 属性。
+- 网站未发布（发布是公开操作，待账号所有者确认后单独进行）。
+
 
 ---
 

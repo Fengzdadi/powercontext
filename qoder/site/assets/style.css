@@ -244,15 +244,20 @@ table.blind tr.row-detail > td { padding: 0; border-bottom: 1px solid var(--line
 .cmd-links a:hover { text-decoration: underline; }
 
 /* ---------- video ---------- */
-.video-box {
+.video-cover {
+  display: block; position: relative; overflow: hidden;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-  overflow: hidden;
 }
-.video-box video { display: block; width: 100%; max-height: 560px; background: #000; }
-.video-pending {
-  padding: 90px 20px; text-align: center; color: var(--ink-faint);
+.video-cover img { display: block; width: 100%; height: auto; }
+.video-cover .play-badge {
+  position: absolute; left: 50%; top: 50%;
+  width: 72px; height: 72px; margin: -36px 0 0 -36px;
+  border-radius: 50%; background: rgba(26, 35, 51, 0.6);
+  display: flex; align-items: center; justify-content: center;
 }
-.video-pending .film { font-size: 40px; margin-bottom: 10px; }
+.video-cover .play-badge svg { width: 30px; height: 30px; fill: #fff; margin-left: 4px; }
+.video-cover:hover .play-badge { background: rgba(26, 35, 51, 0.8); }
+.video-note { font-size: 13px; color: var(--ink-faint); margin: 10px 0 0; }
 
 /* ---------- sessions ---------- */
 .sessions-table-wrap { overflow-x: auto; }

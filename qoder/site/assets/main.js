@@ -5,7 +5,6 @@
   var COVERAGE_URL = "data/sample-coverage.json";
   var SESSIONS_URL = "data/qoder-sessions.json";
   var USAGE_URL = "data/usage-summary.json";
-  var DEMO_VIDEO = "media/demo.mp4";
 
   var LEVEL_LABEL = { covered: "已覆盖", thin: "薄弱", missing: "缺失" };
   var QUESTION_SNIPPET = 60;
@@ -508,24 +507,9 @@
       .catch(function () { /* keep collecting state */ });
   }
 
-  /* ---------- demo video ---------- */
-  function loadVideo() {
-    fetch(DEMO_VIDEO, { method: "HEAD" })
-      .then(function (r) {
-        if (r.ok) {
-          document.getElementById("video-pending").hidden = true;
-          var v = document.getElementById("demo-video");
-          v.hidden = false;
-          v.load();
-        }
-      })
-      .catch(function () { /* keep pending placeholder */ });
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
     loadCoverage();
     loadSessions();
     loadUsage();
-    loadVideo();
   });
 })();

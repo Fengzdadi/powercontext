@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T06:20:14+00:00",
+  "generated_at": "2026-10-29T06:55:09+00:00",
   "source": "dev-records/CREDITS.md",
   "rows": [
     {
@@ -201,10 +201,18 @@
       "model": "GLM-5.3",
       "turns": 32,
       "duration": "5.4 分钟"
+    },
+    {
+      "id": "09g",
+      "title": "演示视频一节改成封面图，点封面从 GitHub 下载仓库里的 demo.mp4",
+      "date": "2026-10-29",
+      "model": "GLM-5.3",
+      "turns": 40,
+      "duration": "7.1 分钟"
     }
   ],
   "totals": {
-    "rows": 25,
-    "turns": 1653
+    "rows": 26,
+    "turns": 1693
   }
 }
