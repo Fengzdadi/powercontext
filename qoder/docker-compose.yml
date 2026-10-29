@@ -50,6 +50,9 @@ services:
       args:
         # 向量模型下载源；国内网络可在 .env 里设 HF_ENDPOINT=https://hf-mirror.com
         HF_ENDPOINT: ${HF_ENDPOINT:-}
+        # 预下载进镜像的模型，与运行时 EMBEDDING_MODEL 用同一个变量：
+        # 换模型必须重新构建镜像（运行时 HF_HUB_OFFLINE=1，不联网下载）
+        EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-zh-v1.5}
     environment:
       SEEKDB_HOST: seekdb
       SEEKDB_PORT: "2881"

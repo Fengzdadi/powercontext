@@ -376,7 +376,7 @@
 4. **uv 固定版本、去掉回退**：`ghcr.io/astral-sh/uv:0.8.15`（与本机 uv 一致，锁文件兼容）；`RUN uv sync --frozen --no-dev`，删掉 `--frozen || 无 --frozen` 的回退。同时把 `COPY app/examradar/` 挪到 `uv sync` 之前（editable 安装需要源码存在），`static/` 仍在 sync 之后以保留层缓存。运行命令改为 `uv run --no-sync uvicorn ...`，避免运行时触发环境校验。
 5. **向量模型构建时预下载**：镜像内 `ENV FASTEMBED_CACHE_PATH=/opt/fastembed-cache`，构建期 `TextEmbedding('BAAI/bge-small-zh-v1.5')` 下载进镜像；运行期 `ENV HF_HUB_OFFLINE=1`。不需要改 app 代码——查了 fastembed 0.9.1 源码：`define_cache_dir()` 读 `FASTEMBED_CACHE_PATH`，`model_management.py` 先用 `snapshot_download(local_files_only=True)` 查缓存，命中即不发网络请求。构建参数 `HF_ENDPOINT`（默认 `https://huggingface.co`）透传给下载步骤，国内可设 `https://hf-mirror.com`。
 6. **`scripts/load_sample.sh` 改走 HTTP**：`POST /api/documents`（multipart，带 `X-ExamRadar-Source: auto`），`APP_URL` 默认 `http://127.0.0.1:18800`；每份资料打印块数和 new/skip 状态，末尾合计；重复运行全部 skip。本地开发和 Docker 部署共用一个脚本。
-7. **`qoder/LICENSE`**：Apache-2.0 全文（官方 LICENSE-2.0.txt 原样）。
+7. **`qoder/LICENSE`**：Apache-2.0 全文。~~官方 LICENSE-2.0.txt 原样~~（审阅发现此处写法不实：当时是模型转写，措辞和换行与原文有差异，会话 06b 已用 `curl` 直接下载原文并按 sha256 核对修正，见下）。
 8. **`docs/DEPLOY.md`**：两种部署方式（compose 一键 / dev compose + `uv run`）、版本表、端口表、全部环境变量（compose 变量 + 应用变量 + 脚本变量）、HF_ENDPOINT 用法、常见问题（模型下载慢、端口占用、Apple Silicon、PC 首次启动 1–3 分钟、PC 与 seekdb 的关系、健康检查为什么用 python）。
 
 ### B. 平台支持核查（不实际构建 amd64，查镜像 manifest 和 PyPI wheel 列表）
@@ -460,3 +460,37 @@ query "脏页表"          → 第一条 第7讲-故障恢复.pdf 第 7 页 "ARI
 - README 合并 DEPLOY.md 内容（M4 后半，会话 08）
 - e2e 全流程验证（会话 05/08）
 - `.env.example` 的 compose 部分注释已在会话 03 就绪，本会话未改 `.env.example`（其"compose-only variables"注释仍然准确）
+
+---
+
+## 会话 06b — 修正会话 06 审阅问题（2026-10-28）
+
+**参与者**：产品负责人（会话 06 审阅意见 3 条）、Qoder（修正与验证）
+
+### 改动
+
+1. **`LICENSE` 换成 Apache-2.0 原文**：会话 06 的 LICENSE 是模型转写，措辞（如 "source files, and configuration files" vs 原文 "source, and configuration files"、"other media" vs 原文 "other media types"）和换行与官方文本有出入，DEVLOG 里"原样"的说法不成立。修正：`curl -fsSL https://www.apache.org/licenses/LICENSE-2.0.txt -o LICENSE` 直接下载，不经过转写；会话 06 一节的对应表述已改正。
+2. **`docker/Dockerfile.app` 层顺序**：原来 `COPY app/examradar/` 在 `uv sync` 和模型下载之前，改任何一行应用代码都会使依赖安装层和模型层（约 100 MB 下载）全部失效。新顺序：
+   1. `COPY app/pyproject.toml app/uv.lock` → `uv sync --frozen --no-dev --no-install-project`（只装依赖）；
+   2. 模型预下载（改用 `.venv/bin/python` 直接跑，避免 `uv run` 此时尝试安装还没复制的项目本体）；
+   3. `COPY app/examradar/` → `uv sync --frozen --no-dev`（装项目本身）；
+   4. `COPY app/static/`。
+   应用代码改动现在只使第 3 层之后失效。
+3. **模型名参数化**：Dockerfile 原来写死 `BAAI/bge-small-zh-v1.5`，而 compose 允许 `EMBEDDING_MODEL` 换模型——换了以后运行时离线找不到新模型。修正：新增构建参数 `EMBEDDING_MODEL`（默认 `BAAI/bge-small-zh-v1.5`），compose 用同一个 `EMBEDDING_MODEL` 变量同时传给构建参数和运行时环境；DEPLOY.md 写明**换模型必须重新构建镜像**（变量表和模型预下载小节各加说明）。
+4. **DEPLOY.md 修正 fastembed 默认缓存位置**：原句"`/tmp/fastembed_cache` 或 `~/.cache` 下"不准确。fastembed 源码 `define_cache_dir()`：`os.path.join(tempfile.gettempdir(), "fastembed_cache")`——即**系统临时目录下的 `fastembed_cache`**（Linux `/tmp/fastembed_cache`，macOS `$TMPDIR/fastembed_cache`）。
+
+### 验收结果
+
+| 验收项 | 结果 |
+|---|---|
+| `shasum -a 256 LICENSE` = `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30` | ✅ 一致 |
+| 先 `down -v` 再 `up -d --build` 从零启动，三服务 healthy | ✅ app/powercontext/seekdb 均 Up (healthy)，端口 127.0.0.1:18807/18806/18805 |
+| 导入样例成功（带 `X-ExamRadar-Source: auto`） | ✅ 6 份资料 38 块（3+7+6+9+11+2），试卷 11 chunks |
+| 一条检索成功（带 `X-ExamRadar-Source: auto`） | ✅ "两阶段锁能不能避免死锁" → 第一条 05-事务与并发控制.md 5.3 节，kw 4.00 / sem 0.8442 / RRF 0.0328，共 10 条 |
+| 会话结束前 `down -v` 清掉 | ✅ 容器、`examradar-ci_pc-data` / `examradar-ci_seekdb-data` 卷、网络全部删除，`ps` 为空 |
+| `app/` 无改动 | ✅ git status 只含 LICENSE / docker-compose.yml / docker/Dockerfile.app / docs/DEPLOY.md / docs/DEVLOG.md |
+
+### 遇到的问题和解决办法
+
+1. **`uv run` 在项目本体未安装时会尝试安装它**：层 2 模型下载时源码还没复制，`uv run --frozen python` 会同步环境（含安装 examradar，此时无源码会失败）。改用 `.venv/bin/python` 直接执行，绕开 uv 的环境同步。
+2. **重构建后模型层缓存**：`EMBEDDING_MODEL` 做成 ARG 后默认值不变，docker 的 ARG 默认值变更才使层失效——本次重构建模型层直接命中缓存，未重新下载。

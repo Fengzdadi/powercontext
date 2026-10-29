@@ -34,6 +34,8 @@ docker compose up -d --build
 
 `BAAI/bge-small-zh-v1.5`（ONNX，约 100 MB）在**镜像构建时**下载进镜像（`FASTEMBED_CACHE_PATH=/opt/fastembed-cache`），运行时容器设置了 `HF_HUB_OFFLINE=1`，不会再访问 huggingface.co。
 
+模型名是构建参数 `EMBEDDING_MODEL`，compose 用 `.env` 里的同一个 `EMBEDDING_MODEL` 变量同时传给构建参数和运行时环境。**换模型必须重新构建镜像**（`docker compose up -d --build`）：运行时是离线模式，只改 `.env` 不重建的话容器里没有新模型的权重，启动后向量化会报错。
+
 构建参数 `HF_ENDPOINT` 用于切换下载源（默认 `https://huggingface.co`）。国内网络下载慢或超时：
 
 ```bash
@@ -62,7 +64,7 @@ cd app
 uv run uvicorn examradar.main:app --reload --host 127.0.0.1 --port 18800
 ```
 
-此时应用读取 `qoder/.env` 里的本机地址（`SEEKDB_HOST=127.0.0.1`、`SEEKDB_PORT=10800`、`POWERCONTEXT_URL=http://127.0.0.1:18801`）。注意本地开发模式下 fastembed 模型下载到本机临时目录（`FASTEMBED_CACHE_PATH` 未设置时为 `/tmp/fastembed_cache` 或 `~/.cache` 下，首次使用会联网下载）。
+此时应用读取 `qoder/.env` 里的本机地址（`SEEKDB_HOST=127.0.0.1`、`SEEKDB_PORT=10800`、`POWERCONTEXT_URL=http://127.0.0.1:18801`）。本地开发模式下 fastembed 模型下载到系统临时目录下的 `fastembed_cache`（fastembed 源码 `define_cache_dir()`：`os.path.join(tempfile.gettempdir(), "fastembed_cache")`，Linux 上即 `/tmp/fastembed_cache`，macOS 上即 `$TMPDIR/fastembed_cache`），首次使用会联网下载。
 
 开发环境需要 Python 3.12 和 [uv](https://docs.astral.sh/uv/)：
 
@@ -111,7 +113,7 @@ export EXAMRADAR_IT=1 && uv run pytest -m integration   # 集成测试（需 see
 | `HF_ENDPOINT` | https://huggingface.co | 向量模型构建期下载源（如 `https://hf-mirror.com`） |
 | `CORS_ORIGINS` | http://localhost:18800 | 允许的跨域来源 |
 | `EMBEDDING_PROVIDER` | local | `local`（fastembed 离线）或 `openai`（OpenAI 兼容 API） |
-| `EMBEDDING_MODEL` | BAAI/bge-small-zh-v1.5 | 向量模型名 |
+| `EMBEDDING_MODEL` | BAAI/bge-small-zh-v1.5 | 向量模型名（同时作为构建参数预下载进镜像，换模型要重新 `--build`） |
 | `EMBEDDING_DIM` | 512 | 向量维度（必须与模型一致） |
 
 ### 应用变量（本地开发时写在 `qoder/.env`）
