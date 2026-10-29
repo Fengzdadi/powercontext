@@ -673,6 +673,169 @@ query "脏页表"          → 第一条 第7讲-故障恢复.pdf 第 7 页 "ARI
 
 ---
 
+## 会话 07 — M3：复习教练 + PowerContext 学习者记忆 + 学习会话（2026-10-28）
+
+> 本会话运行在独立 worktree（分支 `eco-qoder-m3`），dev 库 `examradar_m3` / 集成测试库
+> `examradar_m3_test`，应用端口 18802。只新增文件 + 少量允许范围内的既有文件修改
+> （main.py / config.py / routes/search.py / static/index.html / static/ask.html /
+> docs/PLAN.md），未触碰 seekdb.py / coverage.py 等禁改文件。
+
+### 做了什么
+
+**新增模块**（均在 `app/examradar/`）：
+
+- `pc_client.py`（重写扩展）：PowerContext 完整客户端。scope 幂等创建（idempotency_key）；
+  原子记忆创建 / 读取（ETag 解析 `revision:N`）/ 原子替换（先 GET 最新 ETag，PUT 带
+  If-Match，412 时重试 2 次）；tags 读写（独立 ETag）；artifact-handles（`mastery-<topic_id>`、
+  `review-plan`，404 → None）；artifact-tags/query（绕过 1.4.1 的 list+tags 422 bug）；
+  revision 历史（列表无正文，逐个 GET `/revisions/{n}`）；remember 追加；bootstrap
+  （enabled/lifecycle/startup/integration/event_id）；prepare（BEGIN/END 标记 JSON 解析）；
+  每次调用的请求/响应摘要进 `CALL_LOG`（deque 300 条，memory 页展示）；
+  连接错误 / 5xx → `PowerContextUnavailable` 优雅降级。
+- `mastery.py`：Leitner 盒子递推（答对 +1 最多 5；答错或"不会"回到 1 号盒，间隔
+  1/2/4/7/14 天）、掌握度卡片文本格式化/解析（首行人类可读，其余 key:value 机读）、
+  错题文本、复习计划文本、开场白生成（"上次你在『X』上错了 N 次，先复习它"）、
+  会话小结、`learner_hash`（sha256 前 8 位）、填空/选择题判分（NFKC 归一化：全半角、
+  大小写、空白）。
+- `llm.py`：OpenAI 兼容客户端（LLM_BASE_URL / LLM_API_KEY / LLM_MODEL），Ollama 走
+  `options.num_ctx`（每次相同值避免模型重载），`/no_think` 尽力关闭 qwen3.5 思考；
+  宽容 JSON 解析（去围栏、括号配平、截断兜底）；未配置时 `configured=False` 走规则路径。
+- `learning_store.py`：新表 `learning_sessions`（session_id/scope_id/learner_hash/
+  course_id/started_at/last_event_at/ended_at）与 `quiz_questions`（题目、payload、
+  答案、correct、box_before/after）；30 分钟无事件自动结束（ended_at=last_event_at，
+  时长按最后事件计）；隐私：只存名字哈希，明文名字只进本机 PowerContext Scope。
+- `coach.py`：教练核心。选题优先级 到期复习 > 覆盖盲区（thin/missing 按盲区分）>
+  其余，避免连续重复同一道题；规则填空题（挖空点：主题关键词 > ≥3 字符拉丁词，
+  排除"第 N 章/节/讲"和数字；题干跳过 markdown `#`/`>` 结构行）；missing 主题给
+  往年原题自测（会/模糊/不会 + "笔记里没有这部分，建议先补"）；LLM 出题（选择/
+  简答 JSON，含参考答案/解析/chunk 出处，代码里再校验后才入库）；LLM 简答判分
+  （correct + misconception 误区描述）；掌握度卡片 upsert（handle → 读旧卡 → apply →
+  替换）；错题记忆 remember；复习计划记忆（handle `review-plan`，tags 含
+  `bootstrap-context`，首行即下次开场白）。
+  coverage 数据只通过 `coverage.get_latest(course_id)` 读取，使用的字段集中在
+  `coach.coverage_snapshot` 一个函数里（docstring 已列明：run_id/created_at/
+  topics[].{id,name,keywords} 与 items[].{topic_id,topic_name,keywords,coverage_level,
+  coverage_score,exam_weight,exam_questions[].question_no,blind_spot_score}）。
+- `routes/sessions.py`：POST /api/sessions/start（scope + bootstrap（event_id=
+  session_id）+ 开场白 + 到期/盲区计划）；POST /api/sessions/end（解析 sendBeacon 的
+  text/plain 原始体，source 从体里取；会话小结记忆 + 复习计划更新 + usage 时长）；
+  GET /api/coach/status。
+- `routes/quiz.py`：POST /api/quiz/next（进入知识点前 prepare（query = "知识点 id +
+  知识点名称"，满足 PC 全文召回 ≥max(2, ⌈25%×词数⌉) 命中门槛），错题以
+  "你之前在这里错过：……" 展示并作为不可信材料进入 LLM 提示词）；POST
+  /api/quiz/answer（判分 + 记忆写入全部 try/except 降级）。
+- `routes/memory.py`：GET /api/memory —— 记忆页数据（复习计划 + revision 历史、
+  掌握度卡片 + 轨迹、错题、会话小结、bootstrap 校验、PC 调用摘要）。
+
+**新增前端**：`static/coach.html`（会话开始/继续/结束、开场白、复习计划、
+答题循环（选择/填空/简答/自测）、判分结果（盒号变化、解析、误区、artifact id）、
+pagehide → sendBeacon 结束会话）；`static/memory.html`（scope、复习计划及 revision
+轨迹、掌握度卡片表、错题、会话小结、bootstrap 校验、PC 请求/响应摘要日志）。
+两页自带完整导航（含"复习教练/我的记忆"）。`static/index.html`（非 nav 部分）
+加"开始复习"卡片与快捷入口；`static/ask.html`（非 nav 部分）加 LLM 回答（带
+[1][2] 引用，仅 LLM 配置时）。`routes/search.py` 加 `with_answer` 参数。
+
+**新增测试**：`tests/test_mastery.py`、`tests/test_quizgen.py`（含 missing 自测
+路径 —— 用构造的 coverage + monkeypatch，因当前覆盖引擎检不出 missing，会话 05
+正在修）、`tests/test_pc_client.py`（httpx.MockTransport 状态化假 PC：ETag/428/412
+竞态/revision 轨迹/降级/调用日志）、`tests/test_llm.py`、`tests/test_m3_integration.py`
+（真实 PC：幂等 scope、卡片 create→tags→handle→replace→get_revisions、bootstrap
+返回最新 revision、prepare 用 "t08 隔离级别与 MVCC" 召回错题、死端口 18803 降级）。
+
+### 新增环境变量 / 配置（config.py 只加字段）
+
+- `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`：OpenAI 兼容端点（本机 Ollama
+  `http://127.0.0.1:11434/v1` + `qwen3.5:9b`，无 key）；未配置走规则路径。
+- 新 Settings 字段：`powercontext_timeout_seconds=8.0`、`session_idle_minutes=30`、
+  `llm_num_ctx=8192`、`llm_max_context_bytes=6000`、`pc_context_max_bytes=2000`。
+  `.env` / `.env.example` 的合并补充留给产品所有者。
+
+### 遇到的问题和解决办法
+
+1. **PC 1.4.1 PUT 替换拒绝 `family` 字段**（422 extra_forbidden）——参考资料写错了；
+   查 openapi.json 确认 ReplaceAtomicMemoryArtifactRequest 只有 content。替换请求体
+   已去掉 family（创建时仍必填）。
+2. **PC revision 列表接口不返回正文**（只有 content_digest）——`get_revisions` 逐个
+   GET `/revisions/{n}` 取文本。
+3. **handle 固定的是创建时的 revision**，替换后变"陈旧"——验收断言改为比较
+   bootstrap item revision 与当前 ETag（代码本来就每次替换前先 GET 最新 ETag）。
+4. **LLM 出题静默回退规则题**：qwen3.5 把 chunk_id 返回成字符串 `"chunk 12"`，
+   `chunk_id not in valid_ids`（int 集合）校验失败——加了数字提取强转并补单测。
+5. **填空题质量**：曾挖空"第 3 章"、把 markdown 标题行当题干——排除章节词/数字，
+   题干跳过 `#`/`>` 结构行且不回退。
+6. **Ollama 兼容层忽略 `think:false`**，`/no_think` 也不能完全抑制——但推理内容进
+   独立的 `reasoning` 字段，`content` 干净；num_ctx 每次相同避免重载。
+7. **降级标记 bug（本次验收发现并修复）**：PC 挂掉时会话没有 scope_id，quiz 路由的
+   `memory_ok` 初始 True 一直没被置 False —— 改为 `memory_ok = scope_id is not None`。
+8. **sessions/start 的 X-ExamRadar-Source 写成了查询参数**（漏了 `Header(None)`），
+   usage 事件全记成 real —— 验收时发现并修复。
+9. **审计教训**：目录导入会把 README/大纲当笔记收进来（会话 03 的坑），本会话开始前
+   已把误导入的两个文档及其块从 dev 库删掉。
+
+### 验收结果（实际运行输出）
+
+**无 LLM 全流程（学习者"验收同学3"，端口 18802）**：
+
+- 空 bootstrap 开场："这是你的第一次复习" → t04 填空题（GROUP）→ 故意答错：
+  box 1→1、错题记忆、复习计划 rev 1 → 同主题再答对：box 1→2（卡片 rev 2）→
+  t01 答对（box 2）→ 结束会话（小结记忆 + 计划 rev 4）→ 新会话开场白
+  "上次你在『函数依赖与范式（3NF、BCNF）』上错了 1 次，先复习它"，bootstrap
+  ready 返回计划 revision 4。
+- PC 侧核验：掌握度卡片 2 个 revision（box 1 → box 2 轨迹可见）；
+  `prepare("t04 函数依赖与范式（3NF、BCNF）")` 召回 4 条含错题；复习计划 tags
+  `['bootstrap-context','examradar','type-plan']`；usage_events 中无任何明文姓名
+  （只有 8 位哈希）。
+
+**有 LLM（Ollama qwen3.5:9b，学习者"LLM验收同学"，端口 18804）**：
+
+- 选择题（chunk 13，4 选项 + 解析 + 出处）答对 box 1→2；简答题（chunk 12）；
+  故意答错的简答（"B+树就是一种二叉树…"）LLM 判 correct=False、judged_by=llm，
+  误区："混淆了哈希索引与 B+ 树……将 B+ 树误称为二叉树"；会话结束 2 题 1 对。
+
+**降级（POWERCONTEXT_URL → http://127.0.0.1:18803，端口 18804）**：
+
+- /api/coach/status：powercontext ok=false（Connection refused）；
+  会话开始/出题/判分/结束全部可用，memory_ok=false + 提示"记忆服务暂不可用"。
+  （修复了其中发现的 memory_ok 误报 bug，见上。）
+
+**30 分钟空闲回收**：把一条会话 last_event_at 回拨 40 分钟后扫表，ended_at=
+last_event_at、时长 300s；活跃会话不受影响。
+
+**sendBeacon 兼容**：POST /api/sessions/end 以 text/plain 原始体（无 source 头）
+成功结束会话，usage 记录 source=auto（从体里解析）。浏览器走查中跳页触发
+pagehide → sendBeacon 实际生效（resume 409 反证会话已被结束）。
+
+**浏览器（Playwright + Chrome，?source=auto，学习者"浏览器同学"）**：
+截图 `.cache/scratch/m3_index.png`、`m3_coach_question.png`、`m3_coach_result.png`、
+`m3_memory.png`、`m3_coach_end.png`。首页开场白（跨会话记忆："上次你在『函数依赖
+与范式（3NF、BCNF）』上错了 2 次"）、教练页错题召回"你之前在这里错过"、判分结果
+（盒号 1→1、掌握度卡片/错题/复习计划 artifact id）、记忆页（计划 + 卡片轨迹 +
+错题 + 小结 + PC 请求摘要）、结束会话全部走通；无 JS 错误（仅 favicon 404）。
+ask.html 的 LLM 回答路径已由 API 级验收覆盖（18804），浏览器单独截图未做（未验证项）。
+
+| 验收项 | 结果 |
+|---|---|
+| `uv run pytest` | ✅ 158 passed, 20 skipped |
+| `export EXAMRADAR_IT=1 && uv run pytest -m integration` | ✅ 26 passed |
+| 无 LLM 全流程（空 bootstrap → 错 → 对 → 结束 → 新开场白） | ✅ 见上 |
+| 掌握度卡片 ≥2 revision、prepare 召回错题、计划带 bootstrap-context | ✅ |
+| LLM 选择 + 简答（带出处）+ 错答判分带误区 | ✅ |
+| PC 降级：做题/判分可用 + "记忆服务暂不可用" | ✅（修复 memory_ok 误报后） |
+| 30 分钟空闲 / sendBeacon | ✅ |
+| 浏览器 index/coach/memory 走通 | ✅（截图见 .cache/scratch/） |
+| usage_events 无学习者姓名 | ✅ 只有 sha256 前 8 位 |
+| git status 只含允许修改的文件 + 新文件 | ✅（会话结束时核验） |
+| ask.html 浏览器内 LLM 回答截图 | 未验证（API 级已验收） |
+
+### 未做（留给后续会话）
+
+- 覆盖引擎检不出"missing"（会话 05 修复后，missing 自测路径已用构造数据单测覆盖）
+- 使用记录页的总学习时长展示（会话 05 负责，本会话已保证 session_end 事件带
+  session_id + duration_seconds）
+- `.env.example` 的 M3 变量补充（合并时由产品所有者处理）
+
+---
+
 ## 会话 08a — M4 第二部分之一：端到端验证脚本（2026-10-29）
 
 **参与者**：产品负责人（任务输入）、Qoder（脚本实现与验证）
