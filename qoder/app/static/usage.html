@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使用记录 — 考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+<a href="/radar.html">覆盖雷达</a>
+<a href="/usage.html">使用记录</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>使用记录</h2>
+<div class="form-row">
+<div>
+<label for="course-id">课程 ID</label>
+<input type="text" id="course-id" value="db101">
+</div>
+<div>
+<label for="source-select">数据来源</label>
+<select id="source-select">
+<option value="real">真实使用 (real)</option>
+<option value="auto">开发/测试 (auto)</option>
+</select>
+</div>
+</div>
+<button class="btn" style="margin-top:12px" onclick="loadStats()">刷新统计</button>
+<div style="margin-top:12px;display:flex;gap:12px">
+<button class="btn" style="background:#666" onclick="exportCSV()">导出 CSV</button>
+<button class="btn" style="background:#666" onclick="exportJSON()">导出 JSON</button>
+</div>
+</div>
+
+<div id="stats-area"></div>
+</div>
+<script src="/static/lib/echarts.min.js"></script>
+<script>
+function getSourceHeader() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('source') === 'auto' ? 'auto' : 'real';
+}
+
+function getTzOffsetMinutes() {
+  return new Date().getTimezoneOffset();
+}
+
+async function loadStats() {
+  const cid = document.getElementById('course-id').value;
+  const source = document.getElementById('source-select').value;
+  const area = document.getElementById('stats-area');
+  area.innerHTML = '<div class="card"><p>加载中...</p></div>';
+  try {
+    const r = await fetch(`/api/usage/stats?course_id=${encodeURIComponent(cid)}&source=${source}&tz_offset_minutes=${getTzOffsetMinutes()}`);
+    const d = await r.json();
+    renderStats(d);
+  } catch(e) {
+    area.innerHTML = '<div class="card"><span style="color:red">加载失败</span></div>';
+  }
+}
+
+function renderStats(data) {
+  const area = document.getElementById('stats-area');
+  let html = '';
+
+  html += '<div class="card"><h2>概览</h2>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-top:12px">';
+  html += statBox('会话数', data.session_count);
+  html += statBox('检索次数', data.search_count);
+  html += statBox('导入次数', data.import_count);
+  html += statBox('分析次数', data.analyze_count);
+  html += statBox('答题次数', data.quiz_count);
+  html += statBox('总事件数', data.total_events);
+  html += '</div>';
+  html += `<p style="margin-top:12px;font-size:13px;color:#888">数据来源: ${data.source === 'real' ? '真实使用' : '开发/测试'} | 课程: ${data.course_id}</p>`;
+  html += '</div>';
+
+  if (data.daily && data.daily.length) {
+    html += '<div class="card"><h2>按天趋势</h2><div id="daily-chart" style="width:100%;height:300px"></div></div>';
+  } else {
+    html += '<div class="card"><p style="color:#888">暂无按天趋势数据</p></div>';
+  }
+
+  area.innerHTML = html;
+
+  if (data.daily && data.daily.length) {
+    renderDailyChart(data.daily);
+  }
+}
+
+function statBox(label, value) {
+  return `<div style="background:#f0f4f8;border-radius:8px;padding:16px;text-align:center">
+    <div style="font-size:24px;font-weight:600;color:#0b4f8a">${value}</div>
+    <div style="font-size:13px;color:#666;margin-top:4px">${label}</div>
+  </div>`;
+}
+
+function renderDailyChart(daily) {
+  const chart = echarts.init(document.getElementById('daily-chart'));
+  const dates = daily.map(d => d.date);
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['检索', '导入', '分析', '答题'], bottom: 0 },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [
+      { name: '检索', type: 'bar', stack: 'total', data: daily.map(d => d.search || 0), itemStyle: { color: '#0b4f8a' } },
+      { name: '导入', type: 'bar', stack: 'total', data: daily.map(d => d.import || 0), itemStyle: { color: '#27ae60' } },
+      { name: '分析', type: 'bar', stack: 'total', data: daily.map(d => d.analyze || 0), itemStyle: { color: '#e67e22' } },
+      { name: '答题', type: 'bar', stack: 'total', data: daily.map(d => d.quiz || 0), itemStyle: { color: '#8e44ad' } },
+    ],
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+async function exportCSV() {
+  const cid = document.getElementById('course-id').value;
+  const source = document.getElementById('source-select').value;
+  window.open(`/api/usage/export?course_id=${encodeURIComponent(cid)}&source=${source}&format=csv`, '_blank');
+}
+
+async function exportJSON() {
+  const cid = document.getElementById('course-id').value;
+  const source = document.getElementById('source-select').value;
+  window.open(`/api/usage/export?course_id=${encodeURIComponent(cid)}&source=${source}&format=json`, '_blank');
+}
+
+document.getElementById('source-select').addEventListener('change', loadStats);
+loadStats();
+</script>
+</body>
+</html>

@@ -25,7 +25,8 @@ def _detect_kind(filepath: Path) -> str:
     return "notes"
 
 
-def import_path(path: str, course: str, kind: str | None = None):
+def import_path(path: str, course: str, kind: str | None = None,
+                source: str = "real"):
     ensure_tables()
     p = Path(path)
     if not p.exists():
@@ -48,7 +49,7 @@ def import_path(path: str, course: str, kind: str | None = None):
             continue
         try:
             result = ingest_bytes(fp.read_bytes(), fp.name, course,
-                                  kind or _detect_kind(fp))
+                                  kind or _detect_kind(fp), source=source)
         except ValidationError as e:
             print(f"  skip {fp.name} ({e})")
             continue
@@ -117,6 +118,8 @@ def main():
     imp.add_argument("--course", required=True, help="Course ID")
     imp.add_argument("--kind", choices=["notes", "slides", "exam", "paper"],
                      help="Document kind (auto-detected from directory if omitted)")
+    imp.add_argument("--source", choices=["real", "auto"], default="real",
+                     help="Usage event source: real (default) or auto (dev/test)")
 
     sql_cmd = sub.add_parser("sql", help="Run a SQL statement against seekdb and print a table")
     sql_cmd.add_argument("statement", help="SQL statement, e.g. \"SELECT ...\"")
@@ -126,7 +129,7 @@ def main():
 
     args = parser.parse_args()
     if args.command == "import":
-        import_path(args.path, args.course, args.kind)
+        import_path(args.path, args.course, args.kind, args.source)
     elif args.command == "sql":
         run_sql(args.statement)
     elif args.command == "delete-course":

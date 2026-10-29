@@ -39,8 +39,14 @@
 | `02-m1-3-acceptance-summary.png` | 验收 | 会话 02 结尾：Qoder 报告的验收结果（有两条检索标了 ⚠，交给会话 03 修复） |
 | `03-fix-1-browser-check-without-tools.png` | 调试 | 会话 03：没有可用的浏览器工具（技能和 npm 安装被拒），Qoder 改为用 Python 标准库直接驱动 Chrome DevTools 协议来验证页面 |
 | `03-fix-2-acceptance-summary.png` | 验收 | 会话 03 结尾：6 条验收检索全部第一条命中，测试全部通过 |
+| `04-m2-1-debug-exam-weights-zero.png` | 调试 | 会话 04：校准时所有试题权重都是 0，Qoder 逐步排查，发现校准脚本查试卷块时没有取 `embedding` 列 |
+| `04-m2-2-acceptance-summary.png` | 验收 | 会话 04 结尾：Qoder 如实标出没过的两项（覆盖判定 4/10、试题归属 10/11），交给会话 05 修复 |
 
-会话 03 中途 Qoder 压缩过一次上下文。`--resume` 只显示压缩之后的部分，所以检索排序的调试过程（标题加权参数扫描、RRF 平分时用关键词分决胜）看不到截图。这部分在 `sessions/03-fix-m1-review.jsonl` 和 `transcripts/03-fix-m1-review.md` 里，`docs/DEVLOG.md` 的会话 03 一节有修改前后的对比表。
+会话 03 和会话 04 中途 Qoder 各压缩过一次上下文，`--resume` 只显示压缩之后的部分。所以截图里看不到这两段过程：
+- 会话 03 的检索排序调试（标题加权参数扫描、RRF 平分时用关键词分决胜）；
+- 会话 04 前半段的编码（考试范围解析、覆盖度引擎）。
+
+完整过程在 `sessions/` 和 `transcripts/` 里的同名文件中。`docs/DEVLOG.md` 的会话 03 一节有修改前后的对比表。
 
 ## 说明
 

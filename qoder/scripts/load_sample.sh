@@ -22,7 +22,7 @@ import_file() {
     local name
     name=$(basename "$file")
     echo -n "  $name ($kind) ... "
-    .venv/bin/python -m examradar.cli import "$file" --course "$COURSE" --kind "$kind" | tail -1
+    .venv/bin/python -m examradar.cli import "$file" --course "$COURSE" --kind "$kind" --source auto | tail -1
 }
 
 echo "--- Notes ---"

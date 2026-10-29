@@ -1,6 +1,10 @@
 """Integration tests requiring a running seekdb instance.
 
 Run with: export EXAMRADAR_IT=1 && uv run pytest -m integration
+
+When EXAMRADAR_IT=1, the app connects to examradar_test (or
+SEEKDB_TEST_DATABASE) instead of the dev database, so tests never
+touch production data.
 """
 import os
 import json
@@ -23,16 +27,11 @@ from examradar.cleaner import clean_extracted_text, validate_cjk_chars
 
 pytestmark = pytest.mark.integration
 
-# The acceptance queries are calibrated against a corpus containing exactly
-# the sample course materials: BM25 IDF is computed over the whole table,
-# so extra documents in other courses shift keyword scores. The suite
-# therefore wipes all courses first and imports only the samples.
 COURSE = "db101"
 COURSE_B = "db101_it_b"
 
 SAMPLES = pathlib.Path(__file__).resolve().parents[2] / "samples" / "course-db"
 
-# The 6 acceptance queries: (query, doc_kinds, expectation on first hit)
 ACCEPTANCE_QUERIES = [
     ("脏页表", ["slides"], lambda h: h.get("page") == 7),
     ("先写日志原则", ["slides"], lambda h: h.get("page") == 4),
@@ -62,19 +61,22 @@ def _sample_files():
 def setup_db():
     if not os.environ.get("EXAMRADAR_IT"):
         pytest.skip("EXAMRADAR_IT not set")
-    assert check_connection(), "Cannot connect to seekdb"
+    s = get_settings()
+    test_db = s.effective_database
+    assert test_db != s.seekdb_database, \
+        f"Integration tests must use a separate database (got {test_db})"
     ensure_tables()
-    _delete_all_courses()
+    assert check_connection(), "Cannot connect to seekdb"
+    _clean_test_db()
     for f, kind in _sample_files():
-        result = ingest_bytes(f.read_bytes(), f.name, COURSE, kind)
+        result = ingest_bytes(f.read_bytes(), f.name, COURSE, kind, source="auto")
         assert not result["skipped"], f"{f.name} should be imported fresh"
-    # leave COURSE data in place: this is the acceptance environment
-    # (scripts/load_sample.sh afterwards reports all files as skipped)
     yield
     delete_course(COURSE_B)
 
 
-def _delete_all_courses():
+def _clean_test_db():
+    """Remove all data from the test database. Only touches the test DB."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -217,3 +219,33 @@ def test_acceptance_query_first_hit(query, doc_kinds, expect):
     )
     assert first.get("_keyword_score") is not None, \
         f"_keyword_score is None for first hit of {query!r}"
+
+
+def test_coverage_analyze():
+    """Full coverage analysis on sample data."""
+    from examradar.coverage import analyze
+    syllabus_text = (SAMPLES / "syllabus.txt").read_text(encoding="utf-8")
+    result = analyze(COURSE, syllabus_text, source="auto")
+    assert result["run_id"] > 0
+    assert result["course_id"] == COURSE
+    assert len(result["items"]) == 10
+    topic_ids = sorted(item["topic_id"] for item in result["items"])
+    assert topic_ids == [f"t{i:02d}" for i in range(1, 11)]
+    for item in result["items"]:
+        assert item["coverage_level"] in ("covered", "thin", "missing")
+        assert 0 <= item["coverage_score"] <= 1
+        assert item["exam_weight"] >= 0
+        assert item["blind_spot_score"] >= 0
+    # t04 should be the top blind spot (25 points, missing)
+    assert result["items"][0]["topic_id"] == "t04"
+
+
+def test_coverage_latest():
+    """get_latest returns the most recent analysis."""
+    from examradar.coverage import analyze, get_latest
+    syllabus_text = (SAMPLES / "syllabus.txt").read_text(encoding="utf-8")
+    analyze(COURSE, syllabus_text, source="auto")
+    latest = get_latest(COURSE)
+    assert latest is not None
+    assert latest["course_id"] == COURSE
+    assert len(latest["items"]) == 10

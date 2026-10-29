@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from .cleaner import clean_extracted_text, normalize_text, strip_footer_page_number
+from .cleaner import clean_extracted_text, normalize_text, strip_footer_page_number, join_intra_paragraph_lines
 
 
 @dataclass
@@ -178,9 +178,10 @@ def chunk_pdf(filepath: str, doc_kind: str = "slides") -> ChunkResult:
     for i, pt in enumerate(page_texts):
         if not pt.strip():
             continue
-        lines = pt.strip().split("\n")
+        joined = join_intra_paragraph_lines(pt)
+        lines = joined.strip().split("\n")
         title = lines[0].strip() if lines else None
-        content = pt.strip()
+        content = joined.strip()
         chunks.append(Chunk(
             content=content,
             heading=title,

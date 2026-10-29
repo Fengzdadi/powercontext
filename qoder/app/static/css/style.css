@@ -39,3 +39,6 @@ th { background: #f8f9fa; font-weight: 600; color: #555; }
 details { margin-top: 12px; }
 details summary { cursor: pointer; color: #0b4f8a; font-size: 13px; }
 details pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
+.level-covered { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #d4edda; color: #155724; font-size: 12px; font-weight: 600; }
+.level-thin { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #fff3cd; color: #856404; font-size: 12px; font-weight: 600; }
+.level-missing { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #f8d7da; color: #721c24; font-size: 12px; font-weight: 600; }

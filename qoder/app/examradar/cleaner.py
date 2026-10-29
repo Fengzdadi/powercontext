@@ -136,3 +136,54 @@ def _is_cjk(ch: str) -> bool:
         or 0x2A700 <= cp <= 0x2B73F
         or 0xF900 <= cp <= 0xFAFF
     )
+
+
+_SENTENCE_END_RE = re.compile(r"[。！？；：…\.\!\?\;]$")
+
+
+def join_intra_paragraph_lines(page_text: str) -> str:
+    """Join hard line breaks within a paragraph.
+
+    The first line of a page is the title and stays independent. For the
+    remaining lines, if a line does NOT end with a sentence-ending
+    punctuation mark, it is joined with the next line:
+    - Chinese context: direct concatenation
+    - English context: one space inserted
+
+    Blank lines are treated as paragraph boundaries and preserved.
+    """
+    lines = page_text.split("\n")
+    if len(lines) <= 1:
+        return page_text
+
+    title = lines[0]
+    body_lines = lines[1:]
+
+    result: list[str] = [title]
+    buf = ""
+    for line in body_lines:
+        stripped = line.strip()
+        if not stripped:
+            if buf:
+                result.append(buf)
+                buf = ""
+            result.append("")
+            continue
+        if not buf:
+            buf = stripped
+        else:
+            prev_ends_cjk = buf and _is_cjk(buf[-1])
+            curr_starts_cjk = stripped and _is_cjk(stripped[0])
+            if prev_ends_cjk and curr_starts_cjk:
+                buf = buf + stripped
+            elif prev_ends_cjk or curr_starts_cjk:
+                buf = buf + stripped
+            else:
+                buf = buf + " " + stripped
+        if _SENTENCE_END_RE.search(stripped):
+            result.append(buf)
+            buf = ""
+    if buf:
+        result.append(buf)
+
+    return "\n".join(result)

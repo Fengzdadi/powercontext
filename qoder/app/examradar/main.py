@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from .config import get_settings
 from .seekdb import ensure_tables
-from .routes import health, documents, search
+from .routes import health, documents, search, coverage, usage
 
 
 @asynccontextmanager
@@ -33,6 +33,8 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(documents.router)
 app.include_router(search.router)
+app.include_router(coverage.router)
+app.include_router(usage.router)
 
 _static_dir = Path(__file__).resolve().parent.parent / "static"
 
@@ -50,6 +52,16 @@ def import_page():
 @app.get("/ask.html")
 def ask_page():
     return FileResponse(_static_dir / "ask.html")
+
+
+@app.get("/radar.html")
+def radar_page():
+    return FileResponse(_static_dir / "radar.html")
+
+
+@app.get("/usage.html")
+def usage_page():
+    return FileResponse(_static_dir / "usage.html")
 
 
 if _static_dir.is_dir():

@@ -21,7 +21,7 @@ def get_connection(database: Optional[str] = None):
         port=s.seekdb_port,
         user=s.seekdb_user,
         password=s.seekdb_password,
-        database=database or s.seekdb_database,
+        database=database or s.effective_database,
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor,
         autocommit=True,
@@ -31,6 +31,7 @@ def get_connection(database: Optional[str] = None):
 def ensure_database():
     """Create the database if it doesn't exist."""
     s = get_settings()
+    db = s.effective_database
     conn = pymysql.connect(
         host=s.seekdb_host,
         port=s.seekdb_port,
@@ -42,7 +43,7 @@ def ensure_database():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"CREATE DATABASE IF NOT EXISTS `{s.seekdb_database}` "
+                f"CREATE DATABASE IF NOT EXISTS `{db}` "
                 f"DEFAULT CHARACTER SET utf8mb4"
             )
     finally:
@@ -99,6 +100,41 @@ def ensure_tables():
                     created_at  DATETIME,
                     INDEX idx_session (session_id),
                     INDEX idx_course_source (course_id, source)
+                ) ORGANIZATION HEAP
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS coverage_runs (
+                    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    course_id   VARCHAR(64) NOT NULL,
+                    source      VARCHAR(16) NOT NULL DEFAULT 'real',
+                    topics_json TEXT NOT NULL,
+                    config_json TEXT,
+                    created_at  DATETIME,
+                    INDEX idx_course (course_id)
+                ) ORGANIZATION HEAP
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS coverage_items (
+                    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    run_id          BIGINT NOT NULL,
+                    course_id       VARCHAR(64) NOT NULL,
+                    topic_id        VARCHAR(16) NOT NULL,
+                    topic_name      VARCHAR(256) NOT NULL,
+                    keywords_json   TEXT,
+                    coverage_level  VARCHAR(16),
+                    coverage_score  DECIMAL(6,4),
+                    best_sem_score  DECIMAL(6,4),
+                    best_kw_score   DECIMAL(10,4),
+                    best_content    TEXT,
+                    best_heading    TEXT,
+                    best_page       INT,
+                    best_doc_name   VARCHAR(256),
+                    exam_weight     DECIMAL(6,1) DEFAULT 0,
+                    exam_qs_json    TEXT,
+                    blind_spot_score DECIMAL(10,4),
+                    reason          TEXT,
+                    INDEX idx_run (run_id),
+                    INDEX idx_course_topic (course_id, topic_id)
                 ) ORGANIZATION HEAP
             """)
     finally:
@@ -348,3 +384,147 @@ def check_connection() -> bool:
         return True
     except Exception:
         return False
+
+
+def save_coverage_run(
+    course_id: str, source: str, topics_json: str, config_json: str,
+    items: list[dict],
+) -> int:
+    """Save a coverage analysis run and its items. Returns the run id."""
+    now = _utc_now()
+    conn = get_connection()
+    try:
+        conn.begin()
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO coverage_runs (course_id, source, topics_json, config_json, created_at) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (course_id, source, topics_json, config_json, now),
+            )
+            run_id = cur.lastrowid
+            for item in items:
+                cur.execute(
+                    "INSERT INTO coverage_items (run_id, course_id, topic_id, topic_name, "
+                    "keywords_json, coverage_level, coverage_score, best_sem_score, "
+                    "best_kw_score, best_content, best_heading, best_page, best_doc_name, "
+                    "exam_weight, exam_qs_json, blind_spot_score, reason) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (
+                        run_id, course_id, item["topic_id"], item["topic_name"],
+                        item.get("keywords_json"), item.get("coverage_level"),
+                        item.get("coverage_score"), item.get("best_sem_score"),
+                        item.get("best_kw_score"), item.get("best_content"),
+                        item.get("best_heading"), item.get("best_page"),
+                        item.get("best_doc_name"), item.get("exam_weight", 0),
+                        item.get("exam_qs_json"), item.get("blind_spot_score"),
+                        item.get("reason"),
+                    ),
+                )
+        conn.commit()
+        return run_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def get_latest_coverage(course_id: str) -> Optional[dict]:
+    """Get the latest coverage run for a course, including items."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM coverage_runs WHERE course_id = %s "
+                "ORDER BY created_at DESC LIMIT 1",
+                (course_id,),
+            )
+            run = cur.fetchone()
+            if not run:
+                return None
+            if isinstance(run.get("created_at"), datetime):
+                run["created_at"] = run["created_at"].replace(tzinfo=timezone.utc).isoformat()
+            cur.execute(
+                "SELECT * FROM coverage_items WHERE run_id = %s ORDER BY topic_id",
+                (run["id"],),
+            )
+            items = cur.fetchall()
+            for item in items:
+                for key in ("coverage_score", "best_sem_score", "best_kw_score",
+                            "blind_spot_score"):
+                    v = item.get(key)
+                    if v is not None:
+                        item[key] = float(v)
+                v = item.get("exam_weight")
+                if v is not None:
+                    item["exam_weight"] = float(v)
+            run["items"] = items
+            return run
+    finally:
+        conn.close()
+
+
+def get_usage_events(
+    course_id: str, source: str = "real",
+    limit: int = 1000,
+) -> list[dict]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM usage_events WHERE course_id = %s AND source = %s "
+                "ORDER BY created_at DESC LIMIT %s",
+                (course_id, source, limit),
+            )
+            rows = cur.fetchall()
+            for r in rows:
+                if isinstance(r.get("created_at"), datetime):
+                    r["created_at"] = r["created_at"].replace(tzinfo=timezone.utc).isoformat()
+            return rows
+    finally:
+        conn.close()
+
+
+def get_usage_stats(course_id: str, source: str = "real",
+                    tz_offset_minutes: int = 0) -> dict:
+    """Compute usage statistics for a course."""
+    events = get_usage_events(course_id, source, limit=10000)
+    search_count = sum(1 for e in events if e["event"] == "search")
+    import_count = sum(1 for e in events if e["event"] == "import")
+    analyze_count = sum(1 for e in events if e["event"] == "analyze")
+    quiz_count = sum(1 for e in events if e["event"] == "quiz")
+
+    sessions = set()
+    for e in events:
+        if e.get("session_id"):
+            sessions.add(e["session_id"])
+
+    from datetime import timedelta, timezone as tz
+    offset = tz(timedelta(minutes=tz_offset_minutes))
+
+    daily: dict[str, dict] = {}
+    for e in events:
+        if not e.get("created_at"):
+            continue
+        dt = datetime.fromisoformat(e["created_at"])
+        local_dt = dt.astimezone(offset)
+        day_key = local_dt.strftime("%Y-%m-%d")
+        if day_key not in daily:
+            daily[day_key] = {"date": day_key, "search": 0, "import": 0,
+                              "analyze": 0, "quiz": 0, "total": 0}
+        daily[day_key][e["event"]] = daily[day_key].get(e["event"], 0) + 1
+        daily[day_key]["total"] += 1
+
+    daily_list = sorted(daily.values(), key=lambda d: d["date"])
+
+    return {
+        "course_id": course_id,
+        "source": source,
+        "session_count": len(sessions),
+        "search_count": search_count,
+        "import_count": import_count,
+        "analyze_count": analyze_count,
+        "quiz_count": quiz_count,
+        "total_events": len(events),
+        "daily": daily_list,
+    }

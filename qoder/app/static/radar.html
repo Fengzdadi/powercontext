@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考前覆盖雷达 — 考前雷达</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header>
+<div class="container">
+<h1>考前雷达</h1>
+<nav>
+<a href="/">首页</a>
+<a href="/import.html">导入资料</a>
+<a href="/ask.html">问笔记</a>
+<a href="/radar.html">覆盖雷达</a>
+<a href="/usage.html">使用记录</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="card">
+<h2>考试范围分析</h2>
+<div class="form-row">
+<div>
+<label for="course-id">课程 ID</label>
+<input type="text" id="course-id" value="db101">
+</div>
+</div>
+<label for="syllabus-input">粘贴考试范围（知识点列表）</label>
+<textarea id="syllabus-input" rows="8" placeholder="例如：&#10;1. 关系模型与关系代数&#10;2. SQL 查询与视图&#10;3. 索引：B+树与哈希索引&#10;..."></textarea>
+<div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+<button class="btn" id="analyze-btn" onclick="doAnalyze()">开始分析</button>
+<button class="btn" style="background:#666" onclick="loadSample()">载入示例考试范围</button>
+<button class="btn" style="background:#666" onclick="loadLatest()">载入上次分析</button>
+</div>
+<div id="analyze-status" style="margin-top:12px"></div>
+</div>
+
+<div id="results-area"></div>
+</div>
+<script src="/static/lib/echarts.min.js"></script>
+<script>
+const SAMPLE_SYLLABUS = `《数据库系统原理》2026 秋 期末考试范围
+1. 关系模型与关系代数
+2. SQL 查询与视图
+3. 索引：B+树与哈希索引
+4. 函数依赖与范式（3NF、BCNF）
+5. 查询处理与优化
+6. 事务的 ACID 特性
+7. 并发控制：两阶段锁与死锁
+8. 隔离级别与 MVCC
+9. 故障恢复：WAL 与 ARIES
+10. 分布式事务与两阶段提交（2PC）`;
+
+function getSourceHeader() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('source') === 'auto' ? 'auto' : 'real';
+}
+
+function loadSample() {
+  document.getElementById('syllabus-input').value = SAMPLE_SYLLABUS;
+}
+
+async function loadLatest() {
+  const cid = document.getElementById('course-id').value;
+  const status = document.getElementById('analyze-status');
+  try {
+    const r = await fetch(`/api/coverage/latest?course_id=${encodeURIComponent(cid)}`);
+    if (!r.ok) { status.innerHTML = '<span style="color:#888">没有找到历史分析记录</span>'; return; }
+    const d = await r.json();
+    document.getElementById('syllabus-input').value = d.topics.map((t, i) => `${i+1}. ${t.name}`).join('\n');
+    renderResults(d);
+  } catch(e) {
+    status.innerHTML = '<span style="color:red">加载失败</span>';
+  }
+}
+
+async function doAnalyze() {
+  const btn = document.getElementById('analyze-btn');
+  const status = document.getElementById('analyze-status');
+  const area = document.getElementById('results-area');
+  const text = document.getElementById('syllabus-input').value.trim();
+  if (!text) { status.innerHTML = '<span style="color:red">请先粘贴考试范围</span>'; return; }
+  btn.disabled = true;
+  btn.textContent = '分析中...';
+  status.innerHTML = '';
+  area.innerHTML = '';
+  try {
+    const headers = {'Content-Type': 'application/json'};
+    if (getSourceHeader() === 'auto') headers['X-ExamRadar-Source'] = 'auto';
+    const r = await fetch('/api/coverage/analyze', {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        course_id: document.getElementById('course-id').value,
+        syllabus_text: text,
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) { status.innerHTML = '<span style="color:red">分析失败: ' + escapeHtml(d.detail || '') + '</span>'; return; }
+    renderResults(d);
+  } catch(err) {
+    status.innerHTML = '<span style="color:red">分析失败: ' + escapeHtml(err.message) + '</span>';
+  }
+  btn.disabled = false;
+  btn.textContent = '开始分析';
+}
+
+function renderResults(data) {
+  const area = document.getElementById('results-area');
+  const items = data.items || [];
+  if (!items.length) { area.innerHTML = '<div class="card"><p>没有分析结果</p></div>'; return; }
+
+  let html = '';
+
+  html += '<div class="card"><h2>覆盖度雷达图</h2><div id="radar-chart" style="width:100%;height:450px"></div></div>';
+
+  html += '<div class="card"><h2>盲区清单（按 考试权重 × 未覆盖度 排序）</h2>';
+  html += '<table><tr><th>排名</th><th>知识点</th><th>覆盖度</th><th>考试权重</th><th>盲区分数</th><th>判定理由</th></tr>';
+  items.forEach((item, i) => {
+    const levelClass = item.coverage_level === 'covered' ? 'level-covered' :
+                       item.coverage_level === 'thin' ? 'level-thin' : 'level-missing';
+    html += `<tr>
+      <td>${i+1}</td>
+      <td><strong>${escapeHtml(item.topic_id)}</strong> ${escapeHtml(item.topic_name)}</td>
+      <td><span class="${levelClass}">${item.coverage_level}</span> (${(item.coverage_score * 100).toFixed(1)}%)</td>
+      <td>${item.exam_weight} 分</td>
+      <td>${item.blind_spot_score.toFixed(2)}</td>
+      <td><details><summary>查看理由</summary><p style="margin:8px 0;font-size:13px;color:#555">${escapeHtml(item.reason)}</p></details></td>
+    </tr>`;
+  });
+  html += '</table></div>';
+
+  items.forEach((item, i) => {
+    html += `<div class="card"><h2>${escapeHtml(item.topic_id)} · ${escapeHtml(item.topic_name)}</h2>`;
+    html += `<p><strong>覆盖度：</strong><span class="${item.coverage_level === 'covered' ? 'level-covered' : item.coverage_level === 'thin' ? 'level-thin' : 'level-missing'}">${item.coverage_level}</span> (${(item.coverage_score * 100).toFixed(1)}%)</p>`;
+    html += `<p><strong>考试权重：</strong>${item.exam_weight} 分</p>`;
+    html += `<p><strong>判定理由：</strong>${escapeHtml(item.reason)}</p>`;
+
+    if (item.keywords && item.keywords.length) {
+      html += `<p><strong>关键词/别名：</strong>${item.keywords.map(k => escapeHtml(k)).join('、')}</p>`;
+    }
+
+    if (item.best_evidence) {
+      const ev = item.best_evidence;
+      html += '<details open><summary><strong>最强证据</strong></summary>';
+      html += `<div style="margin:8px 0;padding:8px;background:#f8f9fa;border-radius:6px">`;
+      html += `<div style="font-size:12px;color:#888">`;
+      if (ev.document_name) html += escapeHtml(ev.document_name);
+      if (ev.page) html += ` · 第${ev.page}页`;
+      if (ev.heading) html += ` · ${escapeHtml(ev.heading)}`;
+      html += `</div>`;
+      html += `<div style="font-size:13px;margin-top:4px;white-space:pre-wrap">${escapeHtml((ev.content || '').substring(0, 300))}${(ev.content || '').length > 300 ? '...' : ''}</div>`;
+      html += `<div style="font-size:12px;color:#666;margin-top:4px">语义分: ${fmtScore(ev.semantic_score, 4)} | 关键词分: ${fmtScore(ev.keyword_score, 2)}</div>`;
+      html += `</div></details>`;
+    }
+
+    if (item.exam_questions && item.exam_questions.length) {
+      html += '<details><summary><strong>关联试题</strong></summary>';
+      html += '<table style="margin-top:8px"><tr><th>题号</th><th>分值</th><th>相似度</th></tr>';
+      item.exam_questions.forEach(q => {
+        html += `<tr><td>第${q.question_no}题</td><td>${q.points}分</td><td>${(q.similarity * 100).toFixed(1)}%</td></tr>`;
+      });
+      html += '</table></details>';
+    }
+
+    if (item.all_evidence && item.all_evidence.length > 1) {
+      html += '<details><summary><strong>全部证据（' + item.all_evidence.length + ' 条）</strong></summary>';
+      item.all_evidence.forEach((ev, j) => {
+        html += `<div style="margin:8px 0;padding:8px;background:#f8f9fa;border-radius:6px">`;
+        html += `<div style="font-size:12px;color:#888">#${j+1} `;
+        if (ev.document_name) html += escapeHtml(ev.document_name);
+        if (ev.page) html += ` · 第${ev.page}页`;
+        if (ev.heading) html += ` · ${escapeHtml(ev.heading)}`;
+        html += `</div>`;
+        html += `<div style="font-size:12px;color:#666;margin-top:2px">语义分: ${fmtScore(ev.semantic_score, 4)} | 关键词分: ${fmtScore(ev.keyword_score, 2)}</div>`;
+        html += `</div>`;
+      });
+      html += '</details>';
+    }
+
+    html += '</div>';
+  });
+
+  area.innerHTML = html;
+
+  renderRadarChart(items);
+}
+
+function renderRadarChart(items) {
+  const chart = echarts.init(document.getElementById('radar-chart'));
+  const maxWeight = Math.max(...items.map(i => i.exam_weight), 1);
+  const indicators = items.map(i => ({
+    name: i.topic_id + ' ' + i.topic_name.substring(0, 8),
+    max: 1.0,
+  }));
+  const coverageData = items.map(i => i.coverage_score);
+  const weightData = items.map(i => i.exam_weight / maxWeight);
+
+  chart.setOption({
+    tooltip: {},
+    legend: { data: ['覆盖度', '考试权重'], bottom: 0 },
+    radar: {
+      indicator: indicators,
+      shape: 'polygon',
+      splitArea: { areaStyle: { color: ['#fff', '#f5f6fa'] } },
+    },
+    series: [{
+      type: 'radar',
+      data: [
+        { value: coverageData, name: '覆盖度', areaStyle: { opacity: 0.15 }, lineStyle: { color: '#0b4f8a' }, itemStyle: { color: '#0b4f8a' } },
+        { value: weightData, name: '考试权重', areaStyle: { opacity: 0.1 }, lineStyle: { color: '#e67e22', type: 'dashed' }, itemStyle: { color: '#e67e22' } },
+      ],
+    }],
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+function fmtScore(v, digits) {
+  return (v === null || v === undefined) ? '—' : Number(v).toFixed(digits);
+}
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+</script>
+</body>
+</html>
