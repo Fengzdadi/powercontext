@@ -213,15 +213,7 @@ def _emit_failure(error: BaseException, *, emitted: set[str], events: list[dict[
         _append_event("authentication_failed", {}, recovery=None, emitted=emitted, events=events)
         return
     if isinstance(error, ScopeBindingStatusError):
-        if error.status == 503:
-            _append_event(
-                "server_unavailable",
-                {"http_status": error.status},
-                recovery="powercontext doctor",
-                emitted=emitted,
-                events=events,
-            )
-        elif error.status == 404 and error.path == "/v1/scope-bindings/resolve" and error.code is None:
+        if error.status == 404 and error.path == "/v1/scope-bindings/resolve" and error.code is None:
             _append_event(
                 "version_mismatch", {"http_status": error.status}, recovery=None, emitted=emitted, events=events
             )
@@ -232,9 +224,12 @@ def _emit_failure(error: BaseException, *, emitted: set[str], events: list[dict[
             _append_event("invalid_response", fields, recovery=None, emitted=emitted, events=events)
         return
     if isinstance(error, (ScopeBindingUnavailableError, _ServerUnavailableError, TimeoutError)):
+        status_fields: dict[str, object] = {}
+        if isinstance(error, ScopeBindingUnavailableError) and error.status is not None:
+            status_fields["http_status"] = error.status
         _append_event(
             "server_unavailable",
-            {},
+            status_fields,
             recovery="powercontext doctor",
             emitted=emitted,
             events=events,

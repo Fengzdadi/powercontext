@@ -22,6 +22,7 @@ import os
 import sys
 from collections.abc import Mapping
 from contextlib import suppress
+from http.client import HTTPException
 from pathlib import Path
 from time import monotonic
 from typing import Any, Protocol, cast
@@ -53,6 +54,7 @@ from scope_binding_errors import (  # noqa: E402
 from workspace_scope import (  # noqa: E402
     bind_response_deadline,
     open_bounded,
+    read_error_code,
     resolve_scope_id,
 )
 
@@ -78,9 +80,10 @@ class _ReadableResponse(Protocol):
 
 
 class _HttpStatusError(RuntimeError):
-    def __init__(self, status: int, path: str) -> None:
+    def __init__(self, status: int, path: str, code: str | None = None) -> None:
         self.status = status
         self.path = path
+        self.code = code
         super().__init__(f"PowerContext returned HTTP {status}")
 
 
@@ -204,13 +207,12 @@ def _resolve_and_prepare(
         )
     except ScopeBindingRejectedError:
         _emit_bootstrap_event("authentication_failed")
-    except (ScopeBindingUnavailableError, OSError, TimeoutError):
+    except (ScopeBindingUnavailableError, OSError, TimeoutError, HTTPException):
+        # http.client reports a truncated or malformed response as HTTPException, not OSError.
         _emit_bootstrap_event("server_unavailable", recovery="powercontext doctor")
-    except ScopeBindingStatusError as error:
+    except (ScopeBindingStatusError, _HttpStatusError) as error:
         _emit_http_failure(error.status, error.code)
-    except _HttpStatusError as error:
-        _emit_http_failure(error.status)
-    except (ScopeBindingError, InvalidBootstrapResponse, UnicodeDecodeError, json.JSONDecodeError):
+    except (ScopeBindingError, InvalidBootstrapResponse):
         _emit_bootstrap_event("invalid_response")
     else:
         return scope_id, response
@@ -246,9 +248,15 @@ def _post_json(
         with open_bounded(request, timeout=timeout) as response:
             if response.status != 200:
                 raise _HttpStatusError(response.status, path)
-            value = json.loads(_read_response(response, deadline=min(deadline, monotonic() + timeout)))
+            raw = _read_response(response, deadline=min(deadline, monotonic() + timeout))
     except HTTPError as error:
-        raise _HttpStatusError(error.code, path) from error
+        code = read_error_code(error, deadline=min(deadline, monotonic() + timeout))
+        raise _HttpStatusError(error.code, path, code) from error
+    try:
+        value = json.loads(raw)
+    except (ValueError, RecursionError) as error:
+        # Besides JSONDecodeError, json raises ValueError for an over-long integer and RecursionError for deep nesting.
+        raise InvalidBootstrapResponse from error
     if not isinstance(value, dict):
         raise InvalidBootstrapResponse
     return cast(dict[str, object], value)

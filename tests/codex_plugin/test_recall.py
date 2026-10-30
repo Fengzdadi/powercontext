@@ -85,26 +85,56 @@ _RESOLUTION_FAILURES = [
 ]
 
 
-def _resolution_handler(status: int | None, body: bytes, paths: list[str]) -> type[BaseHTTPRequestHandler]:
-    """Answer every request with one response, or close the connection without one when status is None."""
+_RESOLUTION_PATH = "/v1/scope-bindings/resolve"
+_BOOTSTRAP_PATH = "/v1/context/bootstrap"
+_PREPARE_PATH = "/v1/context/prepare"
 
-    class ResolutionHandler(BaseHTTPRequestHandler):
+
+def _failure_handler(
+    status: int | None,
+    body: bytes,
+    paths: list[str] | None = None,
+    *,
+    path: str = _RESOLUTION_PATH,
+    truncated: bool = False,
+) -> type[BaseHTTPRequestHandler]:
+    """Answer requests to path with one response, and resolve the Scope for every other request.
+
+    A status of None closes the connection without a response. A truncated response announces a chunk longer than its
+    body and closes the connection inside it.
+    """
+
+    class FailureHandler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
-            paths.append(self.path)
+            if paths is not None:
+                paths.append(self.path)
             self.rfile.read(int(self.headers["Content-Length"]))
-            if status is None:
-                return
-            self.send_response(status)
+            if self.path != path:
+                self._send(200, b'{"scope_id":"scope:test"}')
+            elif status is not None and truncated:
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Transfer-Encoding", "chunked")
+                self.end_headers()
+                self.wfile.write(b"%x\r\n" % (len(body) + 32) + body)
+            elif status is not None:
+                self._send(status, body)
+
+        # SessionStart persists the session binding with a PUT after resolving the Scope.
+        do_PUT = do_POST
+
+        def _send(self, response_status: int, content: bytes) -> None:
+            self.send_response(response_status)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             with suppress(BrokenPipeError, ConnectionResetError):
-                self.wfile.write(body)
+                self.wfile.write(content)
 
         def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
             pass
 
-    return ResolutionHandler
+    return FailureHandler
 
 
 class _SlowResolutionErrorHandler(BaseHTTPRequestHandler):
@@ -125,24 +155,6 @@ class _SlowResolutionErrorHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         pass
-
-
-def _truncated_resolution_handler(status: int) -> type[BaseHTTPRequestHandler]:
-    """Answer every request with a chunked body that ends inside its first chunk."""
-
-    class TruncatedResolutionHandler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:
-            self.rfile.read(int(self.headers["Content-Length"]))
-            self.send_response(status)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Transfer-Encoding", "chunked")
-            self.end_headers()
-            self.wfile.write(b'40\r\n{"error":{"code":')
-
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
-            pass
-
-    return TruncatedResolutionHandler
 
 
 def _prepared(content: str | None = "prepared context", *, status: str = "ready") -> dict[str, object]:
@@ -489,7 +501,7 @@ def test_scope_resolution_failure_is_reported_and_nothing_else_is_sent(
     diagnostic: dict[str, object],
 ) -> None:
     paths: list[str] = []
-    with _serve(_resolution_handler(status, body, paths)) as server_url:
+    with _serve(_failure_handler(status, body, paths)) as server_url:
         # Reading the oversized body byte by byte can take seconds on a busy runner; let it reach the size bound.
         settings = recall_module.CodexPluginSettings(request_timeout_seconds=10.0, http_budget_seconds=10.0)
         object.__setattr__(settings, "server_url", server_url)
@@ -533,21 +545,14 @@ def test_scope_resolution_error_body_that_outlasts_the_budget_reports_an_unavail
     }
 
 
-@pytest.mark.parametrize(
-    ("status", "diagnostic"),
-    [
-        pytest.param(404, {"outcome": "version_mismatch", "http_status": 404}, id="error-body"),
-        pytest.param(200, {"outcome": "server_unavailable", "recovery": "powercontext doctor"}, id="success-body"),
-    ],
-)
-def test_truncated_scope_resolution_response_is_reported(
+@pytest.mark.parametrize("status", [pytest.param(404, id="error-body"), pytest.param(200, id="success-body")])
+def test_truncated_scope_resolution_response_reports_an_unavailable_server(
     recall_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     status: int,
-    diagnostic: dict[str, object],
 ) -> None:
-    with _serve(_truncated_resolution_handler(status)) as server_url:
+    with _serve(_failure_handler(status, b'{"error":{"code":', truncated=True)) as server_url:
         settings = recall_module.CodexPluginSettings()
         object.__setattr__(settings, "server_url", server_url)
         output, errors = _run_hook(
@@ -561,6 +566,70 @@ def test_truncated_scope_resolution_response_is_reported(
     assert json.loads(json.loads(output)["systemMessage"]) == {
         "component": "powercontext.codex.recall",
         "event": "scope_resolve",
+        "outcome": "server_unavailable",
+        "recovery": "powercontext doctor",
+    }
+
+
+@pytest.mark.parametrize(
+    ("handler", "diagnostic"),
+    [
+        pytest.param(
+            _failure_handler(200, b'{"schema":', path=_PREPARE_PATH, truncated=True),
+            {"outcome": "server_unavailable", "recovery": "powercontext doctor"},
+            id="truncated-body",
+        ),
+        pytest.param(
+            _failure_handler(422, b'{"error":{"code":', path=_PREPARE_PATH, truncated=True),
+            {"outcome": "server_unavailable", "recovery": "powercontext doctor"},
+            id="truncated-error-body",
+        ),
+        pytest.param(
+            _failure_handler(200, b"[" * 100_000, path=_PREPARE_PATH),
+            {"outcome": "invalid_response"},
+            id="deeply-nested-body",
+        ),
+        pytest.param(
+            _failure_handler(422, b"[" * 100_000, path=_PREPARE_PATH),
+            {"outcome": "invalid_response", "http_status": 422},
+            id="deeply-nested-error-body",
+        ),
+        pytest.param(
+            _failure_handler(422, b"1" * 5_000, path=_PREPARE_PATH),
+            {"outcome": "invalid_response", "http_status": 422},
+            id="long-number-error-body",
+        ),
+        pytest.param(
+            _failure_handler(422, b"x" * 1_048_577, path=_PREPARE_PATH),
+            {"outcome": "invalid_response"},
+            id="oversized-error-body",
+        ),
+    ],
+)
+def test_prepared_context_response_that_cannot_be_read_or_decoded_is_reported(
+    recall_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    handler: type[BaseHTTPRequestHandler],
+    diagnostic: dict[str, object],
+) -> None:
+    with _serve(handler) as server_url:
+        # Reading the oversized body byte by byte can take seconds on a busy runner; let it reach the size bound.
+        settings = recall_module.CodexPluginSettings(
+            capture_prompts=False, request_timeout_seconds=10.0, http_budget_seconds=10.0
+        )
+        object.__setattr__(settings, "server_url", server_url)
+        output, errors = _run_hook(
+            recall_module,
+            monkeypatch,
+            {"hook_event_name": "UserPromptSubmit", "cwd": str(tmp_path), "prompt": "Recall context"},
+            settings,
+        )
+
+    assert errors == ""
+    assert json.loads(json.loads(output)["systemMessage"]) == {
+        "component": "powercontext.codex.recall",
+        "event": "context_prepare",
         **diagnostic,
     }
 
@@ -568,14 +637,40 @@ def test_truncated_scope_resolution_response_is_reported(
 @pytest.mark.parametrize(
     ("handler", "outcome"),
     [
-        pytest.param(_truncated_resolution_handler(404), "version_mismatch", id="truncated-error-body"),
-        pytest.param(_resolution_handler(404, b"[" * 100_000, []), "version_mismatch", id="deeply-nested-error-body"),
-        pytest.param(_resolution_handler(404, b"1" * 5_000, []), "version_mismatch", id="long-number-error-body"),
-        pytest.param(_resolution_handler(200, b"[" * 100_000, []), "invalid_response", id="deeply-nested-body"),
-        pytest.param(_resolution_handler(200, b"1" * 5_000, []), "invalid_response", id="long-number-body"),
+        pytest.param(
+            _failure_handler(404, b'{"error":{"code":', truncated=True),
+            "server_unavailable",
+            id="truncated-resolution-error-body",
+        ),
+        pytest.param(
+            _failure_handler(404, b"[" * 100_000), "version_mismatch", id="deeply-nested-resolution-error-body"
+        ),
+        pytest.param(_failure_handler(404, b"1" * 5_000), "version_mismatch", id="long-number-resolution-error-body"),
+        pytest.param(_failure_handler(200, b"[" * 100_000), "invalid_response", id="deeply-nested-resolution-body"),
+        pytest.param(_failure_handler(200, b"1" * 5_000), "invalid_response", id="long-number-resolution-body"),
+        pytest.param(
+            _failure_handler(404, b'{"error":{"code":', path=_BOOTSTRAP_PATH, truncated=True),
+            "server_unavailable",
+            id="truncated-bootstrap-error-body",
+        ),
+        pytest.param(
+            _failure_handler(200, b'{"schema":', path=_BOOTSTRAP_PATH, truncated=True),
+            "server_unavailable",
+            id="truncated-bootstrap-body",
+        ),
+        pytest.param(
+            _failure_handler(200, b"[" * 100_000, path=_BOOTSTRAP_PATH),
+            "invalid_response",
+            id="deeply-nested-bootstrap-body",
+        ),
+        pytest.param(
+            _failure_handler(200, b"1" * 5_000, path=_BOOTSTRAP_PATH),
+            "invalid_response",
+            id="long-number-bootstrap-body",
+        ),
     ],
 )
-def test_session_start_clears_the_kept_receipt_when_the_resolution_response_cannot_be_decoded(
+def test_session_start_clears_the_kept_receipt_when_a_response_cannot_be_read_or_decoded(
     session_binding_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -610,14 +705,16 @@ def test_session_start_clears_the_kept_receipt_when_the_resolution_response_cann
         ),
     ],
 )
-def test_session_start_classifies_a_resolution_404_by_its_error_code(
+@pytest.mark.parametrize("path", [_RESOLUTION_PATH, _BOOTSTRAP_PATH], ids=["resolution", "bootstrap"])
+def test_session_start_classifies_a_404_by_its_error_code(
     session_binding_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    path: str,
     body: bytes,
     diagnostic: dict[str, object],
 ) -> None:
-    with _serve(_resolution_handler(404, body, [])) as server_url:
+    with _serve(_failure_handler(404, body, path=path)) as server_url:
         settings = session_binding_module.CodexPluginSettings()
         object.__setattr__(settings, "server_url", server_url)
         _, errors = _run_hook(
@@ -642,7 +739,7 @@ def test_failed_session_start_does_not_hold_back_the_next_prompt_diagnostic(
     tmp_path: Path,
 ) -> None:
     unavailable = b'{"error":{"code":"server_unavailable","message":"unavailable"}}'
-    with _serve(_resolution_handler(503, unavailable, [])) as server_url:
+    with _serve(_failure_handler(503, unavailable)) as server_url:
         settings = recall_module.CodexPluginSettings()
         object.__setattr__(settings, "server_url", server_url)
         _, session_errors = _run_hook(

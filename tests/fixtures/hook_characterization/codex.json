@@ -3659,6 +3659,7 @@
             "stderr": [
               {
                 "component": "powercontext.codex.bootstrap",
+                "error_code": "authentication_required",
                 "event": "context_bootstrap",
                 "http_status": 401,
                 "outcome": "authentication_failed",

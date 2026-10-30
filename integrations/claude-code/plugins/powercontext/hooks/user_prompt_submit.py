@@ -22,6 +22,7 @@ import sys
 from collections.abc import Mapping
 from contextlib import suppress
 from hashlib import sha256
+from http.client import HTTPException
 from pathlib import Path
 from time import monotonic
 from typing import Any, Protocol, cast
@@ -115,7 +116,8 @@ def _http_failure_outcome(error: _HttpStatusError, *, operation: str) -> str | N
 def _decode_error_code(raw: bytes) -> str | None:
     try:
         decoded = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except (ValueError, RecursionError):
+        # Besides JSONDecodeError, json raises ValueError for an over-long integer and RecursionError for deep nesting.
         return None
     if not isinstance(decoded, dict):
         return None
@@ -357,16 +359,16 @@ def _post_json(
     except HTTPError as error:
         try:
             error_body = _read_response(error, deadline=request_deadline, chunk_bytes=1)
-        except TimeoutError as timeout:
-            raise _ServerUnavailableError from timeout
-        except OSError:
-            error_body = b""
+        except (OSError, HTTPException) as failure:
+            # A stalled, reset, or truncated body is a transport failure, as it is for a successful response.
+            raise _ServerUnavailableError from failure
+        except ValueError as failure:
+            raise _InvalidResponseError from failure
         raise _HttpStatusError(error.code, path, _decode_error_code(error_body)) from error
-    except TimeoutError as error:
+    except (OSError, HTTPException) as error:
+        # http.client reports a truncated or malformed response as HTTPException, not OSError.
         raise _ServerUnavailableError from error
-    except OSError as error:
-        raise _ServerUnavailableError from error
-    except ValueError as error:
+    except (ValueError, RecursionError) as error:
         raise _InvalidResponseError from error
     if not isinstance(result, dict):
         raise _InvalidResponseError

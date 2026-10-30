@@ -241,7 +241,7 @@ def _request_json(
             raise ScopeBindingRejectedError from error
         if error.code == 503:
             raise ScopeBindingUnavailableError(503) from error
-        raise ScopeBindingStatusError(error.code, path, _error_code(error, deadline=request_deadline)) from error
+        raise ScopeBindingStatusError(error.code, path, read_error_code(error, deadline=request_deadline)) from error
     except (OSError, TimeoutError, HTTPException) as error:
         # http.client reports a truncated or malformed response as HTTPException, not OSError.
         raise ScopeBindingUnavailableError from error
@@ -255,17 +255,14 @@ def _request_json(
     return value
 
 
-def _error_code(error: HTTPError, *, deadline: float) -> str | None:
-    """Return the code of an error body, which fails the request when it outlasts the deadline or the size bound."""
+def read_error_code(error: HTTPError, *, deadline: float) -> str | None:
+    """Return the code of one error body, failing the request when the body exceeds the size bound or breaks off."""
 
     try:
         raw = _read_bounded(error, deadline=deadline)
-    except ScopeBindingError:
-        raise
-    except TimeoutError as timeout:
-        raise ScopeBindingUnavailableError from timeout
-    except (OSError, HTTPException):
-        return None
+    except (OSError, HTTPException) as failure:
+        # A stalled, reset, or truncated body is a transport failure, as it is for a successful response.
+        raise ScopeBindingUnavailableError from failure
     try:
         body: Any = json.loads(raw)
     except (ValueError, RecursionError):

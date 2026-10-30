@@ -580,13 +580,13 @@ def test_slow_scope_response_respects_the_absolute_budget(
 
 
 @pytest.mark.parametrize(
-    ("status", "body", "outcome", "error_code"),
+    ("status", "body", "outcome", "http_status", "error_code"),
     [
-        (401, {"error": {"code": "failure"}}, "authentication_failed", None),
-        (404, {"detail": "Not Found"}, "version_mismatch", None),
-        (404, {"error": {"code": "scope_not_found"}}, "invalid_response", "scope_not_found"),
-        (500, {"error": {"code": "failure"}}, "invalid_response", "failure"),
-        (503, {"error": {"code": "failure"}}, "server_unavailable", None),
+        (401, {"error": {"code": "failure"}}, "authentication_failed", None, None),
+        (404, {"detail": "Not Found"}, "version_mismatch", 404, None),
+        (404, {"error": {"code": "scope_not_found"}}, "invalid_response", 404, "scope_not_found"),
+        (500, {"error": {"code": "failure"}}, "invalid_response", 500, "failure"),
+        (503, {"error": {"code": "failure"}}, "server_unavailable", 503, None),
     ],
 )
 def test_scope_binding_failures_are_classified(
@@ -595,6 +595,7 @@ def test_scope_binding_failures_are_classified(
     status: int,
     body: dict[str, object],
     outcome: str,
+    http_status: int | None,
     error_code: str | None,
 ) -> None:
     class Handler(BaseHTTPRequestHandler):
@@ -617,6 +618,7 @@ def test_scope_binding_failures_are_classified(
 
     events = _diagnostics(output)
     assert [event["outcome"] for event in events] == [outcome]
+    assert events[0].get("http_status") == http_status
     assert events[0].get("error_code") == error_code
 
 
