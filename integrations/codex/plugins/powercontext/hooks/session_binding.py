@@ -51,6 +51,7 @@ from scope_binding import (  # noqa: E402
     ScopeBindingStatusError,
     ScopeBindingUnavailableError,
     bind_response_deadline,
+    complete_body,
     open_bounded,
     read_error_code,
     resolve_scope_id,
@@ -272,7 +273,7 @@ def _read_response(response: _ReadableResponse, *, deadline: float) -> bytes:
         remaining = _MAX_RESPONSE_BYTES + 1 - len(content)
         chunk = response.read(min(_READ_CHUNK_BYTES, remaining))
         if not chunk:
-            return bytes(content)
+            return complete_body(response, bytes(content))
         content.extend(chunk)
         if len(content) > _MAX_RESPONSE_BYTES:
             raise InvalidBootstrapResponse

@@ -46,6 +46,7 @@ from scope_binding import (  # noqa: E402
     ScopeBindingStatusError,
     ScopeBindingUnavailableError,
     bind_response_deadline,
+    complete_body,
     open_bounded,
     resolve_scope_id,
 )
@@ -419,7 +420,7 @@ def _read_response(
         remaining_bytes = _MAX_RESPONSE_BYTES + 1 - len(content)
         chunk = response.read(min(chunk_bytes, remaining_bytes))
         if not chunk:
-            return bytes(content)
+            return complete_body(response, bytes(content))
         content.extend(chunk)
         if len(content) > _MAX_RESPONSE_BYTES:
             raise ValueError("PowerContext response exceeds the hook limit")  # noqa: TRY003

@@ -96,12 +96,13 @@ def _failure_handler(
     paths: list[str] | None = None,
     *,
     path: str = _RESOLUTION_PATH,
-    truncated: bool = False,
+    truncated: str | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     """Answer requests to path with one response, and resolve the Scope for every other request.
 
-    A status of None closes the connection without a response. A truncated response announces a chunk longer than its
-    body and closes the connection inside it.
+    A status of None closes the connection without a response. A truncated response closes the connection inside its
+    body: with "chunked" framing inside a chunk longer than its data, with "content-length" framing before the
+    announced length.
     """
 
     class FailureHandler(BaseHTTPRequestHandler):
@@ -111,12 +112,17 @@ def _failure_handler(
             self.rfile.read(int(self.headers["Content-Length"]))
             if self.path != path:
                 self._send(200, b'{"scope_id":"scope:test"}')
-            elif status is not None and truncated:
+            elif status is not None and truncated is not None:
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Transfer-Encoding", "chunked")
-                self.end_headers()
-                self.wfile.write(b"%x\r\n" % (len(body) + 32) + body)
+                if truncated == "chunked":
+                    self.send_header("Transfer-Encoding", "chunked")
+                    self.end_headers()
+                    self.wfile.write(b"%x\r\n" % (len(body) + 32) + body)
+                else:
+                    self.send_header("Content-Length", str(len(body) + 32))
+                    self.end_headers()
+                    self.wfile.write(body)
             elif status is not None:
                 self._send(status, body)
 
@@ -545,14 +551,16 @@ def test_scope_resolution_error_body_that_outlasts_the_budget_reports_an_unavail
     }
 
 
+@pytest.mark.parametrize("framing", ["chunked", "content-length"])
 @pytest.mark.parametrize("status", [pytest.param(404, id="error-body"), pytest.param(200, id="success-body")])
 def test_truncated_scope_resolution_response_reports_an_unavailable_server(
     recall_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     status: int,
+    framing: str,
 ) -> None:
-    with _serve(_failure_handler(status, b'{"error":{"code":', truncated=True)) as server_url:
+    with _serve(_failure_handler(status, b'{"error":{"code":', truncated=framing)) as server_url:
         settings = recall_module.CodexPluginSettings()
         object.__setattr__(settings, "server_url", server_url)
         output, errors = _run_hook(
@@ -575,14 +583,24 @@ def test_truncated_scope_resolution_response_reports_an_unavailable_server(
     ("handler", "diagnostic"),
     [
         pytest.param(
-            _failure_handler(200, b'{"schema":', path=_PREPARE_PATH, truncated=True),
+            _failure_handler(200, b'{"schema":', path=_PREPARE_PATH, truncated="chunked"),
             {"outcome": "server_unavailable", "recovery": "powercontext doctor"},
-            id="truncated-body",
+            id="truncated-chunked-body",
         ),
         pytest.param(
-            _failure_handler(422, b'{"error":{"code":', path=_PREPARE_PATH, truncated=True),
+            _failure_handler(200, b'{"schema":', path=_PREPARE_PATH, truncated="content-length"),
             {"outcome": "server_unavailable", "recovery": "powercontext doctor"},
-            id="truncated-error-body",
+            id="truncated-content-length-body",
+        ),
+        pytest.param(
+            _failure_handler(422, b'{"error":{"code":', path=_PREPARE_PATH, truncated="chunked"),
+            {"outcome": "server_unavailable", "recovery": "powercontext doctor"},
+            id="truncated-chunked-error-body",
+        ),
+        pytest.param(
+            _failure_handler(422, b'{"error":{"code":', path=_PREPARE_PATH, truncated="content-length"),
+            {"outcome": "server_unavailable", "recovery": "powercontext doctor"},
+            id="truncated-content-length-error-body",
         ),
         pytest.param(
             _failure_handler(200, b"[" * 100_000, path=_PREPARE_PATH),
@@ -638,9 +656,14 @@ def test_prepared_context_response_that_cannot_be_read_or_decoded_is_reported(
     ("handler", "outcome"),
     [
         pytest.param(
-            _failure_handler(404, b'{"error":{"code":', truncated=True),
+            _failure_handler(404, b'{"error":{"code":', truncated="chunked"),
             "server_unavailable",
-            id="truncated-resolution-error-body",
+            id="truncated-chunked-resolution-error-body",
+        ),
+        pytest.param(
+            _failure_handler(404, b'{"error":{"code":', truncated="content-length"),
+            "server_unavailable",
+            id="truncated-content-length-resolution-error-body",
         ),
         pytest.param(
             _failure_handler(404, b"[" * 100_000), "version_mismatch", id="deeply-nested-resolution-error-body"
@@ -649,14 +672,24 @@ def test_prepared_context_response_that_cannot_be_read_or_decoded_is_reported(
         pytest.param(_failure_handler(200, b"[" * 100_000), "invalid_response", id="deeply-nested-resolution-body"),
         pytest.param(_failure_handler(200, b"1" * 5_000), "invalid_response", id="long-number-resolution-body"),
         pytest.param(
-            _failure_handler(404, b'{"error":{"code":', path=_BOOTSTRAP_PATH, truncated=True),
+            _failure_handler(404, b'{"error":{"code":', path=_BOOTSTRAP_PATH, truncated="chunked"),
             "server_unavailable",
-            id="truncated-bootstrap-error-body",
+            id="truncated-chunked-bootstrap-error-body",
         ),
         pytest.param(
-            _failure_handler(200, b'{"schema":', path=_BOOTSTRAP_PATH, truncated=True),
+            _failure_handler(404, b'{"error":{"code":', path=_BOOTSTRAP_PATH, truncated="content-length"),
             "server_unavailable",
-            id="truncated-bootstrap-body",
+            id="truncated-content-length-bootstrap-error-body",
+        ),
+        pytest.param(
+            _failure_handler(200, b'{"schema":', path=_BOOTSTRAP_PATH, truncated="chunked"),
+            "server_unavailable",
+            id="truncated-chunked-bootstrap-body",
+        ),
+        pytest.param(
+            _failure_handler(200, b'{"schema":', path=_BOOTSTRAP_PATH, truncated="content-length"),
+            "server_unavailable",
+            id="truncated-content-length-bootstrap-body",
         ),
         pytest.param(
             _failure_handler(200, b"[" * 100_000, path=_BOOTSTRAP_PATH),

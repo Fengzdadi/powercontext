@@ -25,7 +25,7 @@ import sys
 import threading
 from collections.abc import Mapping, Sequence
 from hashlib import sha256
-from http.client import HTTPException
+from http.client import HTTPException, IncompleteRead
 from pathlib import Path
 from shutil import which
 from time import monotonic
@@ -339,6 +339,21 @@ def bind_response_deadline(response: object, deadline: float) -> None:
     raw._sock = _DeadlineSocket(sock, deadline)
 
 
+def complete_body(response: object, body: bytes) -> bytes:
+    """Return a body read to its end, failing one that ended before its announced Content-Length.
+
+    ``http.client`` reports a truncated chunked body as ``IncompleteRead`` but returns a Content-Length body that the
+    connection cut short as if it were complete, leaving the missing byte count in ``length``.
+    """
+
+    if isinstance(response, HTTPError):
+        response = response.fp
+    missing = getattr(response, "length", None)
+    if missing:
+        raise IncompleteRead(body, missing)
+    return body
+
+
 def _set_response_timeout(response: object, timeout: float) -> None:
     """Tighten urllib's socket timeout before each bounded read."""
 
@@ -357,7 +372,7 @@ def _read_bounded(response: _Response, *, deadline: float) -> bytes:
         _set_response_timeout(response, _remaining_time(deadline))
         chunk = response.read(1)
         if not chunk:
-            return b"".join(chunks)
+            return complete_body(response, b"".join(chunks))
         size += len(chunk)
         if size > _MAX_RESPONSE_BYTES:
             raise ScopeBindingError
